@@ -100,6 +100,34 @@ export function subscribeUserCollections(
 }
 
 /**
+ * Automatically sync and migrate any guest/local storage albums to authenticated Google user account
+ */
+export async function migrateGuestDataToUserAccount(targetUid: string): Promise<void> {
+  if (!targetUid) return;
+  try {
+    const localGuestUid = localStorage.getItem('mviewie_user_uid');
+    if (!localGuestUid || localGuestUid === targetUid) return;
+
+    const guestLiked = getLocalCollection(`mviewie_liked_${localGuestUid}`);
+    const guestToListen = getLocalCollection(`mviewie_toListen_${localGuestUid}`);
+
+    // Migrate liked
+    for (const album of guestLiked) {
+      const docRef = doc(db, 'users', targetUid, 'liked', album.id);
+      await setDoc(docRef, { ...album, dateAdded: new Date().toISOString() }, { merge: true });
+    }
+
+    // Migrate toListen
+    for (const album of guestToListen) {
+      const docRef = doc(db, 'users', targetUid, 'toListen', album.id);
+      await setDoc(docRef, { ...album, dateAdded: new Date().toISOString() }, { merge: true });
+    }
+  } catch (err) {
+    console.warn('Guest data migration warning:', err);
+  }
+}
+
+/**
  * Fetch Public Shared Liked Collection for a specific user ID
  */
 export async function fetchSharedLikedCollection(uid: string): Promise<Album[]> {

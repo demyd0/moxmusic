@@ -12,7 +12,8 @@ import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { 
   subscribeUserCollections, 
   toggleLikeAlbum, 
-  toggleToListenAlbum
+  toggleToListenAlbum,
+  migrateGuestDataToUserAccount
 } from '@/services/collectionService';
 import type { UserCollectionsState } from '@/services/collectionService';
 import type { Album } from '@/types/album';
@@ -88,28 +89,40 @@ export const HelloPage: React.FC = () => {
     toListenAlbums: [],
   });
 
-  // 1. Initialize User & Subscribe to Firestore Collections
+  // 1. Dynamic User Subscriptions & Account Data Migration
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
+    let unsubCollections: (() => void) | undefined;
 
-    async function initUser() {
-      const uid = await getOrCreateUserId();
-      setUserId(uid);
+    const unsubAuth = auth.onAuthStateChanged(async (user) => {
+      if (unsubCollections) unsubCollections();
 
-      unsubscribe = subscribeUserCollections(uid, (state) => {
-        setUserCollections(state);
-      });
-    }
+      if (user && !user.isAnonymous) {
+        // User logged in via Google Auth -> Bind directly to user.uid
+        const activeUid = user.uid;
+        setUserId(activeUid);
+        setIsAuthenticated(true);
 
-    initUser();
+        // Auto-migrate any local guest data to Google account
+        await migrateGuestDataToUserAccount(activeUid);
 
-    // Listen for auth state to check if user is Google-authenticated
-    const unsubAuth = auth.onAuthStateChanged((user) => {
-      setIsAuthenticated(Boolean(user && !user.isAnonymous));
+        // Subscribe to Google account Firestore collections
+        unsubCollections = subscribeUserCollections(activeUid, (state) => {
+          setUserCollections(state);
+        });
+      } else {
+        // Guest user -> Bind to local storage ID
+        setIsAuthenticated(false);
+        const guestUid = await getOrCreateUserId();
+        setUserId(guestUid);
+
+        unsubCollections = subscribeUserCollections(guestUid, (state) => {
+          setUserCollections(state);
+        });
+      }
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubCollections) unsubCollections();
       unsubAuth();
     };
   }, []);
@@ -373,10 +386,11 @@ export const HelloPage: React.FC = () => {
                 </section>
               ) : (
                 /* DEFAULT SCREEN: SMART RECOMMENDATIONS OR ITUNES TOP CHARTS FALLBACK */
-                <section className="mt-4 border-2 border-black bg-white p-6 hard-shadow">
-                  <div className="flex items-center justify-between border-b-2 border-black pb-4 mb-6">
+                <section className="mt-4 border-2 border-black bg-white p-4 sm:p-6 hard-shadow">
+                  {/* Recommendations Header — Fully Responsive Flex layout (No overflow!) */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-2 border-black pb-4 mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center border-2 border-black bg-black text-white">
+                      <div className="flex h-9 w-9 items-center justify-center border-2 border-black bg-black text-white shrink-0">
                         {recommendations.isFallback ? (
                           <TrendingUp className="h-5 w-5 text-emerald-400" />
                         ) : (
@@ -384,7 +398,7 @@ export const HelloPage: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <h3 className="font-header text-2xl font-extrabold uppercase text-black">
+                        <h3 className="font-header text-xl sm:text-2xl font-extrabold uppercase text-black">
                           {recommendations.isFallback ? 'TOP CHARTS RECOMMENDATIONS' : 'RECOMMENDED FOR YOU'}
                         </h3>
                         <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
@@ -397,7 +411,7 @@ export const HelloPage: React.FC = () => {
 
                     <button
                       onClick={handleRefreshRecs}
-                      className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all hard-shadow-sm"
+                      className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all hard-shadow-sm shrink-0"
                       title="Recalculate recommendations"
                     >
                       <RefreshCw className={`h-3.5 w-3.5 ${isRecsLoading ? 'animate-spin' : ''}`} />

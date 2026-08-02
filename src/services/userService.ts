@@ -57,7 +57,27 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 /**
- * Save / Update User Profile in Firestore & LocalStorage
+ * Check if a username is already claimed by another user
+ */
+export async function checkUsernameAvailable(username: string, currentUid: string): Promise<boolean> {
+  const clean = username.trim().toLowerCase();
+  if (!clean) return false;
+  try {
+    const handleRef = doc(db, 'usernames', clean);
+    const snap = await getDoc(handleRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      // Available if claimed by current user
+      return data?.uid === currentUid;
+    }
+  } catch (error) {
+    console.warn('Firestore username uniqueness check warning:', error);
+  }
+  return true;
+}
+
+/**
+ * Save / Update User Profile in Firestore & LocalStorage with Uniqueness check
  */
 export async function saveUserProfile(
   uid: string,
@@ -65,11 +85,19 @@ export async function saveUserProfile(
   email?: string,
   photoURL?: string
 ): Promise<UserProfile> {
+  const cleanUsername = username.trim().toLowerCase();
+
+  // Enforce Username Uniqueness across all accounts
+  const isAvailable = await checkUsernameAvailable(cleanUsername, uid);
+  if (!isAvailable) {
+    throw new Error(`Username @${cleanUsername} is already taken by another user.`);
+  }
+
   const existing = await getUserProfile(uid);
 
   const profile: UserProfile = {
     uid,
-    username: username.trim().toLowerCase(),
+    username: cleanUsername,
     email: email || existing?.email || '',
     photoURL: photoURL || existing?.photoURL || '',
     createdAt: existing?.createdAt || new Date().toISOString(),
@@ -77,6 +105,15 @@ export async function saveUserProfile(
     consentDate: existing?.consentDate,
   };
 
+  // 1. Claim handle in 'usernames' collection
+  try {
+    const handleRef = doc(db, 'usernames', cleanUsername);
+    await setDoc(handleRef, { uid, username: cleanUsername, updatedAt: new Date().toISOString() });
+  } catch (e) {
+    console.warn('Failed to claim handle in usernames collection:', e);
+  }
+
+  // 2. Save profile in 'users' collection
   const docRef = doc(db, 'users', uid);
   try {
     await setDoc(docRef, { 
