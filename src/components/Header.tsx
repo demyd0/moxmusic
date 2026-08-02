@@ -189,50 +189,47 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-50 w-full border-b-2 border-black bg-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-6">
-        {/* Minimalist Double MM Brand Logo */}
+        {/* Minimalist Double MM Brand Logo ONLY (No text) */}
         <div 
-          className="flex items-center gap-2 cursor-pointer select-none hover:opacity-80 transition-opacity shrink-0" 
+          className="flex items-center cursor-pointer select-none hover:opacity-80 transition-opacity shrink-0" 
           onClick={handleLogoClick}
-          title="Go to main page"
+          title="mox music — Home"
         >
-          <div className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-white hard-shadow-sm font-mono text-sm font-extrabold tracking-tighter">
+          <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-black text-white hard-shadow font-mono text-base font-extrabold tracking-tighter">
             MM
           </div>
-          <span className="font-header text-xl sm:text-2xl font-extrabold tracking-tight text-black">
-            mox music <span className="hidden sm:inline text-[11px] font-mono font-bold tracking-wider text-neutral-500 uppercase ml-0.5">[v0.2]</span>
-          </span>
         </div>
 
-        {/* Center Navigation Tabs (Mobile touch targets >= 44px height) */}
-        <nav className="flex items-center gap-1 sm:gap-2">
+        {/* Center Navigation Segmented Control */}
+        <nav className="flex items-center border-2 border-black bg-white hard-shadow-sm p-0.5 font-mono text-xs font-bold uppercase">
           <button
             type="button"
             onClick={() => handleTabClick('search')}
-            className={`min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 border-2 border-black px-2.5 sm:px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 transition-all ${
               activeTab === 'search'
                 ? 'bg-black text-white'
                 : 'bg-white text-black hover:bg-neutral-100'
             }`}
-            title="Search releases"
+            title="Search"
           >
-            <Search className="h-4 w-4" />
-            <span className="hidden md:inline">Search</span>
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">SEARCH</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleTabClick('liked')}
-            className={`min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 border-2 border-black px-2.5 sm:px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 border-l-2 border-black transition-all ${
               activeTab === 'liked'
                 ? 'bg-black text-white'
                 : 'bg-white text-black hover:bg-neutral-100'
             }`}
             title="Liked collection"
           >
-            <Heart className={`h-4 w-4 ${activeTab === 'liked' ? 'fill-white' : ''}`} />
-            <span className="hidden md:inline">Liked</span>
+            <Heart className={`h-3.5 w-3.5 ${activeTab === 'liked' ? 'fill-white' : ''}`} />
+            <span className="hidden sm:inline">LIKED</span>
             {likedCount > 0 && (
-              <span className={`font-mono text-[10px] px-1.5 py-0.2 border border-current ${
+              <span className={`font-mono text-[10px] px-1 py-0.2 border border-current ${
                 activeTab === 'liked' ? 'bg-white text-black' : 'bg-black text-white'
               }`}>
                 {likedCount}
@@ -243,17 +240,17 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => handleTabClick('toListen')}
-            className={`min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 border-2 border-black px-2.5 sm:px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 border-l-2 border-black transition-all ${
               activeTab === 'toListen'
                 ? 'bg-black text-white'
                 : 'bg-white text-black hover:bg-neutral-100'
             }`}
             title="To Listen queue"
           >
-            <Headphones className="h-4 w-4" />
-            <span className="hidden md:inline">To Listen</span>
+            <Headphones className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">LISTEN</span>
             {toListenCount > 0 && (
-              <span className={`font-mono text-[10px] px-1.5 py-0.2 border border-current ${
+              <span className={`font-mono text-[10px] px-1 py-0.2 border border-current ${
                 activeTab === 'toListen' ? 'bg-white text-black' : 'bg-black text-white'
               }`}>
                 {toListenCount}
@@ -262,39 +259,41 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Right User Authentication & Settings Section */}
+        {/* Right User Profile Dropdown Pill */}
         <div className="flex items-center gap-2 relative shrink-0">
           {currentUser ? (
-            /* User Profile Pill with Dropdown Menu */
+            /* User Profile Button with High-Contrast Dropdown Menu */
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsProfileDropdownOpen((prev) => !prev)}
-                className="min-h-[44px] flex items-center gap-1.5 border-2 border-black bg-white p-1 pr-2 text-xs font-mono hard-shadow-sm hover:bg-neutral-50 transition-all select-none"
+                className="min-h-[40px] flex items-center gap-2 border-2 border-black bg-white px-2.5 py-1 text-xs font-mono hard-shadow hover:bg-neutral-100 transition-all select-none"
               >
                 {currentUser.photoURL ? (
                   <img
                     src={currentUser.photoURL}
                     alt={userProfile?.username || 'User'}
-                    className="h-7 w-7 border border-black object-cover"
+                    className="h-6 w-6 border border-black object-cover"
                   />
                 ) : (
-                  <div className="flex h-7 w-7 items-center justify-center border border-black bg-black text-white">
-                    <UserIcon className="h-4 w-4" />
+                  <div className="flex h-6 w-6 items-center justify-center border border-black bg-black text-white">
+                    <UserIcon className="h-3.5 w-3.5" />
                   </div>
                 )}
-                <span className="hidden md:inline font-bold text-black max-w-[100px] truncate">
+                <span className="font-bold text-black max-w-[80px] sm:max-w-[120px] truncate">
                   @{userProfile?.username || 'user'}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-black" />
               </button>
 
-              {/* Profile Dropdown Menu */}
+              {/* High-Contrast Prominent Dropdown Menu */}
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 border-2 border-black bg-white p-2 hard-shadow z-50 font-mono text-xs animate-fadeIn">
-                  <div className="border-b border-black/10 pb-2 mb-2 px-2">
-                    <div className="font-bold text-black truncate">@{userProfile?.username || 'user'}</div>
-                    <div className="text-[10px] text-neutral-500 truncate">{currentUser.email}</div>
+                <div className="absolute right-0 top-full mt-2 w-64 border-2 border-black bg-white p-3 hard-shadow-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 font-mono text-xs animate-fadeIn">
+                  <div className="border-b-2 border-black pb-2.5 mb-2.5 px-1">
+                    <div className="font-extrabold text-black text-sm uppercase truncate">
+                      @{userProfile?.username || 'user'}
+                    </div>
+                    <div className="text-[11px] text-neutral-500 truncate">{currentUser.email}</div>
                   </div>
 
                   <button
@@ -303,7 +302,7 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsProfileDropdownOpen(false);
                       setIsUsernameModalOpen(true);
                     }}
-                    className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-black hover:bg-neutral-100 transition-all mb-1"
+                    className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-black border border-black bg-white hover:bg-black hover:text-white transition-all mb-2 hard-shadow-sm"
                   >
                     <Edit3 className="h-4 w-4" />
                     <span>CHANGE USERNAME</span>
@@ -312,7 +311,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     type="button"
                     onClick={handleExportData}
-                    className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-black hover:bg-neutral-100 transition-all mb-1"
+                    className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-black border border-black bg-white hover:bg-neutral-100 transition-all mb-2 hard-shadow-sm"
                   >
                     <Download className="h-4 w-4" />
                     <span>EXPORT MY DATA</span>
@@ -324,17 +323,17 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsProfileDropdownOpen(false);
                       setIsDeleteModalOpen(true);
                     }}
-                    className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-red-600 hover:bg-red-50 transition-all mb-1"
+                    className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-red-600 border border-red-600 bg-red-50 hover:bg-red-600 hover:text-white transition-all mb-2 hard-shadow-sm"
                   >
                     <Trash2 className="h-4 w-4" />
                     <span>DELETE MY ACCOUNT</span>
                   </button>
 
-                  <div className="border-t border-black/10 pt-1">
+                  <div className="border-t-2 border-black pt-2">
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-neutral-700 hover:bg-neutral-100 transition-all"
+                      className="w-full min-h-[40px] flex items-center justify-center gap-2 px-2.5 py-2 text-center font-bold uppercase text-white bg-black hover:bg-neutral-800 transition-all"
                     >
                       <LogOut className="h-4 w-4" />
                       <span>SIGN OUT</span>
@@ -349,7 +348,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={handleGoogleLogin}
               disabled={isAuthLoading}
-              className="min-h-[44px] inline-flex items-center gap-1.5 border-2 border-black bg-black px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white hard-shadow-sm hover:bg-neutral-800 transition-all disabled:opacity-50"
+              className="min-h-[40px] inline-flex items-center gap-1.5 border-2 border-black bg-black px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white hard-shadow hover:bg-neutral-800 transition-all disabled:opacity-50"
             >
               <LogIn className="h-4 w-4" />
               <span>{isAuthLoading ? 'LOGGING IN...' : 'SIGN IN'}</span>
@@ -360,7 +359,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Toast Notification Banner */}
       {notificationToast && (
-        <div className="bg-black text-white border-t-2 border-black px-6 py-2 font-mono text-xs font-bold flex items-center justify-between animate-fadeIn">
+        <div className="bg-black text-white border-t-2 border-black px-6 py-2.5 font-mono text-xs font-bold flex items-center justify-between animate-fadeIn">
           <div className="flex items-center gap-2">
             <Check className="h-4 w-4 text-emerald-400" />
             <span>{notificationToast}</span>

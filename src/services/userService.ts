@@ -20,7 +20,7 @@ export interface UserProfile {
 }
 
 /**
- * Fetch User Profile Document by UID
+ * Fetch User Profile Document by UID (Publicly readable)
  */
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   if (!uid) return null;
@@ -42,7 +42,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       }
     }
   } catch (error) {
-    console.warn('Failed to fetch user profile:', error);
+    console.warn('Failed to fetch user profile from Firestore:', error);
   }
 
   // Check localStorage fallback
