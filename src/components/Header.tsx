@@ -60,14 +60,12 @@ export const Header: React.FC<HeaderProps> = ({
         if (profile) {
           setUserProfile(profile);
           setIsUsernameModalOpen(false);
-          // Check if user has recorded first-time GDPR consent
           if (!profile.consentGiven) {
             setIsConsentModalOpen(true);
           } else {
             setIsConsentModalOpen(false);
           }
         } else {
-          // Open Username modal to configure handle
           setIsUsernameModalOpen(true);
         }
       } else {
@@ -187,49 +185,51 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b-2 border-black bg-white">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-6">
         {/* Minimalist Double MM Brand Logo */}
         <div 
-          className="flex items-center gap-2.5 cursor-pointer select-none hover:opacity-80 transition-opacity" 
+          className="flex items-center gap-2 cursor-pointer select-none hover:opacity-80 transition-opacity shrink-0" 
           onClick={handleLogoClick}
           title="Go to main page"
         >
           <div className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-white hard-shadow-sm font-mono text-sm font-extrabold tracking-tighter">
             MM
           </div>
-          <span className="font-header text-2xl font-extrabold tracking-tight text-black">
-            mox music <span className="text-[11px] font-mono font-bold tracking-wider text-neutral-500 uppercase ml-0.5">[v0.2]</span>
+          <span className="font-header text-xl sm:text-2xl font-extrabold tracking-tight text-black">
+            mox music <span className="hidden sm:inline text-[11px] font-mono font-bold tracking-wider text-neutral-500 uppercase ml-0.5">[v0.2]</span>
           </span>
         </div>
 
-        {/* Center Navigation Tabs */}
-        <nav className="flex items-center gap-2">
+        {/* Center Navigation Tabs (Mobile touch targets >= 44px height) */}
+        <nav className="flex items-center gap-1 sm:gap-2">
           <button
             type="button"
             onClick={() => handleTabClick('search')}
-            className={`flex items-center gap-2 border-2 border-black px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+            className={`min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 border-2 border-black px-2.5 sm:px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
               activeTab === 'search'
                 ? 'bg-black text-white'
                 : 'bg-white text-black hover:bg-neutral-100'
             }`}
+            title="Search releases"
           >
-            <Search className="h-3.5 w-3.5" />
-            <span>Search</span>
+            <Search className="h-4 w-4" />
+            <span className="hidden md:inline">Search</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleTabClick('liked')}
-            className={`flex items-center gap-2 border-2 border-black px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+            className={`min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 border-2 border-black px-2.5 sm:px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
               activeTab === 'liked'
                 ? 'bg-black text-white'
                 : 'bg-white text-black hover:bg-neutral-100'
             }`}
+            title="Liked collection"
           >
-            <Heart className={`h-3.5 w-3.5 ${activeTab === 'liked' ? 'fill-white' : ''}`} />
-            <span>Liked</span>
+            <Heart className={`h-4 w-4 ${activeTab === 'liked' ? 'fill-white' : ''}`} />
+            <span className="hidden md:inline">Liked</span>
             {likedCount > 0 && (
-              <span className={`ml-1 font-mono text-[10px] px-1.5 py-0.2 border border-current ${
+              <span className={`font-mono text-[10px] px-1.5 py-0.2 border border-current ${
                 activeTab === 'liked' ? 'bg-white text-black' : 'bg-black text-white'
               }`}>
                 {likedCount}
@@ -240,16 +240,17 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => handleTabClick('toListen')}
-            className={`flex items-center gap-2 border-2 border-black px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+            className={`min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 border-2 border-black px-2.5 sm:px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
               activeTab === 'toListen'
                 ? 'bg-black text-white'
                 : 'bg-white text-black hover:bg-neutral-100'
             }`}
+            title="To Listen queue"
           >
-            <Headphones className="h-3.5 w-3.5" />
-            <span>To Listen</span>
+            <Headphones className="h-4 w-4" />
+            <span className="hidden md:inline">To Listen</span>
             {toListenCount > 0 && (
-              <span className={`ml-1 font-mono text-[10px] px-1.5 py-0.2 border border-current ${
+              <span className={`font-mono text-[10px] px-1.5 py-0.2 border border-current ${
                 activeTab === 'toListen' ? 'bg-white text-black' : 'bg-black text-white'
               }`}>
                 {toListenCount}
@@ -259,14 +260,14 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Right User Authentication & Settings Section */}
-        <div className="flex items-center gap-3 relative">
+        <div className="flex items-center gap-2 relative shrink-0">
           {currentUser ? (
             /* User Profile Pill with Dropdown Menu */
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsProfileDropdownOpen((prev) => !prev)}
-                className="flex items-center gap-2 border-2 border-black bg-white p-1 pr-2 text-xs font-mono hard-shadow-sm hover:bg-neutral-50 transition-all select-none"
+                className="min-h-[44px] flex items-center gap-1.5 border-2 border-black bg-white p-1 pr-2 text-xs font-mono hard-shadow-sm hover:bg-neutral-50 transition-all select-none"
               >
                 {currentUser.photoURL ? (
                   <img
@@ -279,10 +280,10 @@ export const Header: React.FC<HeaderProps> = ({
                     <UserIcon className="h-4 w-4" />
                   </div>
                 )}
-                <span className="hidden md:inline font-bold text-black max-w-[120px] truncate">
+                <span className="hidden md:inline font-bold text-black max-w-[100px] truncate">
                   @{userProfile?.username || 'user'}
                 </span>
-                <ChevronDown className="h-3.5 w-3.5 text-black ml-0.5" />
+                <ChevronDown className="h-3.5 w-3.5 text-black" />
               </button>
 
               {/* Profile Dropdown Menu */}
@@ -296,9 +297,9 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     type="button"
                     onClick={handleExportData}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-left font-bold uppercase text-black hover:bg-neutral-100 transition-all mb-1"
+                    className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-black hover:bg-neutral-100 transition-all mb-1"
                   >
-                    <Download className="h-3.5 w-3.5" />
+                    <Download className="h-4 w-4" />
                     <span>EXPORT MY DATA</span>
                   </button>
 
@@ -308,9 +309,9 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsProfileDropdownOpen(false);
                       setIsDeleteModalOpen(true);
                     }}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-left font-bold uppercase text-red-600 hover:bg-red-50 transition-all mb-1"
+                    className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-red-600 hover:bg-red-50 transition-all mb-1"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                     <span>DELETE MY ACCOUNT</span>
                   </button>
 
@@ -318,9 +319,9 @@ export const Header: React.FC<HeaderProps> = ({
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 text-left font-bold uppercase text-neutral-700 hover:bg-neutral-100 transition-all"
+                      className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-neutral-700 hover:bg-neutral-100 transition-all"
                     >
-                      <LogOut className="h-3.5 w-3.5" />
+                      <LogOut className="h-4 w-4" />
                       <span>SIGN OUT</span>
                     </button>
                   </div>
@@ -333,9 +334,9 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={handleGoogleLogin}
               disabled={isAuthLoading}
-              className="inline-flex items-center gap-2 border-2 border-black bg-black px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-white hard-shadow-sm hover:bg-neutral-800 transition-all disabled:opacity-50"
+              className="min-h-[44px] inline-flex items-center gap-1.5 border-2 border-black bg-black px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white hard-shadow-sm hover:bg-neutral-800 transition-all disabled:opacity-50"
             >
-              <LogIn className="h-3.5 w-3.5" />
+              <LogIn className="h-4 w-4" />
               <span>{isAuthLoading ? 'LOGGING IN...' : 'SIGN IN'}</span>
             </button>
           )}
