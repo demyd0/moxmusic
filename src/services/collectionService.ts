@@ -17,6 +17,17 @@ export interface UserCollectionsState {
 }
 
 /**
+ * Sort Albums by dateAdded descending (Latest liked album first)
+ */
+function sortByLatestAdded(albums: Album[]): Album[] {
+  return [...albums].sort((a, b) => {
+    const timeA = a.dateAdded ? new Date(a.dateAdded).getTime() : 0;
+    const timeB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
+    return timeB - timeA; // Descending: Newest additions at top
+  });
+}
+
+/**
  * LocalStorage Fallback helpers for offline/unconfigured environments
  */
 function getLocalCollection(key: string): Album[] {
@@ -38,6 +49,7 @@ function setLocalCollection(key: string, albums: Album[]): void {
 
 /**
  * Subscribe to real-time updates for Liked and ToListen collections for a user.
+ * Automatically sorts albums by dateAdded descending (latest at the top).
  */
 export function subscribeUserCollections(
   uid: string,
@@ -62,14 +74,16 @@ export function subscribeUserCollections(
   const unsubLiked = onSnapshot(
     likedRef,
     (snapshot) => {
-      likedAlbums = snapshot.docs.map((d) => d.data() as Album);
+      const rawAlbums = snapshot.docs.map((d) => d.data() as Album);
+      likedAlbums = sortByLatestAdded(rawAlbums);
       likedIds = new Set(likedAlbums.map((a) => a.id));
       setLocalCollection(`mviewie_liked_${uid}`, likedAlbums);
       emit();
     },
     (error) => {
       console.warn('Firestore liked collection sync warning, using local state fallback:', error);
-      likedAlbums = getLocalCollection(`mviewie_liked_${uid}`);
+      const rawLocal = getLocalCollection(`mviewie_liked_${uid}`);
+      likedAlbums = sortByLatestAdded(rawLocal);
       likedIds = new Set(likedAlbums.map((a) => a.id));
       emit();
     }
@@ -80,14 +94,16 @@ export function subscribeUserCollections(
   const unsubToListen = onSnapshot(
     toListenRef,
     (snapshot) => {
-      toListenAlbums = snapshot.docs.map((d) => d.data() as Album);
+      const rawAlbums = snapshot.docs.map((d) => d.data() as Album);
+      toListenAlbums = sortByLatestAdded(rawAlbums);
       toListenIds = new Set(toListenAlbums.map((a) => a.id));
       setLocalCollection(`mviewie_toListen_${uid}`, toListenAlbums);
       emit();
     },
     (error) => {
       console.warn('Firestore toListen collection sync warning, using local state fallback:', error);
-      toListenAlbums = getLocalCollection(`mviewie_toListen_${uid}`);
+      const rawLocal = getLocalCollection(`mviewie_toListen_${uid}`);
+      toListenAlbums = sortByLatestAdded(rawLocal);
       toListenIds = new Set(toListenAlbums.map((a) => a.id));
       emit();
     }
@@ -114,13 +130,13 @@ export async function migrateGuestDataToUserAccount(targetUid: string): Promise<
     // Migrate liked
     for (const album of guestLiked) {
       const docRef = doc(db, 'users', targetUid, 'liked', album.id);
-      await setDoc(docRef, { ...album, dateAdded: new Date().toISOString() }, { merge: true });
+      await setDoc(docRef, { ...album, dateAdded: album.dateAdded || new Date().toISOString() }, { merge: true });
     }
 
     // Migrate toListen
     for (const album of guestToListen) {
       const docRef = doc(db, 'users', targetUid, 'toListen', album.id);
-      await setDoc(docRef, { ...album, dateAdded: new Date().toISOString() }, { merge: true });
+      await setDoc(docRef, { ...album, dateAdded: album.dateAdded || new Date().toISOString() }, { merge: true });
     }
   } catch (err) {
     console.warn('Guest data migration warning:', err);
@@ -128,7 +144,7 @@ export async function migrateGuestDataToUserAccount(targetUid: string): Promise<
 }
 
 /**
- * Fetch Public Shared Liked Collection for a specific user ID
+ * Fetch Public Shared Liked Collection for a specific user ID (Sorted by latest first)
  */
 export async function fetchSharedLikedCollection(uid: string): Promise<Album[]> {
   if (!uid) return [];
@@ -136,13 +152,15 @@ export async function fetchSharedLikedCollection(uid: string): Promise<Album[]> 
     const likedRef = collection(db, 'users', uid, 'liked');
     const snapshot = await getDocs(likedRef);
     if (!snapshot.empty) {
-      return snapshot.docs.map((d) => d.data() as Album);
+      const rawAlbums = snapshot.docs.map((d) => d.data() as Album);
+      return sortByLatestAdded(rawAlbums);
     }
   } catch (error) {
     console.warn('Firestore shared fetch failed or offline, checking local storage:', error);
   }
 
-  return getLocalCollection(`mviewie_liked_${uid}`);
+  const rawLocal = getLocalCollection(`mviewie_liked_${uid}`);
+  return sortByLatestAdded(rawLocal);
 }
 
 /**
@@ -166,13 +184,13 @@ export async function toggleLikeAlbum(
     const local = getLocalCollection(`mviewie_liked_${uid}`).filter((a) => a.id !== album.id);
     setLocalCollection(`mviewie_liked_${uid}`, local);
   } else {
-    // Add to Firestore
-    const albumDoc = {
+    // Add to Firestore with current timestamp for latest-first sorting
+    const albumDoc: Album = {
       id: album.id,
       title: album.title,
       artist: album.artist,
-      coverUrl: album.coverUrl || null,
-      releaseYear: album.releaseYear || null,
+      coverUrl: album.coverUrl || undefined,
+      releaseYear: album.releaseYear || undefined,
       source: album.source,
       dateAdded: new Date().toISOString(),
     };
@@ -186,7 +204,7 @@ export async function toggleLikeAlbum(
     // Update Local Storage
     const local = getLocalCollection(`mviewie_liked_${uid}`);
     if (!local.some((a) => a.id === album.id)) {
-      local.unshift(album);
+      local.unshift(albumDoc);
       setLocalCollection(`mviewie_liked_${uid}`, local);
     }
   }
@@ -213,13 +231,13 @@ export async function toggleToListenAlbum(
     const local = getLocalCollection(`mviewie_toListen_${uid}`).filter((a) => a.id !== album.id);
     setLocalCollection(`mviewie_toListen_${uid}`, local);
   } else {
-    // Add to Firestore
-    const albumDoc = {
+    // Add to Firestore with current timestamp for latest-first sorting
+    const albumDoc: Album = {
       id: album.id,
       title: album.title,
       artist: album.artist,
-      coverUrl: album.coverUrl || null,
-      releaseYear: album.releaseYear || null,
+      coverUrl: album.coverUrl || undefined,
+      releaseYear: album.releaseYear || undefined,
       source: album.source,
       dateAdded: new Date().toISOString(),
     };
@@ -233,7 +251,7 @@ export async function toggleToListenAlbum(
     // Update Local Storage
     const local = getLocalCollection(`mviewie_toListen_${uid}`);
     if (!local.some((a) => a.id === album.id)) {
-      local.unshift(album);
+      local.unshift(albumDoc);
       setLocalCollection(`mviewie_toListen_${uid}`, local);
     }
   }
