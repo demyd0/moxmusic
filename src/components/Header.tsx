@@ -24,7 +24,8 @@ import {
   Download, 
   Trash2, 
   ChevronDown, 
-  Check 
+  Check,
+  Edit3
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -120,6 +121,8 @@ export const Header: React.FC<HeaderProps> = ({
     );
     setUserProfile(profile);
     setIsUsernameModalOpen(false);
+    setNotificationToast(`USERNAME UPDATED TO @${profile.username.toUpperCase()}`);
+    setTimeout(() => setNotificationToast(null), 3000);
 
     if (!profile.consentGiven) {
       setIsConsentModalOpen(true);
@@ -296,6 +299,18 @@ export const Header: React.FC<HeaderProps> = ({
 
                   <button
                     type="button"
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      setIsUsernameModalOpen(true);
+                    }}
+                    className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-black hover:bg-neutral-100 transition-all mb-1"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    <span>CHANGE USERNAME</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleExportData}
                     className="w-full min-h-[44px] flex items-center gap-2 px-2 py-2 text-left font-bold uppercase text-black hover:bg-neutral-100 transition-all mb-1"
                   >
@@ -378,6 +393,9 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Username Configuration Modal */}
       <UsernameModal
         isOpen={isUsernameModalOpen}
+        currentUserEmail={currentUser?.email}
+        initialUsername={userProfile?.username || ''}
+        onClose={userProfile ? () => setIsUsernameModalOpen(false) : undefined}
         onSubmit={handleSaveUsername}
       />
 
