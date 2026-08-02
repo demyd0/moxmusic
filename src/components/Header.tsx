@@ -173,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
               <span className="hidden md:inline font-bold text-black max-w-[140px] truncate">
-                {currentUser.email || currentUser.displayName}
+                {currentUser.displayName || currentUser.email}
               </span>
               <button
                 type="button"

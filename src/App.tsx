@@ -3,6 +3,7 @@ import { HelloPage } from '@/pages/Hello';
 import { AlbumDetailsPage } from '@/pages/AlbumDetailsPage';
 import { ArtistDiscographyPage } from '@/pages/ArtistDiscographyPage';
 import { PrivacyPage } from '@/pages/PrivacyPage';
+import { SharedCollectionPage } from '@/pages/SharedCollectionPage';
 
 export function App() {
   return (
@@ -12,6 +13,7 @@ export function App() {
         <Route path="/album/:id" element={<AlbumDetailsPage />} />
         <Route path="/artist/:id" element={<ArtistDiscographyPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/share/:uid" element={<SharedCollectionPage />} />
       </Routes>
     </Router>
   );

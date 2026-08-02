@@ -24,7 +24,9 @@ import {
   Sparkles,
   Loader2,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  Share2,
+  Check
 } from 'lucide-react';
 
 export const HelloPage: React.FC = () => {
@@ -60,6 +62,7 @@ export const HelloPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchedMb, setSearchedMb] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [copyToast, setCopyToast] = useState(false);
 
   // Recommendations state
   const [recommendations, setRecommendations] = useState<{
@@ -146,7 +149,16 @@ export const HelloPage: React.FC = () => {
     }
   };
 
-  // 3. Debounced Live Autocomplete Search Handler (400ms)
+  // 3. Share Public Liked Link Handler
+  const handleShareLikedCollection = () => {
+    if (!userId) return;
+    const shareUrl = `${window.location.origin}/share/${userId}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopyToast(true);
+    setTimeout(() => setCopyToast(false), 2500);
+  };
+
+  // 4. Debounced Live Autocomplete Search Handler (400ms)
   const performSearch = useCallback(async (searchQuery: string, isBroad: boolean) => {
     if (!searchQuery.trim()) {
       setAlbums([]);
@@ -185,7 +197,7 @@ export const HelloPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [query, enableBroadSearch, performSearch]);
 
-  // 4. Collection Toggle Handlers
+  // 5. Collection Toggle Handlers
   const handleToggleLike = async (album: Album) => {
     if (!userId) return;
     const isLiked = userCollections.likedIds.has(album.id);
@@ -234,13 +246,9 @@ export const HelloPage: React.FC = () => {
                   <span>MUSIC DISCOVERY PLATFORM</span>
                 </div>
 
-                <h1 className="font-header text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-black mb-4 leading-tight">
+                <h1 className="font-header text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-black mb-6 leading-tight">
                   FIND YOUR MUSIC
                 </h1>
-
-                <p className="max-w-2xl text-sm sm:text-base text-neutral-600 font-normal leading-relaxed mb-6">
-                  Two-tier music discovery platform: iTunes API + MusicBrainz & Cover Art Archive.
-                </p>
 
                 {/* Search Bar Component */}
                 <SearchBar
@@ -372,20 +380,14 @@ export const HelloPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={handleRefreshRecs}
-                        className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all"
-                        title="Recalculate recommendations"
-                      >
-                        <RefreshCw className={`h-3.5 w-3.5 ${isRecsLoading ? 'animate-spin' : ''}`} />
-                        <span>REFRESH</span>
-                      </button>
-
-                      <span className="border-2 border-black bg-neutral-100 px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-black">
-                        {recommendations.isFallback ? 'TOP CHARTS' : 'SMART MATCH'}
-                      </span>
-                    </div>
+                    <button
+                      onClick={handleRefreshRecs}
+                      className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all hard-shadow-sm"
+                      title="Recalculate recommendations"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${isRecsLoading ? 'animate-spin' : ''}`} />
+                      <span>REFRESH</span>
+                    </button>
                   </div>
 
                   {isRecsLoading ? (
@@ -443,8 +445,29 @@ export const HelloPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Sub Switcher Pills: Liked vs To Listen */}
-                <div className="flex items-center gap-2">
+                {/* Sub Switcher Pills & Share Action */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {activeTab === 'liked' && userCollections.likedAlbums.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleShareLikedCollection}
+                      className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all hard-shadow-sm"
+                      title="Share public link to your liked collection"
+                    >
+                      {copyToast ? (
+                        <>
+                          <Check className="h-4 w-4 text-emerald-600" />
+                          <span className="text-emerald-600 font-bold">LINK COPIED!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="h-4 w-4" />
+                          <span>SHARE</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => handleSetActiveTab('liked')}

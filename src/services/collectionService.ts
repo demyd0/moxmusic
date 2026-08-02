@@ -4,6 +4,7 @@ import {
   doc, 
   setDoc, 
   deleteDoc, 
+  getDocs,
   onSnapshot 
 } from 'firebase/firestore';
 import type { Album } from '@/types/album';
@@ -96,6 +97,24 @@ export function subscribeUserCollections(
     unsubLiked();
     unsubToListen();
   };
+}
+
+/**
+ * Fetch Public Shared Liked Collection for a specific user ID
+ */
+export async function fetchSharedLikedCollection(uid: string): Promise<Album[]> {
+  if (!uid) return [];
+  try {
+    const likedRef = collection(db, 'users', uid, 'liked');
+    const snapshot = await getDocs(likedRef);
+    if (!snapshot.empty) {
+      return snapshot.docs.map((d) => d.data() as Album);
+    }
+  } catch (error) {
+    console.warn('Firestore shared fetch failed or offline, checking local storage:', error);
+  }
+
+  return getLocalCollection(`mviewie_liked_${uid}`);
 }
 
 /**
