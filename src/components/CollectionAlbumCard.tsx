@@ -15,6 +15,7 @@ interface CollectionAlbumCardProps {
 
 export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
   album,
+  type,
   isLiked = false,
   isToListen = false,
   onToggleLike,
@@ -77,7 +78,59 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
         {/* Hover Action Overlay */}
         <div className="absolute inset-0 z-20 flex flex-col justify-end p-2.5 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-none">
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            {onToggleLike && onToggleToListen ? (
+            {type === 'liked' && onToggleToListen ? (
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={() => onToggleToListen(album)}
+                  className={`inline-flex items-center justify-center gap-1 border border-black px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    isToListen
+                      ? 'bg-black text-white border-white'
+                      : 'bg-white text-black hover:bg-neutral-100'
+                  }`}
+                >
+                  <Headphones className="h-3 w-3" />
+                  <span>{isToListen ? 'QUEUED' : 'LISTEN'}</span>
+                </button>
+
+                {onRemove && (
+                  <button
+                    type="button"
+                    onClick={() => onRemove(album)}
+                    className="inline-flex items-center justify-center gap-1 border border-black bg-white px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-black hover:bg-red-600 hover:text-white transition-all"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span>DELETE</span>
+                  </button>
+                )}
+              </div>
+            ) : type === 'toListen' && onToggleLike ? (
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={() => onToggleLike(album)}
+                  className={`inline-flex items-center justify-center gap-1 border border-black px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    isLiked
+                      ? 'bg-black text-white border-white'
+                      : 'bg-white text-black hover:bg-neutral-100'
+                  }`}
+                >
+                  <Heart className={`h-3 w-3 ${isLiked ? 'fill-white text-white' : 'text-black'}`} />
+                  <span>{isLiked ? 'LIKED' : 'LIKE'}</span>
+                </button>
+
+                {onRemove && (
+                  <button
+                    type="button"
+                    onClick={() => onRemove(album)}
+                    className="inline-flex items-center justify-center gap-1 border border-black bg-white px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-black hover:bg-red-600 hover:text-white transition-all"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span>DELETE</span>
+                  </button>
+                )}
+              </div>
+            ) : onToggleLike && onToggleToListen ? (
               <div className="grid grid-cols-2 gap-2 w-full">
                 <button
                   type="button"

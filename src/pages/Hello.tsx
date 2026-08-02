@@ -387,7 +387,7 @@ export const HelloPage: React.FC = () => {
               ) : (
                 /* DEFAULT SCREEN: SMART RECOMMENDATIONS OR ITUNES TOP CHARTS FALLBACK */
                 <section className="mt-4 border-2 border-black bg-white p-4 sm:p-6 hard-shadow">
-                  {/* Recommendations Header — Fully Responsive Flex layout (No overflow!) */}
+                  {/* Recommendations Header */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-2 border-black pb-4 mb-6">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center border-2 border-black bg-black text-white shrink-0">
@@ -534,6 +534,8 @@ export const HelloPage: React.FC = () => {
                         key={album.id}
                         album={album}
                         type="liked"
+                        isToListen={userCollections.toListenIds.has(album.id)}
+                        onToggleToListen={handleToggleToListen}
                         onRemove={handleToggleLike}
                       />
                     ))}
@@ -565,6 +567,8 @@ export const HelloPage: React.FC = () => {
                         key={album.id}
                         album={album}
                         type="toListen"
+                        isLiked={userCollections.likedIds.has(album.id)}
+                        onToggleLike={handleToggleLike}
                         onRemove={handleToggleToListen}
                       />
                     ))}
