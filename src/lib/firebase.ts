@@ -2,7 +2,6 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { 
   getAuth, 
-  signInAnonymously, 
   signInWithPopup, 
   signOut, 
   GoogleAuthProvider, 
@@ -55,27 +54,27 @@ export async function signOutUser(): Promise<void> {
 }
 
 /**
- * Helper to get or ensure user UID (Authenticated or persistent Fallback)
+ * Helper to get or ensure user UID (Authenticated or persistent local Fallback)
  */
 export async function getOrCreateUserId(): Promise<string> {
   return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
+    const user = auth.currentUser;
+    if (user) {
+      resolve(user.uid);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (authUser: User | null) => {
       unsubscribe();
-      if (user) {
-        resolve(user.uid);
+      if (authUser) {
+        resolve(authUser.uid);
       } else {
-        try {
-          const userCred = await signInAnonymously(auth);
-          resolve(userCred.user.uid);
-        } catch (error) {
-          console.warn('Anonymous auth fallback:', error);
-          let localUid = localStorage.getItem('mviewie_user_uid');
-          if (!localUid) {
-            localUid = `user_${Math.random().toString(36).substring(2, 11)}`;
-            localStorage.setItem('mviewie_user_uid', localUid);
-          }
-          resolve(localUid);
+        let localUid = localStorage.getItem('mviewie_user_uid');
+        if (!localUid) {
+          localUid = `user_${Math.random().toString(36).substring(2, 11)}`;
+          localStorage.setItem('mviewie_user_uid', localUid);
         }
+        resolve(localUid);
       }
     });
   });
