@@ -2,9 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { getUserProfile, saveUserProfile, type UserProfile } from '@/services/userService';
+import { 
+  getUserProfile, 
+  saveUserProfile, 
+  recordUserConsent, 
+  exportUserData, 
+  deleteUserAccount, 
+  type UserProfile 
+} from '@/services/userService';
 import { UsernameModal } from '@/components/UsernameModal';
-import { Search, Heart, Headphones, LogIn, LogOut, User as UserIcon, AlertTriangle } from 'lucide-react';
+import { GdprConsentModal } from '@/components/GdprConsentModal';
+import { DeleteAccountModal } from '@/components/DeleteAccountModal';
+import { 
+  Search, 
+  Heart, 
+  Headphones, 
+  LogIn, 
+  LogOut, 
+  User as UserIcon, 
+  AlertTriangle, 
+  Download, 
+  Trash2, 
+  ChevronDown, 
+  Check 
+} from 'lucide-react';
 
 interface HeaderProps {
   activeTab?: 'search' | 'liked' | 'toListen';
@@ -23,8 +44,12 @@ export const Header: React.FC<HeaderProps> = ({
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [notificationToast, setNotificationToast] = useState<string | null>(null);
 
   // Subscribe to persistent Firebase Auth state & fetch User Profile
   useEffect(() => {
@@ -35,6 +60,12 @@ export const Header: React.FC<HeaderProps> = ({
         if (profile) {
           setUserProfile(profile);
           setIsUsernameModalOpen(false);
+          // Check if user has recorded first-time GDPR consent
+          if (!profile.consentGiven) {
+            setIsConsentModalOpen(true);
+          } else {
+            setIsConsentModalOpen(false);
+          }
         } else {
           // Open Username modal to configure handle
           setIsUsernameModalOpen(true);
@@ -43,6 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
         setCurrentUser(null);
         setUserProfile(null);
         setIsUsernameModalOpen(false);
+        setIsConsentModalOpen(false);
       }
     });
 
@@ -58,6 +90,8 @@ export const Header: React.FC<HeaderProps> = ({
         const profile = await getUserProfile(user.uid);
         if (!profile) {
           setIsUsernameModalOpen(true);
+        } else if (!profile.consentGiven) {
+          setIsConsentModalOpen(true);
         }
       }
     } catch (err: any) {
@@ -88,13 +122,49 @@ export const Header: React.FC<HeaderProps> = ({
     );
     setUserProfile(profile);
     setIsUsernameModalOpen(false);
+
+    if (!profile.consentGiven) {
+      setIsConsentModalOpen(true);
+    }
+  };
+
+  const handleAcceptConsent = async () => {
+    if (!currentUser) return;
+    await recordUserConsent(currentUser.uid);
+    if (userProfile) {
+      setUserProfile({ ...userProfile, consentGiven: true });
+    }
+    setIsConsentModalOpen(false);
+  };
+
+  const handleExportData = async () => {
+    if (!currentUser) return;
+    setIsProfileDropdownOpen(false);
+    await exportUserData(currentUser.uid, userProfile?.username || 'user');
+    setNotificationToast('DATA EXPORT COMPLETED.');
+    setTimeout(() => setNotificationToast(null), 3000);
+  };
+
+  const handleDeleteAccountConfirm = async () => {
+    if (!currentUser) return;
+    setIsDeleteModalOpen(false);
+    setIsProfileDropdownOpen(false);
+    const uid = currentUser.uid;
+    await deleteUserAccount(uid);
+    setCurrentUser(null);
+    setUserProfile(null);
+    setNotificationToast('ACCOUNT AND DATA PERMANENTLY DELETED.');
+    setTimeout(() => setNotificationToast(null), 4000);
+    navigate('/');
   };
 
   const handleLogout = async () => {
+    setIsProfileDropdownOpen(false);
     await signOutUser();
     setCurrentUser(null);
     setUserProfile(null);
     setIsUsernameModalOpen(false);
+    setIsConsentModalOpen(false);
   };
 
   const handleTabClick = (tab: 'search' | 'liked' | 'toListen') => {
@@ -188,33 +258,74 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Right User Authentication Section */}
-        <div className="flex items-center gap-3">
+        {/* Right User Authentication & Settings Section */}
+        <div className="flex items-center gap-3 relative">
           {currentUser ? (
-            /* User Authenticated Profile Pill (Hides email, shows @username) */
-            <div className="flex items-center gap-2 border-2 border-black bg-white p-1 pr-2.5 text-xs font-mono hard-shadow-sm">
-              {currentUser.photoURL ? (
-                <img
-                  src={currentUser.photoURL}
-                  alt={userProfile?.username || 'User'}
-                  className="h-7 w-7 border border-black object-cover"
-                />
-              ) : (
-                <div className="flex h-7 w-7 items-center justify-center border border-black bg-black text-white">
-                  <UserIcon className="h-4 w-4" />
-                </div>
-              )}
-              <span className="hidden md:inline font-bold text-black max-w-[140px] truncate">
-                @{userProfile?.username || 'user'}
-              </span>
+            /* User Profile Pill with Dropdown Menu */
+            <div className="relative">
               <button
                 type="button"
-                onClick={handleLogout}
-                className="ml-1 flex h-6 w-6 items-center justify-center border border-black bg-neutral-100 text-black hover:bg-black hover:text-white transition-all"
-                title="Sign Out"
+                onClick={() => setIsProfileDropdownOpen((prev) => !prev)}
+                className="flex items-center gap-2 border-2 border-black bg-white p-1 pr-2 text-xs font-mono hard-shadow-sm hover:bg-neutral-50 transition-all select-none"
               >
-                <LogOut className="h-3.5 w-3.5" />
+                {currentUser.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={userProfile?.username || 'User'}
+                    className="h-7 w-7 border border-black object-cover"
+                  />
+                ) : (
+                  <div className="flex h-7 w-7 items-center justify-center border border-black bg-black text-white">
+                    <UserIcon className="h-4 w-4" />
+                  </div>
+                )}
+                <span className="hidden md:inline font-bold text-black max-w-[120px] truncate">
+                  @{userProfile?.username || 'user'}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-black ml-0.5" />
               </button>
+
+              {/* Profile Dropdown Menu */}
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 border-2 border-black bg-white p-2 hard-shadow z-50 font-mono text-xs animate-fadeIn">
+                  <div className="border-b border-black/10 pb-2 mb-2 px-2">
+                    <div className="font-bold text-black truncate">@{userProfile?.username || 'user'}</div>
+                    <div className="text-[10px] text-neutral-500 truncate">{currentUser.email}</div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleExportData}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-left font-bold uppercase text-black hover:bg-neutral-100 transition-all mb-1"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>EXPORT MY DATA</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-left font-bold uppercase text-red-600 hover:bg-red-50 transition-all mb-1"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>DELETE MY ACCOUNT</span>
+                  </button>
+
+                  <div className="border-t border-black/10 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-left font-bold uppercase text-neutral-700 hover:bg-neutral-100 transition-all"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      <span>SIGN OUT</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* Google Sign In Trigger Button */
@@ -230,6 +341,22 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* Toast Notification Banner */}
+      {notificationToast && (
+        <div className="bg-black text-white border-t-2 border-black px-6 py-2 font-mono text-xs font-bold flex items-center justify-between animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-emerald-400" />
+            <span>{notificationToast}</span>
+          </div>
+          <button
+            onClick={() => setNotificationToast(null)}
+            className="border border-white bg-white text-black px-2 py-0.5 uppercase tracking-wider text-[10px]"
+          >
+            DISMISS
+          </button>
+        </div>
+      )}
 
       {/* Auth Error Banner */}
       {authError && (
@@ -251,6 +378,19 @@ export const Header: React.FC<HeaderProps> = ({
       <UsernameModal
         isOpen={isUsernameModalOpen}
         onSubmit={handleSaveUsername}
+      />
+
+      {/* GDPR First-Time Consent Modal */}
+      <GdprConsentModal
+        isOpen={isConsentModalOpen}
+        onAccept={handleAcceptConsent}
+      />
+
+      {/* Delete Account Double-Confirmation Modal */}
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={handleDeleteAccountConfirm}
       />
     </header>
   );

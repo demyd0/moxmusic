@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { ShieldCheck, ArrowLeft, Lock, Database, EyeOff } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, Lock, Database, EyeOff, Trash2, Download } from 'lucide-react';
 
 export const PrivacyPage: React.FC = () => {
   const navigate = useNavigate();
@@ -64,8 +64,24 @@ export const PrivacyPage: React.FC = () => {
                 <Lock className="h-5 w-5 mb-2 text-black" />
                 <h4 className="font-mono text-xs font-bold uppercase text-black mb-1">USER CONTROL</h4>
                 <p className="font-mono text-[11px] text-neutral-600">
-                  Full control: sign out or delete your saved album entries anytime.
+                  Full control: sign out, export data, or delete your saved entries anytime.
                 </p>
+              </div>
+            </div>
+
+            {/* GDPR Specific Rights */}
+            <div className="border-2 border-black bg-neutral-50 p-5 space-y-3 font-mono text-xs text-neutral-700 hard-shadow-sm">
+              <div className="flex items-start gap-2.5">
+                <Trash2 className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />
+                <span>
+                  <strong>RIGHT TO BE FORGOTTEN:</strong> You can delete your account and all associated saved data at any time from your profile settings menu.
+                </span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Download className="h-4 w-4 shrink-0 text-black mt-0.5" />
+                <span>
+                  <strong>RIGHT TO PORTABILITY:</strong> You can download a complete copy of all your saved data at any time from your profile settings menu.
+                </span>
               </div>
             </div>
 
