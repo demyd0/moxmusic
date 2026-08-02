@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { fetchAlbumById, fetchAlbumTracklist } from '@/services/musicSearch';
-import { getOrCreateUserId } from '@/lib/firebase';
+import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { 
   subscribeUserCollections, 
   toggleLikeAlbum, 
@@ -29,6 +30,8 @@ export const AlbumDetailsPage: React.FC = () => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [userCollections, setUserCollections] = useState<UserCollectionsState>({
     likedIds: new Set(),
     toListenIds: new Set(),
@@ -45,8 +48,14 @@ export const AlbumDetailsPage: React.FC = () => {
       unsubscribe = subscribeUserCollections(uid, (state) => setUserCollections(state));
     }
     initUser();
+
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      setIsAuthenticated(Boolean(user && !user.isAnonymous));
+    });
+
     return () => {
       if (unsubscribe) unsubscribe();
+      unsubAuth();
     };
   }, []);
 
@@ -96,11 +105,19 @@ export const AlbumDetailsPage: React.FC = () => {
   const isToListen = album ? userCollections.toListenIds.has(album.id) : false;
 
   const handleToggleLike = async () => {
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
     if (!userId || !album) return;
     await toggleLikeAlbum(userId, album, isLiked);
   };
 
   const handleToggleToListen = async () => {
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
     if (!userId || !album) return;
     await toggleToListenAlbum(userId, album, isToListen);
   };
@@ -276,6 +293,13 @@ export const AlbumDetailsPage: React.FC = () => {
       </div>
 
       <Footer />
+
+      {/* Auth Interceptor Prompt Modal for Guests */}
+      <AuthPromptModal
+        isOpen={isAuthPromptOpen}
+        onClose={() => setIsAuthPromptOpen(false)}
+        onSignIn={signInWithGoogle}
+      />
     </div>
   );
 };

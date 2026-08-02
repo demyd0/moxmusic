@@ -6,8 +6,9 @@ import { SearchBar } from '@/components/SearchBar';
 import { AlbumCard } from '@/components/AlbumCard';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
 import { ManualAlbumModal } from '@/components/ManualAlbumModal';
+import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { searchAlbums, fetchRecommendations } from '@/services/musicSearch';
-import { getOrCreateUserId } from '@/lib/firebase';
+import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { 
   subscribeUserCollections, 
   toggleLikeAlbum, 
@@ -62,6 +63,7 @@ export const HelloPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchedMb, setSearchedMb] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
 
   // Recommendations state
@@ -78,6 +80,7 @@ export const HelloPage: React.FC = () => {
 
   // Firestore User Collections State
   const [userId, setUserId] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userCollections, setUserCollections] = useState<UserCollectionsState>({
     likedIds: new Set(),
     toListenIds: new Set(),
@@ -100,8 +103,14 @@ export const HelloPage: React.FC = () => {
 
     initUser();
 
+    // Listen for auth state to check if user is Google-authenticated
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      setIsAuthenticated(Boolean(user && !user.isAnonymous));
+    });
+
     return () => {
       if (unsubscribe) unsubscribe();
+      unsubAuth();
     };
   }, []);
 
@@ -197,15 +206,21 @@ export const HelloPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [query, enableBroadSearch, performSearch]);
 
-  // 5. Collection Toggle Handlers
+  // 5. Collection Toggle Handlers — Intercepts unauthenticated guests
   const handleToggleLike = async (album: Album) => {
-    if (!userId) return;
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
     const isLiked = userCollections.likedIds.has(album.id);
     await toggleLikeAlbum(userId, album, isLiked);
   };
 
   const handleToggleToListen = async (album: Album) => {
-    if (!userId) return;
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
     const isToListen = userCollections.toListenIds.has(album.id);
     await toggleToListenAlbum(userId, album, isToListen);
   };
@@ -571,6 +586,13 @@ export const HelloPage: React.FC = () => {
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
         onAddManualAlbum={handleAddManualAlbum}
+      />
+
+      {/* Auth Interceptor Prompt Modal for Guests */}
+      <AuthPromptModal
+        isOpen={isAuthPromptOpen}
+        onClose={() => setIsAuthPromptOpen(false)}
+        onSignIn={signInWithGoogle}
       />
     </div>
   );

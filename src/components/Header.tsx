@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { Layers, Search, Heart, Headphones, LogIn, LogOut, User as UserIcon, AlertTriangle } from 'lucide-react';
+import { getUserProfile, saveUserProfile, type UserProfile } from '@/services/userService';
+import { UsernameModal } from '@/components/UsernameModal';
+import { Search, Heart, Headphones, LogIn, LogOut, User as UserIcon, AlertTriangle } from 'lucide-react';
 
 interface HeaderProps {
   activeTab?: 'search' | 'liked' | 'toListen';
@@ -19,17 +21,28 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
-  // Subscribe to persistent Firebase Auth state
+  // Subscribe to persistent Firebase Auth state & fetch User Profile
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // Ignore anonymous users for Google profile badge
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && !user.isAnonymous) {
         setCurrentUser(user);
+        const profile = await getUserProfile(user.uid);
+        if (profile) {
+          setUserProfile(profile);
+          setIsUsernameModalOpen(false);
+        } else {
+          // Open Username modal to configure handle
+          setIsUsernameModalOpen(true);
+        }
       } else {
         setCurrentUser(null);
+        setUserProfile(null);
+        setIsUsernameModalOpen(false);
       }
     });
 
@@ -40,10 +53,15 @@ export const Header: React.FC<HeaderProps> = ({
     setAuthError(null);
     setIsAuthLoading(true);
     try {
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
+      if (user) {
+        const profile = await getUserProfile(user.uid);
+        if (!profile) {
+          setIsUsernameModalOpen(true);
+        }
+      }
     } catch (err: any) {
       const msg = err?.message || '';
-      // Ignore internal IndexedDB closing/hidden browser warnings
       if (msg.includes('closing') || msg.includes('hidden')) {
         return;
       }
@@ -60,9 +78,23 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const handleSaveUsername = async (username: string) => {
+    if (!currentUser) return;
+    const profile = await saveUserProfile(
+      currentUser.uid,
+      username,
+      currentUser.email || undefined,
+      currentUser.photoURL || undefined
+    );
+    setUserProfile(profile);
+    setIsUsernameModalOpen(false);
+  };
+
   const handleLogout = async () => {
     await signOutUser();
     setCurrentUser(null);
+    setUserProfile(null);
+    setIsUsernameModalOpen(false);
   };
 
   const handleTabClick = (tab: 'search' | 'liked' | 'toListen') => {
@@ -86,17 +118,17 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-50 w-full border-b-2 border-black bg-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        {/* Brand Logo - Navigates to Main Page */}
+        {/* Minimalist Double MM Brand Logo */}
         <div 
-          className="flex items-center gap-3 cursor-pointer select-none hover:opacity-80 transition-opacity" 
+          className="flex items-center gap-2.5 cursor-pointer select-none hover:opacity-80 transition-opacity" 
           onClick={handleLogoClick}
           title="Go to main page"
         >
-          <div className="flex h-9 w-9 items-center justify-center border-2 border-black bg-black text-white hard-shadow-sm">
-            <Layers className="h-5 w-5" />
+          <div className="flex h-8 w-8 items-center justify-center border-2 border-black bg-black text-white hard-shadow-sm font-mono text-sm font-extrabold tracking-tighter">
+            MM
           </div>
           <span className="font-header text-2xl font-extrabold tracking-tight text-black">
-            mox music <span className="text-[11px] font-mono font-bold tracking-wider text-neutral-500 uppercase ml-1">[v0.2]</span>
+            mox music <span className="text-[11px] font-mono font-bold tracking-wider text-neutral-500 uppercase ml-0.5">[v0.2]</span>
           </span>
         </div>
 
@@ -159,12 +191,12 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right User Authentication Section */}
         <div className="flex items-center gap-3">
           {currentUser ? (
-            /* User Authenticated Profile Pill */
+            /* User Authenticated Profile Pill (Hides email, shows @username) */
             <div className="flex items-center gap-2 border-2 border-black bg-white p-1 pr-2.5 text-xs font-mono hard-shadow-sm">
               {currentUser.photoURL ? (
                 <img
                   src={currentUser.photoURL}
-                  alt={currentUser.displayName || 'User'}
+                  alt={userProfile?.username || 'User'}
                   className="h-7 w-7 border border-black object-cover"
                 />
               ) : (
@@ -173,7 +205,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
               <span className="hidden md:inline font-bold text-black max-w-[140px] truncate">
-                {currentUser.displayName || currentUser.email}
+                @{userProfile?.username || 'user'}
               </span>
               <button
                 type="button"
@@ -214,6 +246,12 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
       )}
+
+      {/* Username Configuration Modal */}
+      <UsernameModal
+        isOpen={isUsernameModalOpen}
+        onSubmit={handleSaveUsername}
+      />
     </header>
   );
 };

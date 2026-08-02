@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
 import { fetchSharedLikedCollection } from '@/services/collectionService';
+import { getUserProfile, type UserProfile } from '@/services/userService';
 import type { Album } from '@/types/album';
 import { Heart, Disc3, Loader2, ArrowLeft } from 'lucide-react';
 
@@ -12,6 +13,7 @@ export const SharedCollectionPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [albums, setAlbums] = useState<Album[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,9 +23,14 @@ export const SharedCollectionPage: React.FC = () => {
     async function loadSharedCollection() {
       setIsLoading(true);
       try {
-        const sharedAlbums = await fetchSharedLikedCollection(uid!);
+        const [sharedAlbums, userProfile] = await Promise.all([
+          fetchSharedLikedCollection(uid!),
+          getUserProfile(uid!),
+        ]);
+
         if (isMounted) {
           setAlbums(sharedAlbums);
+          setProfile(userProfile);
         }
       } catch (err) {
         console.error('Failed to load shared liked collection:', err);
@@ -38,6 +45,8 @@ export const SharedCollectionPage: React.FC = () => {
       isMounted = false;
     };
   }, [uid]);
+
+  const displayHandle = profile?.username ? `@${profile.username.toUpperCase()}` : 'USER';
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between bg-[#fafafa] text-[#0a0a0a]">
@@ -62,7 +71,7 @@ export const SharedCollectionPage: React.FC = () => {
               </div>
               <div>
                 <h1 className="font-header text-3xl sm:text-4xl font-extrabold text-black uppercase tracking-tight">
-                  SHARED LIKED ALBUMS
+                  {displayHandle}'S LIKED ALBUMS
                 </h1>
                 <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
                   PUBLIC READ-ONLY COLLECTION

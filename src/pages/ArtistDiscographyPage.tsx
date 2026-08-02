@@ -3,8 +3,9 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
+import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { fetchArtistDiscography } from '@/services/musicSearch';
-import { getOrCreateUserId } from '@/lib/firebase';
+import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { 
   subscribeUserCollections, 
   toggleLikeAlbum,
@@ -29,6 +30,8 @@ export const ArtistDiscographyPage: React.FC = () => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [userCollections, setUserCollections] = useState<UserCollectionsState>({
     likedIds: new Set(),
     toListenIds: new Set(),
@@ -45,8 +48,14 @@ export const ArtistDiscographyPage: React.FC = () => {
       unsubscribe = subscribeUserCollections(uid, (state) => setUserCollections(state));
     }
     initUser();
+
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      setIsAuthenticated(Boolean(user && !user.isAnonymous));
+    });
+
     return () => {
       if (unsubscribe) unsubscribe();
+      unsubAuth();
     };
   }, []);
 
@@ -79,12 +88,20 @@ export const ArtistDiscographyPage: React.FC = () => {
   }, [id, nameHint]);
 
   const handleToggleLike = async (album: Album) => {
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
     if (!userId) return;
     const isLiked = userCollections.likedIds.has(album.id);
     await toggleLikeAlbum(userId, album, isLiked);
   };
 
   const handleToggleToListen = async (album: Album) => {
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
     if (!userId) return;
     const isToListen = userCollections.toListenIds.has(album.id);
     await toggleToListenAlbum(userId, album, isToListen);
@@ -165,6 +182,13 @@ export const ArtistDiscographyPage: React.FC = () => {
       </div>
 
       <Footer />
+
+      {/* Auth Interceptor Prompt Modal for Guests */}
+      <AuthPromptModal
+        isOpen={isAuthPromptOpen}
+        onClose={() => setIsAuthPromptOpen(false)}
+        onSignIn={signInWithGoogle}
+      />
     </div>
   );
 };
