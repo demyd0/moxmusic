@@ -1,0 +1,44 @@
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import type { User } from 'firebase/auth';
+
+// Environment variables or fallback default config
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDemoConfigKeyForMviewieLocal',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'mviewie-demo.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'mviewie-demo',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'mviewie-demo.appspot.com',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:123456789:web:abcdef',
+};
+
+// Initialize Firebase
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+
+// Helper to get or ensure anonymous user UID
+export async function getOrCreateUserId(): Promise<string> {
+  return new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
+      unsubscribe();
+      if (user) {
+        resolve(user.uid);
+      } else {
+        try {
+          const userCred = await signInAnonymously(auth);
+          resolve(userCred.user.uid);
+        } catch (error) {
+          console.warn('Anonymous auth failed or not configured, using persistent client storage ID:', error);
+          let localUid = localStorage.getItem('mviewie_user_uid');
+          if (!localUid) {
+            localUid = `user_${Math.random().toString(36).substring(2, 11)}`;
+            localStorage.setItem('mviewie_user_uid', localUid);
+          }
+          resolve(localUid);
+        }
+      }
+    });
+  });
+}
