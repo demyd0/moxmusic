@@ -5,7 +5,10 @@ import {
   signInWithPopup, 
   signOut, 
   GoogleAuthProvider, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 
@@ -23,6 +26,14 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Safe Persistence Setup to prevent IndexedDB "Database is closing/hidden" crashes
+setPersistence(auth, browserLocalPersistence).catch(() => {
+  setPersistence(auth, inMemoryPersistence).catch((err) => {
+    console.warn('Auth persistence fallback warning:', err);
+  });
+});
+
 export const googleProvider = new GoogleAuthProvider();
 
 // Scope configuration for minimal GDPR data access (only basic profile & email)

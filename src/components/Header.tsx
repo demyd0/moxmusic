@@ -42,6 +42,12 @@ export const Header: React.FC<HeaderProps> = ({
     try {
       await signInWithGoogle();
     } catch (err: any) {
+      const msg = err?.message || '';
+      // Ignore internal IndexedDB closing/hidden browser warnings
+      if (msg.includes('closing') || msg.includes('hidden')) {
+        return;
+      }
+
       if (err?.code === 'auth/unauthorized-domain') {
         setAuthError('Domain is not authorized in Firebase Console -> Authentication -> Settings -> Authorized Domains.');
       } else if (err?.code === 'auth/popup-closed-by-user') {
