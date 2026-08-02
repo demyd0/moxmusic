@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layers, Search, Heart, Headphones } from 'lucide-react';
+import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { Layers, Search, Heart, Headphones, LogIn, LogOut, User as UserIcon, AlertTriangle } from 'lucide-react';
 
 interface HeaderProps {
   activeTab?: 'search' | 'liked' | 'toListen';
@@ -16,6 +18,46 @@ export const Header: React.FC<HeaderProps> = ({
   toListenCount = 0,
 }) => {
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+
+  // Subscribe to persistent Firebase Auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      // Ignore anonymous users for Google profile badge
+      if (user && !user.isAnonymous) {
+        setCurrentUser(user);
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    setAuthError(null);
+    setIsAuthLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      if (err?.code === 'auth/unauthorized-domain') {
+        setAuthError('Domain is not authorized in Firebase Console -> Authentication -> Settings -> Authorized Domains.');
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        setAuthError('Sign-In popup was closed before completing.');
+      } else {
+        setAuthError(err?.message || 'Failed to sign in with Google.');
+      }
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOutUser();
+    setCurrentUser(null);
+  };
 
   const handleTabClick = (tab: 'search' | 'liked' | 'toListen') => {
     if (setActiveTab) {
@@ -108,12 +150,64 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Right Status Badge */}
-        <div className="hidden sm:flex items-center gap-2 border-2 border-black bg-white px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-black hard-shadow-sm">
-          <span className="h-2 w-2 bg-emerald-500 rounded-full" />
-          <span>IN DEVELOPMENT</span>
+        {/* Right User Authentication Section */}
+        <div className="flex items-center gap-3">
+          {currentUser ? (
+            /* User Authenticated Profile Pill */
+            <div className="flex items-center gap-2 border-2 border-black bg-white p-1 pr-2.5 text-xs font-mono hard-shadow-sm">
+              {currentUser.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt={currentUser.displayName || 'User'}
+                  className="h-7 w-7 border border-black object-cover"
+                />
+              ) : (
+                <div className="flex h-7 w-7 items-center justify-center border border-black bg-black text-white">
+                  <UserIcon className="h-4 w-4" />
+                </div>
+              )}
+              <span className="hidden md:inline font-bold text-black max-w-[140px] truncate">
+                {currentUser.email || currentUser.displayName}
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="ml-1 flex h-6 w-6 items-center justify-center border border-black bg-neutral-100 text-black hover:bg-black hover:text-white transition-all"
+                title="Sign Out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            /* Google Sign In Trigger Button */
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={isAuthLoading}
+              className="inline-flex items-center gap-2 border-2 border-black bg-black px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-white hard-shadow-sm hover:bg-neutral-800 transition-all disabled:opacity-50"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span>{isAuthLoading ? 'LOGGING IN...' : 'SIGN IN'}</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Auth Error Banner */}
+      {authError && (
+        <div className="bg-amber-500 text-black border-t-2 border-black px-6 py-2 font-mono text-xs font-bold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-black" />
+            <span>AUTH ERROR: {authError}</span>
+          </div>
+          <button
+            onClick={() => setAuthError(null)}
+            className="border border-black bg-black text-white px-2 py-0.5 uppercase tracking-wider text-[10px]"
+          >
+            DISMISS
+          </button>
+        </div>
+      )}
     </header>
   );
 };

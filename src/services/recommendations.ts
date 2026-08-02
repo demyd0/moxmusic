@@ -1,6 +1,5 @@
 import type { Album } from '@/types/album';
 
-const LASTFM_API_KEY = import.meta.env.VITE_LASTFM_API_KEY || 'c6f0590c95846c4f03a638128362fb8f';
 const CACHE_KEY = 'mviewie_recs_cache_v2';
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -61,15 +60,27 @@ export async function fetchiTunesTopAlbumsFallback(): Promise<{ artistName: stri
 }
 
 /**
- * Fetch Last.fm Similar Artists for a single artist
+ * Fetch Last.fm Similar Artists via Vercel Serverless Function (or client fallback)
  */
 async function fetchLastFmSimilar(artistName: string): Promise<{ name: string; match: number }[]> {
   try {
-    const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(
-      artistName.trim()
-    )}&api_key=${LASTFM_API_KEY}&format=json&limit=15`;
+    // 1. Try Vercel Serverless Function endpoint first (hides API Key from browser)
+    const proxyUrl = `/api/similar-artists?artist=${encodeURIComponent(artistName.trim())}`;
+    const proxyRes = await fetch(proxyUrl);
+    if (proxyRes.ok) {
+      const data = await proxyRes.json();
+      if (Array.isArray(data?.similarArtists)) {
+        return data.similarArtists;
+      }
+    }
 
-    const response = await fetch(url);
+    // 2. Direct Fallback for local Vite dev environment
+    const apiKey = import.meta.env.VITE_LASTFM_API_KEY || '9fc4577150c44da9c21be13e0de17ba6';
+    const directUrl = `https://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(
+      artistName.trim()
+    )}&api_key=${apiKey}&format=json&limit=15`;
+
+    const response = await fetch(directUrl);
     if (!response.ok) return [];
 
     const data = await response.json();
@@ -82,7 +93,7 @@ async function fetchLastFmSimilar(artistName: string): Promise<{ name: string; m
       match: parseFloat(item.match) || 0.5,
     }));
   } catch (error) {
-    console.error(`Last.fm getsimilar failed for "${artistName}":`, error);
+    console.error(`fetchLastFmSimilar failed for "${artistName}":`, error);
     return [];
   }
 }

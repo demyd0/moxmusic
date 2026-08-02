@@ -1,6 +1,13 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  signInWithPopup, 
+  signOut, 
+  GoogleAuthProvider, 
+  onAuthStateChanged 
+} from 'firebase/auth';
 import type { User } from 'firebase/auth';
 
 // Environment variables or fallback default config
@@ -17,8 +24,39 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
 
-// Helper to get or ensure anonymous user UID
+// Scope configuration for minimal GDPR data access (only basic profile & email)
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+
+/**
+ * Trigger Google Sign-In Popup
+ */
+export async function signInWithGoogle(): Promise<User | null> {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error: any) {
+    console.error('Google Sign-In Error:', error?.code, error?.message);
+    throw error;
+  }
+}
+
+/**
+ * Sign Out Current User
+ */
+export async function signOutUser(): Promise<void> {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error('Sign Out Error:', error);
+  }
+}
+
+/**
+ * Helper to get or ensure user UID (Authenticated or persistent Fallback)
+ */
 export async function getOrCreateUserId(): Promise<string> {
   return new Promise((resolve) => {
     const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
@@ -30,7 +68,7 @@ export async function getOrCreateUserId(): Promise<string> {
           const userCred = await signInAnonymously(auth);
           resolve(userCred.user.uid);
         } catch (error) {
-          console.warn('Anonymous auth failed or not configured, using persistent client storage ID:', error);
+          console.warn('Anonymous auth fallback:', error);
           let localUid = localStorage.getItem('mviewie_user_uid');
           if (!localUid) {
             localUid = `user_${Math.random().toString(36).substring(2, 11)}`;
