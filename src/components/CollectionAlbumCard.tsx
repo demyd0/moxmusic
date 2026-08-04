@@ -75,8 +75,9 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
           </div>
         )}
 
-        {/* Hover Action Overlay */}
-        <div className="absolute inset-0 z-20 flex flex-col justify-end p-2.5 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-none">
+        {/* Action Overlay. See .card-action-overlay in index.css for why this
+            isn't plain Tailwind opacity classes. */}
+        <div className="card-action-overlay absolute inset-0 z-20 flex flex-col justify-end p-2.5 transition-opacity bg-black/60 backdrop-blur-none">
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             {type === 'liked' && onToggleToListen ? (
               <div className="grid grid-cols-2 gap-2 w-full">

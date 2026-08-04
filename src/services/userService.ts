@@ -76,8 +76,29 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 /**
+ * Resolve a claimed @username to its owner's uid via the 'usernames'
+ * registry, so share links can read /share/username instead of exposing
+ * the raw Firebase uid.
+ */
+export async function resolveUsernameToUid(username: string): Promise<string | null> {
+  const clean = username.trim().toLowerCase();
+  if (!clean) return null;
+  try {
+    const handleRef = doc(db, 'usernames', clean);
+    const snap = await getDoc(handleRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data?.uid) return data.uid;
+    }
+  } catch (error) {
+    console.warn('Failed to resolve username to uid:', error);
+  }
+  return null;
+}
+
+/**
  * Fetch only the public-safe fields of a profile (username/photoURL) for
- * unauthenticated surfaces like the /share/:uid page. Reads from the
+ * unauthenticated surfaces like the /share/:username page. Reads from the
  * separate 'publicProfiles' collection, which never stores email, so the
  * address never travels over the wire to anonymous visitors of a share link
  * (Firestore security rules should also restrict 'users/{uid}' reads to the

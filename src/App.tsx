@@ -13,7 +13,7 @@ export function App() {
         <Route path="/album/:id" element={<AlbumDetailsPage />} />
         <Route path="/artist/:id" element={<ArtistDiscographyPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/share/:uid" element={<SharedCollectionPage />} />
+        <Route path="/share/:username" element={<SharedCollectionPage />} />
       </Routes>
     </Router>
   );

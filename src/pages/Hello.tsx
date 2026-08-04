@@ -9,9 +9,10 @@ import { ManualAlbumModal } from '@/components/ManualAlbumModal';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { searchAlbums, fetchRecommendations } from '@/services/musicSearch';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
-import { 
-  subscribeUserCollections, 
-  toggleLikeAlbum, 
+import { getUserProfile } from '@/services/userService';
+import {
+  subscribeUserCollections,
+  toggleLikeAlbum,
   toggleToListenAlbum,
   migrateGuestDataToUserAccount
 } from '@/services/collectionService';
@@ -81,6 +82,7 @@ export const HelloPage: React.FC = () => {
 
   // Firestore User Collections State
   const [userId, setUserId] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userCollections, setUserCollections] = useState<UserCollectionsState>({
     likedIds: new Set(),
@@ -105,6 +107,10 @@ export const HelloPage: React.FC = () => {
         // Auto-migrate any local guest data to Google account
         await migrateGuestDataToUserAccount(activeUid);
 
+        // Fetch username for building pretty /share/:username links
+        const profile = await getUserProfile(activeUid);
+        setUsername(profile?.username || '');
+
         // Subscribe to Google account Firestore collections
         unsubCollections = subscribeUserCollections(activeUid, (state) => {
           setUserCollections(state);
@@ -112,6 +118,7 @@ export const HelloPage: React.FC = () => {
       } else {
         // Guest user -> Bind to local storage ID
         setIsAuthenticated(false);
+        setUsername('');
         const guestUid = await getOrCreateUserId();
         setUserId(guestUid);
 
@@ -174,7 +181,8 @@ export const HelloPage: React.FC = () => {
   // 3. Share Public Liked Link Handler
   const handleShareLikedCollection = () => {
     if (!userId) return;
-    const shareUrl = `${window.location.origin}/share/${userId}`;
+    const shareHandle = username || userId;
+    const shareUrl = `${window.location.origin}/share/${shareHandle}`;
     navigator.clipboard.writeText(shareUrl);
     setCopyToast(true);
     setTimeout(() => setCopyToast(false), 2500);

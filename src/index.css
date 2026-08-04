@@ -72,6 +72,29 @@ button:active, .btn-brutalist:active {
   box-shadow: 1px 1px 0px 0px #000000 !important;
 }
 
+/* Album card LIKE/LISTEN/DELETE action overlay: always visible by default so
+   it works on touch devices (there is no reliable :hover there); hidden
+   until :hover only on devices that report a real fine pointer, so desktop
+   keeps the reveal-on-hover interaction. Written as plain CSS rather than
+   stacked Tailwind variants: Tailwind's `group-hover:` already wraps itself
+   in `@media (hover: hover)`, and nesting that again inside a `pointer-fine:`
+   variant produced a doubly-nested @media block that some part of this
+   Tailwind v4 + Vite dev pipeline was not honoring correctly - the selector
+   matched structurally but the rule never actually took effect on hover. */
+.card-action-overlay {
+  opacity: 1;
+}
+
+@media (pointer: fine) {
+  .card-action-overlay {
+    opacity: 0;
+  }
+
+  .group:hover .card-action-overlay {
+    opacity: 1;
+  }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
