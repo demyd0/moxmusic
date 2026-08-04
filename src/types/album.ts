@@ -4,6 +4,7 @@ export interface Track {
   trackNumber: number;
   title: string;
   durationMs?: number;
+  previewUrl?: string;
 }
 
 export interface Album {

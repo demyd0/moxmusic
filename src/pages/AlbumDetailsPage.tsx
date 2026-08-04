@@ -1,25 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { fetchAlbumById, fetchAlbumTracklist } from '@/services/musicSearch';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
-import { 
-  subscribeUserCollections, 
-  toggleLikeAlbum, 
-  toggleToListenAlbum, 
-  type UserCollectionsState 
+import { buildYoutubeMusicSearchUrl } from '@/lib/youtubeMusic';
+import {
+  subscribeUserCollections,
+  toggleLikeAlbum,
+  toggleToListenAlbum,
+  type UserCollectionsState
 } from '@/services/collectionService';
 import type { Album, Track } from '@/types/album';
-import { 
-  ArrowLeft, 
-  Disc3, 
-  Heart, 
-  Headphones, 
-  Clock, 
-  Music, 
-  Loader2 
+import {
+  ArrowLeft,
+  Disc3,
+  Heart,
+  Headphones,
+  Clock,
+  Music,
+  Loader2,
+  ExternalLink,
+  Play,
+  Pause,
 } from 'lucide-react';
 
 export const AlbumDetailsPage: React.FC = () => {
@@ -38,6 +42,33 @@ export const AlbumDetailsPage: React.FC = () => {
     likedAlbums: [],
     toListenAlbums: [],
   });
+
+  // 30-second iTunes preview playback - one shared <audio> element, one track at a time
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingTrackNumber, setPlayingTrackNumber] = useState<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+    };
+  }, []);
+
+  const handleTogglePreview = (track: Track) => {
+    if (!track.previewUrl) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (playingTrackNumber === track.trackNumber) {
+      audio.pause();
+      setPlayingTrackNumber(null);
+      return;
+    }
+
+    audio.src = track.previewUrl;
+    audio.currentTime = 0;
+    audio.play().catch(() => setPlayingTrackNumber(null));
+    setPlayingTrackNumber(track.trackNumber);
+  };
 
   // 1. Initialize user & subscribe to collections
   useEffect(() => {
@@ -74,6 +105,8 @@ export const AlbumDetailsPage: React.FC = () => {
         ]);
 
         if (isMounted) {
+          audioRef.current?.pause();
+          setPlayingTrackNumber(null);
           if (albumData) {
             setAlbum(albumData);
           } else {
@@ -225,6 +258,16 @@ export const AlbumDetailsPage: React.FC = () => {
                       <Headphones className="h-4 w-4" />
                       <span>{isToListen ? 'IN QUEUE' : 'LISTEN'}</span>
                     </button>
+
+                    <a
+                      href={buildYoutubeMusicSearchUrl(album.artist, album.title, true)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 border-2 border-black bg-red-600 px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-red-700"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>OPEN IN YOUTUBE MUSIC</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -258,16 +301,45 @@ export const AlbumDetailsPage: React.FC = () => {
                               <span>DURATION</span>
                             </span>
                           </th>
+                          <th className="py-3 px-4 w-24 text-right">LISTEN</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/10">
-                        {tracks.map((track) => (
-                          <tr key={track.trackNumber} className="hover:bg-neutral-50 font-medium">
-                            <td className="py-3 px-4 font-bold text-neutral-400">{track.trackNumber}</td>
-                            <td className="py-3 px-4 text-black font-bold">{track.title}</td>
-                            <td className="py-3 px-4 text-right text-neutral-600">{formatDuration(track.durationMs)}</td>
-                          </tr>
-                        ))}
+                        {tracks.map((track) => {
+                          const isPlaying = playingTrackNumber === track.trackNumber;
+                          return (
+                            <tr key={track.trackNumber} className="hover:bg-neutral-50 font-medium">
+                              <td className="py-3 px-4 font-bold text-neutral-400">{track.trackNumber}</td>
+                              <td className="py-3 px-4 text-black font-bold">{track.title}</td>
+                              <td className="py-3 px-4 text-right text-neutral-600">{formatDuration(track.durationMs)}</td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center justify-end gap-2">
+                                  {track.previewUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTogglePreview(track)}
+                                      title={isPlaying ? 'Pause 30s preview' : 'Play 30s preview'}
+                                      className={`flex h-7 w-7 items-center justify-center border border-black transition-all ${
+                                        isPlaying ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                                      }`}
+                                    >
+                                      {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                                    </button>
+                                  )}
+                                  <a
+                                    href={buildYoutubeMusicSearchUrl(album.artist, track.title, false)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Open this track in YouTube Music"
+                                    className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-red-600 hover:text-white hover:border-red-600 transition-all"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -276,7 +348,19 @@ export const AlbumDetailsPage: React.FC = () => {
                     TRACKLIST NOT FOUND
                   </div>
                 )}
+                {tracks.some((t) => t.previewUrl) && (
+                  <p className="mt-4 font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
+                    30-second previews courtesy of iTunes. Full tracks open in YouTube Music.
+                  </p>
+                )}
               </section>
+
+              {/* Hidden shared audio element driving the 30s preview player */}
+              <audio
+                ref={audioRef}
+                onEnded={() => setPlayingTrackNumber(null)}
+                className="hidden"
+              />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center border-2 border-black bg-white px-6 py-16 text-center hard-shadow">

@@ -253,6 +253,7 @@ export async function fetchAlbumTracklist(albumId: string): Promise<Track[]> {
           trackNumber: item.trackNumber || 1,
           title: item.trackName || 'Untitled Track',
           durationMs: item.trackTimeMillis,
+          previewUrl: item.previewUrl || undefined,
         }))
         .sort((a: Track, b: Track) => a.trackNumber - b.trackNumber);
 
