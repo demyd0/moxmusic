@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { 
-  getUserProfile, 
-  saveUserProfile, 
-  recordUserConsent, 
-  exportUserData, 
-  deleteUserAccount, 
-  type UserProfile 
+import {
+  getUserProfile,
+  saveUserProfile,
+  recordUserConsent,
+  exportUserData,
+  deleteUserAccount,
+  ensurePublicProfile,
+  type UserProfile
 } from '@/services/userService';
 import { UsernameModal } from '@/components/UsernameModal';
 import { GdprConsentModal } from '@/components/GdprConsentModal';
@@ -61,6 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
         if (profile) {
           setUserProfile(profile);
           setIsUsernameModalOpen(false);
+          void ensurePublicProfile(profile);
           if (!profile.consentGiven) {
             setIsConsentModalOpen(true);
           } else {

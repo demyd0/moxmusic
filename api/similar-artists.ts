@@ -1,8 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS Headers for Vercel Serverless Function
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // CORS Headers for Vercel Serverless Function (no credentials needed - public read-only endpoint)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
   res.setHeader(
@@ -21,7 +20,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Read SECRET server-side environment variable (no VITE_ prefix!)
-  const apiKey = process.env.LASTFM_API_KEY || '9fc4577150c44da9c21be13e0de17ba6';
+  const apiKey = process.env.LASTFM_API_KEY;
+  if (!apiKey) {
+    console.error('LASTFM_API_KEY is not configured in environment variables');
+    return res.status(500).json({ error: 'Server misconfiguration', similarArtists: [] });
+  }
 
   try {
     const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(

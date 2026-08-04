@@ -64,34 +64,17 @@ export async function fetchiTunesTopAlbumsFallback(): Promise<{ artistName: stri
  */
 async function fetchLastFmSimilar(artistName: string): Promise<{ name: string; match: number }[]> {
   try {
-    // 1. Try Vercel Serverless Function endpoint first (hides API Key from browser)
+    // Always go through the Vercel Serverless Function - it keeps the Last.fm API key
+    // server-side only. There must be no client-side fallback that embeds the key in
+    // the browser bundle, since that would leak it to anyone reading the page source.
     const proxyUrl = `/api/similar-artists?artist=${encodeURIComponent(artistName.trim())}`;
     const proxyRes = await fetch(proxyUrl);
-    if (proxyRes.ok) {
-      const data = await proxyRes.json();
-      if (Array.isArray(data?.similarArtists)) {
-        return data.similarArtists;
-      }
-    }
+    if (!proxyRes.ok) return [];
 
-    // 2. Direct Fallback for local Vite dev environment
-    const apiKey = import.meta.env.VITE_LASTFM_API_KEY || '9fc4577150c44da9c21be13e0de17ba6';
-    const directUrl = `https://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(
-      artistName.trim()
-    )}&api_key=${apiKey}&format=json&limit=15`;
+    const data = await proxyRes.json();
+    if (!Array.isArray(data?.similarArtists)) return [];
 
-    const response = await fetch(directUrl);
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    const similarArray = data?.similarartists?.artist;
-
-    if (!Array.isArray(similarArray)) return [];
-
-    return similarArray.map((item: any) => ({
-      name: item.name,
-      match: parseFloat(item.match) || 0.5,
-    }));
+    return data.similarArtists;
   } catch (error) {
     console.error(`fetchLastFmSimilar failed for "${artistName}":`, error);
     return [];

@@ -57,6 +57,50 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 /**
+ * Fetch only the public-safe fields of a profile (username/photoURL) for
+ * unauthenticated surfaces like the /share/:uid page. Reads from the
+ * separate 'publicProfiles' collection, which never stores email, so the
+ * address never travels over the wire to anonymous visitors of a share link
+ * (Firestore security rules should also restrict 'users/{uid}' reads to the
+ * owner only, since data minimization has to hold at the rules level too).
+ */
+export async function getPublicUserProfile(
+  uid: string
+): Promise<Pick<UserProfile, 'uid' | 'username' | 'photoURL'> | null> {
+  if (!uid) return null;
+  try {
+    const docRef = doc(db, 'publicProfiles', uid);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data?.username) {
+        return { uid, username: data.username, photoURL: data.photoURL };
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to fetch public profile from Firestore:', error);
+  }
+  return null;
+}
+
+/**
+ * Backfill the 'publicProfiles' mirror for accounts created before that
+ * collection existed. Cheap no-op once the mirror is already present.
+ */
+export async function ensurePublicProfile(profile: UserProfile): Promise<void> {
+  if (!profile.uid || !profile.username) return;
+  try {
+    const publicDocRef = doc(db, 'publicProfiles', profile.uid);
+    const snap = await getDoc(publicDocRef);
+    if (!snap.exists()) {
+      await setDoc(publicDocRef, { username: profile.username, photoURL: profile.photoURL || '' });
+    }
+  } catch (e) {
+    console.warn('Failed to backfill public profile mirror:', e);
+  }
+}
+
+/**
  * Check if a username is already claimed by another user
  */
 export async function checkUsernameAvailable(username: string, currentUid: string): Promise<boolean> {
@@ -113,12 +157,12 @@ export async function saveUserProfile(
     console.warn('Failed to claim handle in usernames collection:', e);
   }
 
-  // 2. Save profile in 'users' collection
+  // 2. Save profile in 'users' collection (private - includes email)
   const docRef = doc(db, 'users', uid);
   try {
-    await setDoc(docRef, { 
-      username: profile.username, 
-      email: profile.email, 
+    await setDoc(docRef, {
+      username: profile.username,
+      email: profile.email,
       photoURL: profile.photoURL,
       createdAt: profile.createdAt,
       consentGiven: profile.consentGiven,
@@ -126,6 +170,18 @@ export async function saveUserProfile(
     }, { merge: true });
   } catch (error) {
     console.warn('Firestore user profile write failed, updating local storage:', error);
+  }
+
+  // 2b. Mirror only the public-safe fields into 'publicProfiles' (no email)
+  // so /share/:uid can be read by anonymous visitors without exposing email.
+  try {
+    const publicDocRef = doc(db, 'publicProfiles', uid);
+    await setDoc(publicDocRef, {
+      username: profile.username,
+      photoURL: profile.photoURL,
+    }, { merge: true });
+  } catch (e) {
+    console.warn('Failed to write public profile mirror:', e);
   }
 
   try {
@@ -236,6 +292,14 @@ export async function deleteUserAccount(uid: string): Promise<void> {
     await deleteDoc(userDocRef);
   } catch (e) {
     console.warn('Error deleting user parent doc:', e);
+  }
+
+  // 3b. Delete mirrored public profile document
+  try {
+    const publicDocRef = doc(db, 'publicProfiles', uid);
+    await deleteDoc(publicDocRef);
+  } catch (e) {
+    console.warn('Error deleting public profile doc:', e);
   }
 
   // 4. Clear local storage

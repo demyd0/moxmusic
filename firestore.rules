@@ -1,0 +1,62 @@
+rules_version = '2';
+
+// mox music — Firestore Security Rules
+//
+// Data model:
+//   users/{uid}                 private profile (includes email) — owner only
+//     users/{uid}/liked/{id}    liked albums — publicly readable (powers /share/:uid), owner-writable
+//     users/{uid}/toListen/{id} to-listen queue — owner only, never shared publicly
+//   publicProfiles/{uid}        public-safe mirror (username + photoURL only, no email)
+//   usernames/{name}            handle -> uid uniqueness registry
+//
+// Deploy with: firebase deploy --only firestore:rules
+// (requires the Firebase CLI and firebase.json pointing at this file)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      // Private profile document — contains email, so only the owner may read it.
+      // (The public /share/:uid page reads from `publicProfiles` instead.)
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid);
+
+      match /liked/{albumId} {
+        // Publicly readable so anonymous visitors can view a shared collection.
+        allow read: if true;
+        allow write: if isOwner(uid);
+      }
+
+      match /toListen/{albumId} {
+        // Never exposed publicly — no share feature reads this subcollection.
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid);
+      }
+    }
+
+    match /publicProfiles/{uid} {
+      // Username + photoURL only. Safe for anyone to read.
+      allow read: if true;
+      allow write: if isOwner(uid);
+    }
+
+    match /usernames/{name} {
+      // Needed so the client can check handle availability before claiming one.
+      allow read: if true;
+
+      // Claiming a fresh handle: only as yourself.
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+
+      // Only the current owner of a handle may update or release it —
+      // this is what actually prevents username hijacking; the client-side
+      // uniqueness check alone (checkUsernameAvailable in userService.ts)
+      // cannot be trusted, since anyone can call the Firestore SDK directly.
+      allow update, delete: if isOwner(resource.data.uid);
+    }
+  }
+}

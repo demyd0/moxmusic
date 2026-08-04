@@ -4,7 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
 import { fetchSharedLikedCollection } from '@/services/collectionService';
-import { getUserProfile, type UserProfile } from '@/services/userService';
+import { getPublicUserProfile } from '@/services/userService';
 import type { Album } from '@/types/album';
 import { Heart, Disc3, Loader2, ArrowLeft } from 'lucide-react';
 
@@ -13,7 +13,7 @@ export const SharedCollectionPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [albums, setAlbums] = useState<Album[]>([]);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<{ username: string; photoURL?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export const SharedCollectionPage: React.FC = () => {
       try {
         const [sharedAlbums, userProfile] = await Promise.all([
           fetchSharedLikedCollection(uid!),
-          getUserProfile(uid!),
+          getPublicUserProfile(uid!),
         ]);
 
         if (isMounted) {
