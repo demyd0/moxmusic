@@ -48,6 +48,37 @@ function setLocalCollection(key: string, albums: Album[]): void {
 }
 
 /**
+ * Wraps onSnapshot with a single retry when the very first error is
+ * 'permission-denied'. Right after sign-in on a fresh browser/device the
+ * Firestore SDK can start a listener a moment before the Firebase Auth ID
+ * token is attached to its requests, so the first attempt can be rejected
+ * even though the caller genuinely owns the data. A plain onSnapshot never
+ * recovers from that on its own (the listener just stays dead), so without
+ * this retry a user's own 'toListen' queue could silently appear empty
+ * after logging in on a new device until they refresh the page.
+ */
+function subscribeWithAuthRaceRetry(
+  ref: ReturnType<typeof collection>,
+  onData: (snapshot: import('firebase/firestore').QuerySnapshot) => void,
+  onGiveUp: (error: unknown) => void
+): () => void {
+  const state = { unsub: () => {} };
+
+  const start = (isRetry: boolean) => {
+    state.unsub = onSnapshot(ref, onData, (error: any) => {
+      if (!isRetry && error?.code === 'permission-denied') {
+        setTimeout(() => start(true), 400);
+        return;
+      }
+      onGiveUp(error);
+    });
+  };
+
+  start(false);
+  return () => state.unsub();
+}
+
+/**
  * Subscribe to real-time updates for Liked and ToListen collections for a user.
  * Automatically sorts albums by dateAdded descending (latest at the top).
  */
@@ -71,7 +102,7 @@ export function subscribeUserCollections(
 
   // 1. Subscribe to 'liked' collection
   const likedRef = collection(db, 'users', uid, 'liked');
-  const unsubLiked = onSnapshot(
+  const unsubLiked = subscribeWithAuthRaceRetry(
     likedRef,
     (snapshot) => {
       const rawAlbums = snapshot.docs.map((d) => d.data() as Album);
@@ -91,7 +122,7 @@ export function subscribeUserCollections(
 
   // 2. Subscribe to 'toListen' collection
   const toListenRef = collection(db, 'users', uid, 'toListen');
-  const unsubToListen = onSnapshot(
+  const unsubToListen = subscribeWithAuthRaceRetry(
     toListenRef,
     (snapshot) => {
       const rawAlbums = snapshot.docs.map((d) => d.data() as Album);

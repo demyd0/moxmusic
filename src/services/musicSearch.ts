@@ -167,7 +167,12 @@ export async function fetchAlbumById(id: string): Promise<Album | null> {
   if (id.startsWith('itunes-')) {
     const cleanId = id.replace('itunes-', '');
     try {
-      const url = `https://itunes.apple.com/lookup?id=${cleanId}&entity=album`;
+      // No `entity=album` here on purpose: for some collectionIds iTunes's
+      // lookup endpoint fails the CORS preflight / returns no ACAO header
+      // specifically for that combination, so fetch() throws "Failed to
+      // fetch". A plain id lookup is unambiguous for a collectionId and
+      // returns the same collection object without that failure mode.
+      const url = `https://itunes.apple.com/lookup?id=${cleanId}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();

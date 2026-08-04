@@ -20,29 +20,48 @@ export interface UserProfile {
 }
 
 /**
- * Fetch User Profile Document by UID (Publicly readable)
+ * Fetch User Profile Document by UID. Owner-only read (see firestore.rules).
+ *
+ * On a brand-new browser/device, the Firestore SDK can briefly lag behind
+ * Firebase Auth: onAuthStateChanged already has the `user`, but the ID token
+ * hasn't been attached to Firestore's requests yet, so the very first read
+ * right after sign-in can fail with 'permission-denied' even though the
+ * document does exist and the caller *is* the owner. Retrying once after a
+ * short delay avoids that read being misread as "no profile exists yet",
+ * which used to send returning users straight into the "choose a username"
+ * flow on every new device.
  */
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   if (!uid) return null;
-  try {
-    const docRef = doc(db, 'users', uid);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      const data = snap.data();
-      if (data?.username) {
-        return {
-          uid,
-          username: data.username,
-          email: data.email,
-          photoURL: data.photoURL,
-          createdAt: data.createdAt,
-          consentGiven: data.consentGiven || false,
-          consentDate: data.consentDate,
-        };
+  const docRef = doc(db, 'users', uid);
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data?.username) {
+          return {
+            uid,
+            username: data.username,
+            email: data.email,
+            photoURL: data.photoURL,
+            createdAt: data.createdAt,
+            consentGiven: data.consentGiven || false,
+            consentDate: data.consentDate,
+          };
+        }
       }
+      break; // Doc genuinely has no profile yet - stop, don't retry.
+    } catch (error: any) {
+      const isTransientAuthRace = error?.code === 'permission-denied' && attempt === 0;
+      if (isTransientAuthRace) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        continue;
+      }
+      console.warn('Failed to fetch user profile from Firestore:', error);
+      break;
     }
-  } catch (error) {
-    console.warn('Failed to fetch user profile from Firestore:', error);
   }
 
   // Check localStorage fallback
