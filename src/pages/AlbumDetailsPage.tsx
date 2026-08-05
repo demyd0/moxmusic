@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { fetchAlbumById, fetchAlbumTracklist } from '@/services/musicSearch';
+import { fetchBandcampLinks, type BandcampLookupResponse } from '@/services/bandcamp';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { buildYoutubeMusicSearchUrl } from '@/lib/youtubeMusic';
 import {
@@ -24,6 +25,7 @@ import {
   ExternalLink,
   Play,
   Pause,
+  Ban,
 } from 'lucide-react';
 
 export const AlbumDetailsPage: React.FC = () => {
@@ -42,6 +44,8 @@ export const AlbumDetailsPage: React.FC = () => {
     likedAlbums: [],
     toListenAlbums: [],
   });
+  const [bandcamp, setBandcamp] = useState<BandcampLookupResponse | null>(null);
+  const [isBandcampLoading, setIsBandcampLoading] = useState(true);
 
   // 30-second iTunes preview playback - one shared <audio> element, one track at a time
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -97,6 +101,7 @@ export const AlbumDetailsPage: React.FC = () => {
 
     async function loadAlbumData() {
       setIsLoading(true);
+      setIsBandcampLoading(true);
       try {
         const decodedId = decodeURIComponent(id!);
         const [albumData, tracklist] = await Promise.all([
@@ -104,26 +109,33 @@ export const AlbumDetailsPage: React.FC = () => {
           fetchAlbumTracklist(decodedId),
         ]);
 
+        const resolvedAlbum = albumData || {
+          id: decodedId,
+          title: 'Unknown Album',
+          artist: 'Unknown Artist',
+          source: (decodedId.startsWith('mb-') ? 'musicbrainz' : 'itunes') as Album['source'],
+        };
+
         if (isMounted) {
           audioRef.current?.pause();
           setPlayingTrackNumber(null);
-          if (albumData) {
-            setAlbum(albumData);
-          } else {
-            // Fallback album object
-            setAlbum({
-              id: decodedId,
-              title: 'Unknown Album',
-              artist: 'Unknown Artist',
-              source: decodedId.startsWith('mb-') ? 'musicbrainz' : 'itunes',
-            });
-          }
+          setAlbum(resolvedAlbum);
           setTracks(tracklist);
+        }
+
+        if (resolvedAlbum.artist !== 'Unknown Artist') {
+          const bandcampResult = await fetchBandcampLinks(resolvedAlbum.artist, resolvedAlbum.title);
+          if (isMounted) setBandcamp(bandcampResult);
+        } else if (isMounted) {
+          setBandcamp(null);
         }
       } catch (err) {
         console.error('Failed to load album details:', err);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsBandcampLoading(false);
+        }
       }
     }
 
@@ -268,6 +280,39 @@ export const AlbumDetailsPage: React.FC = () => {
                       <ExternalLink className="h-4 w-4" />
                       <span>OPEN IN YOUTUBE MUSIC</span>
                     </a>
+
+                    {isBandcampLoading ? (
+                      <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>CHECKING BANDCAMP...</span>
+                      </span>
+                    ) : bandcamp?.album?.found && bandcamp.album.url ? (
+                      <a
+                        href={bandcamp.album.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 border-2 border-black bg-[#1da0c3] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-[#178aa8]"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>LISTEN ON BANDCAMP</span>
+                      </a>
+                    ) : bandcamp?.artist?.found && bandcamp.artist.url ? (
+                      <a
+                        href={bandcamp.artist.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 border-2 border-black bg-[#1da0c3] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-[#178aa8]"
+                        title="This album isn't on Bandcamp, but the artist's page is"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>ALBUM NOT ON BANDCAMP — VIEW ARTIST</span>
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 border-2 border-black bg-neutral-100 px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm cursor-not-allowed">
+                        <Ban className="h-4 w-4" />
+                        <span>NOT ON BANDCAMP</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

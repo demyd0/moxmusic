@@ -5,19 +5,22 @@ import { Footer } from '@/components/Footer';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { fetchArtistDiscography } from '@/services/musicSearch';
+import { fetchBandcampLinks, type BandcampLinkResult } from '@/services/bandcamp';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
-import { 
-  subscribeUserCollections, 
+import {
+  subscribeUserCollections,
   toggleLikeAlbum,
   toggleToListenAlbum,
-  type UserCollectionsState 
+  type UserCollectionsState
 } from '@/services/collectionService';
 import type { Album } from '@/types/album';
-import { 
-  ArrowLeft, 
-  User as UserIcon, 
-  Disc3, 
-  Loader2 
+import {
+  ArrowLeft,
+  User as UserIcon,
+  Disc3,
+  Loader2,
+  ExternalLink,
+  Ban
 } from 'lucide-react';
 
 export const ArtistDiscographyPage: React.FC = () => {
@@ -38,6 +41,8 @@ export const ArtistDiscographyPage: React.FC = () => {
     likedAlbums: [],
     toListenAlbums: [],
   });
+  const [bandcampArtist, setBandcampArtist] = useState<BandcampLinkResult | null>(null);
+  const [isBandcampLoading, setIsBandcampLoading] = useState(true);
 
   // Subscribe to user collections for Like / Listen states
   useEffect(() => {
@@ -66,6 +71,7 @@ export const ArtistDiscographyPage: React.FC = () => {
 
     async function loadDiscography() {
       setIsLoading(true);
+      setIsBandcampLoading(true);
       try {
         const decodedId = decodeURIComponent(id!);
         const res = await fetchArtistDiscography(decodedId, nameHint);
@@ -73,10 +79,18 @@ export const ArtistDiscographyPage: React.FC = () => {
           setArtistName(res.artistName.toUpperCase());
           setAlbums(res.albums);
         }
+
+        const bandcamp = await fetchBandcampLinks(res.artistName);
+        if (isMounted) {
+          setBandcampArtist(bandcamp.artist);
+        }
       } catch (err) {
         console.error('Discography load error:', err);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsBandcampLoading(false);
+        }
       }
     }
 
@@ -141,9 +155,33 @@ export const ArtistDiscographyPage: React.FC = () => {
               </div>
             </div>
 
-            <span className="border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hard-shadow-sm">
-              {albums.length} ALBUMS
-            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hard-shadow-sm">
+                {albums.length} ALBUMS
+              </span>
+
+              {isBandcampLoading ? (
+                <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>CHECKING BANDCAMP...</span>
+                </span>
+              ) : bandcampArtist?.found && bandcampArtist.url ? (
+                <a
+                  href={bandcampArtist.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 border-2 border-black bg-[#1da0c3] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white hard-shadow-sm hover:bg-[#178aa8] transition-all"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>LISTEN ON BANDCAMP</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-2 border-2 border-black bg-neutral-100 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm cursor-not-allowed">
+                  <Ban className="h-4 w-4" />
+                  <span>ARTIST NOT ON BANDCAMP</span>
+                </span>
+              )}
+            </div>
           </div>
 
           {/* 4-Column Discography Album Grid */}
