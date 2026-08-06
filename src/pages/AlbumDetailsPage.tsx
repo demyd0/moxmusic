@@ -7,6 +7,7 @@ import { fetchAlbumById, fetchAlbumTracklist } from '@/services/musicSearch';
 import { fetchBandcampLinks, type BandcampLookupResponse } from '@/services/bandcamp';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { buildYoutubeMusicSearchUrl } from '@/lib/youtubeMusic';
+import { buildGeniusSearchUrl } from '@/lib/genius';
 import {
   subscribeUserCollections,
   toggleLikeAlbum,
@@ -249,70 +250,86 @@ export const AlbumDetailsPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Action Buttons: Like / Listen */}
-                  <div className="flex flex-wrap items-center gap-3 pt-4 border-t-2 border-black">
-                    <button
-                      onClick={handleToggleLike}
-                      className={`inline-flex items-center justify-center gap-2 border-2 border-black px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
-                        isLiked ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
-                      }`}
-                    >
-                      <Heart className={`h-4 w-4 ${isLiked ? 'fill-white text-white' : 'text-black'}`} />
-                      <span>{isLiked ? 'LIKED' : 'LIKE'}</span>
-                    </button>
+                  {/* Action Buttons: two even rows instead of one ragged wrap */}
+                  <div className="pt-4 border-t-2 border-black space-y-3">
+                    {/* Row 1: primary actions */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={handleToggleLike}
+                        className={`inline-flex w-full items-center justify-center gap-2 border-2 border-black px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+                          isLiked ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${isLiked ? 'fill-white text-white' : 'text-black'}`} />
+                        <span>{isLiked ? 'LIKED' : 'LIKE'}</span>
+                      </button>
 
-                    <button
-                      onClick={handleToggleToListen}
-                      className={`inline-flex items-center justify-center gap-2 border-2 border-black px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
-                        isToListen ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
-                      }`}
-                    >
-                      <Headphones className="h-4 w-4" />
-                      <span>{isToListen ? 'IN QUEUE' : 'LISTEN'}</span>
-                    </button>
+                      <button
+                        onClick={handleToggleToListen}
+                        className={`inline-flex w-full items-center justify-center gap-2 border-2 border-black px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+                          isToListen ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        <Headphones className="h-4 w-4" />
+                        <span>{isToListen ? 'IN QUEUE' : 'LISTEN'}</span>
+                      </button>
+                    </div>
 
-                    <a
-                      href={buildYoutubeMusicSearchUrl(album.artist, album.title, true)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 border-2 border-black bg-red-600 px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-red-700"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      <span>OPEN IN YOUTUBE MUSIC</span>
-                    </a>
-
-                    {isBandcampLoading ? (
-                      <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>CHECKING BANDCAMP...</span>
-                      </span>
-                    ) : bandcamp?.album?.found && bandcamp.album.url ? (
+                    {/* Row 2: listen/lyrics elsewhere - equal-width regardless of label length */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <a
-                        href={bandcamp.album.url}
+                        href={buildYoutubeMusicSearchUrl(album.artist, album.title, true)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 border-2 border-black bg-[#1da0c3] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-[#178aa8]"
+                        className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-red-600 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-red-700"
                       >
-                        <ExternalLink className="h-4 w-4" />
-                        <span>LISTEN ON BANDCAMP</span>
+                        <ExternalLink className="h-4 w-4 shrink-0" />
+                        <span>YOUTUBE MUSIC</span>
                       </a>
-                    ) : bandcamp?.artist?.found && bandcamp.artist.url ? (
+
+                      {isBandcampLoading ? (
+                        <span className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-white px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm">
+                          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                          <span>BANDCAMP...</span>
+                        </span>
+                      ) : bandcamp?.album?.found && bandcamp.album.url ? (
+                        <a
+                          href={bandcamp.album.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-[#1da0c3] px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-[#178aa8]"
+                        >
+                          <ExternalLink className="h-4 w-4 shrink-0" />
+                          <span>BANDCAMP</span>
+                        </a>
+                      ) : bandcamp?.artist?.found && bandcamp.artist.url ? (
+                        <a
+                          href={bandcamp.artist.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-[#1da0c3] px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-[#178aa8]"
+                          title="This album isn't on Bandcamp, but the artist's page is"
+                        >
+                          <ExternalLink className="h-4 w-4 shrink-0" />
+                          <span>BANDCAMP (ARTIST)</span>
+                        </a>
+                      ) : (
+                        <span className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-neutral-100 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm cursor-not-allowed">
+                          <Ban className="h-4 w-4 shrink-0" />
+                          <span>NO BANDCAMP</span>
+                        </span>
+                      )}
+
                       <a
-                        href={bandcamp.artist.url}
+                        href={buildGeniusSearchUrl(album.artist, album.title)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 border-2 border-black bg-[#1da0c3] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-[#178aa8]"
-                        title="This album isn't on Bandcamp, but the artist's page is"
+                        className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-[#ffff64] px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-black transition-all hard-shadow-sm hover:bg-[#f2f200]"
                       >
-                        <ExternalLink className="h-4 w-4" />
-                        <span>ALBUM NOT ON BANDCAMP — VIEW ARTIST</span>
+                        <ExternalLink className="h-4 w-4 shrink-0" />
+                        <span>LYRICS ON GENIUS</span>
                       </a>
-                    ) : (
-                      <span className="inline-flex items-center gap-2 border-2 border-black bg-neutral-100 px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm cursor-not-allowed">
-                        <Ban className="h-4 w-4" />
-                        <span>NOT ON BANDCAMP</span>
-                      </span>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -377,6 +394,15 @@ export const AlbumDetailsPage: React.FC = () => {
                                     rel="noopener noreferrer"
                                     title="Open this track in YouTube Music"
                                     className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-red-600 hover:text-white hover:border-red-600 transition-all"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
+                                  <a
+                                    href={buildGeniusSearchUrl(album.artist, track.title)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Find lyrics for this track on Genius"
+                                    className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-[#ffff64] transition-all"
                                   >
                                     <ExternalLink className="h-3.5 w-3.5" />
                                   </a>
