@@ -104,6 +104,12 @@ export const HelloPage: React.FC = () => {
         setUserId(activeUid);
         setIsAuthenticated(true);
 
+        // Make sure the ID token is actually attached before the first
+        // Firestore reads below - see getUserProfile's retry logic for why.
+        try {
+          await user.getIdToken();
+        } catch {}
+
         // Auto-migrate any local guest data to Google account
         await migrateGuestDataToUserAccount(activeUid);
 

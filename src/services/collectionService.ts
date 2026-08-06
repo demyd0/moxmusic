@@ -47,15 +47,20 @@ function setLocalCollection(key: string, albums: Album[]): void {
   }
 }
 
+// See the matching constant in userService.ts - Firebase Auth persistence is
+// scoped per browser origin, so a custom domain and *.vercel.app each get
+// their own cold start, and a single short retry isn't always enough slack.
+const AUTH_RACE_RETRY_DELAYS_MS = [400, 800, 1500, 2500];
+
 /**
- * Wraps onSnapshot with a single retry when the very first error is
- * 'permission-denied'. Right after sign-in on a fresh browser/device the
- * Firestore SDK can start a listener a moment before the Firebase Auth ID
- * token is attached to its requests, so the first attempt can be rejected
- * even though the caller genuinely owns the data. A plain onSnapshot never
- * recovers from that on its own (the listener just stays dead), so without
- * this retry a user's own 'toListen' queue could silently appear empty
- * after logging in on a new device until they refresh the page.
+ * Wraps onSnapshot with retries when an early error is 'permission-denied'.
+ * Right after sign-in on a fresh browser/device/domain the Firestore SDK can
+ * start a listener a moment before the Firebase Auth ID token is attached to
+ * its requests, so the first attempt(s) can be rejected even though the
+ * caller genuinely owns the data. A plain onSnapshot never recovers from
+ * that on its own (the listener just stays dead), so without this retry a
+ * user's own 'toListen' queue could silently appear empty after logging in
+ * on a new device until they refresh the page.
  */
 function subscribeWithAuthRaceRetry(
   ref: ReturnType<typeof collection>,
@@ -64,17 +69,18 @@ function subscribeWithAuthRaceRetry(
 ): () => void {
   const state = { unsub: () => {} };
 
-  const start = (isRetry: boolean) => {
+  const start = (attempt: number) => {
     state.unsub = onSnapshot(ref, onData, (error: any) => {
-      if (!isRetry && error?.code === 'permission-denied') {
-        setTimeout(() => start(true), 400);
+      const delay = AUTH_RACE_RETRY_DELAYS_MS[attempt];
+      if (error?.code === 'permission-denied' && delay !== undefined) {
+        setTimeout(() => start(attempt + 1), delay);
         return;
       }
       onGiveUp(error);
     });
   };
 
-  start(false);
+  start(0);
   return () => state.unsub();
 }
 

@@ -58,6 +58,11 @@ export const Header: React.FC<HeaderProps> = ({
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && !user.isAnonymous) {
         setCurrentUser(user);
+        // Make sure the ID token is actually attached before the first
+        // Firestore read - see the retry logic in getUserProfile for why.
+        try {
+          await user.getIdToken();
+        } catch {}
         const profile = await getUserProfile(user.uid);
         if (profile) {
           setUserProfile(profile);

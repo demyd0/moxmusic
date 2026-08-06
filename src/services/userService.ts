@@ -19,23 +19,30 @@ export interface UserProfile {
   consentDate?: string;
 }
 
+// Firebase Auth persistence (IndexedDB) is scoped per browser *origin*, so a
+// custom domain and the default *.vercel.app domain each get their own cold
+// start the first time a user signs in there. On that cold start, opening
+// IndexedDB for the first time can push the ID-token-attach delay well past
+// a single short retry. Backoff schedule below gives a few seconds of total
+// slack before genuinely giving up.
+const AUTH_RACE_RETRY_DELAYS_MS = [400, 800, 1500, 2500];
+
 /**
  * Fetch User Profile Document by UID. Owner-only read (see firestore.rules).
  *
- * On a brand-new browser/device, the Firestore SDK can briefly lag behind
- * Firebase Auth: onAuthStateChanged already has the `user`, but the ID token
- * hasn't been attached to Firestore's requests yet, so the very first read
- * right after sign-in can fail with 'permission-denied' even though the
- * document does exist and the caller *is* the owner. Retrying once after a
- * short delay avoids that read being misread as "no profile exists yet",
- * which used to send returning users straight into the "choose a username"
- * flow on every new device.
+ * The Firestore SDK can briefly lag behind Firebase Auth: onAuthStateChanged
+ * already has the `user`, but the ID token hasn't been attached to
+ * Firestore's requests yet, so the very first read right after sign-in can
+ * fail with 'permission-denied' even though the document does exist and the
+ * caller *is* the owner. Retrying avoids that read being misread as "no
+ * profile exists yet", which used to send returning users straight into the
+ * "choose a username" flow on every new browser/device/domain.
  */
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   if (!uid) return null;
   const docRef = doc(db, 'users', uid);
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt <= AUTH_RACE_RETRY_DELAYS_MS.length; attempt++) {
     try {
       const snap = await getDoc(docRef);
       if (snap.exists()) {
@@ -54,9 +61,10 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       }
       break; // Doc genuinely has no profile yet - stop, don't retry.
     } catch (error: any) {
-      const isTransientAuthRace = error?.code === 'permission-denied' && attempt === 0;
+      const delay = AUTH_RACE_RETRY_DELAYS_MS[attempt];
+      const isTransientAuthRace = error?.code === 'permission-denied' && delay !== undefined;
       if (isTransientAuthRace) {
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
       console.warn('Failed to fetch user profile from Firestore:', error);
