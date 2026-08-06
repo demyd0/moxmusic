@@ -8,7 +8,7 @@ export const PrivacyPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between bg-[#fafafa] text-[#0a0a0a]">
+    <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
       <Header />
 
       <main className="relative z-10 mx-auto max-w-4xl px-6 py-12 w-full">

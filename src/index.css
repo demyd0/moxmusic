@@ -34,10 +34,31 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: -10;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 0, 0, 0.045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 0, 0, 0.045) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
+/* Spotlight layer: same grid, brighter, revealed in a circle that follows the
+   cursor — matches moxmap's BrutalBackground. --mx/--my are set by
+   useCursorSpotlight (src/hooks/useCursorSpotlight.ts), mounted once in App.
+   This was invisible before for a second reason too: every page's own root
+   div painted an opaque bg-[#fafafa] directly over body::before, so even the
+   plain static grid above never showed through. Removed those page-level
+   backgrounds so body's grid (and this layer) are actually visible. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -9;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(350px circle at var(--mx, 50%) var(--my, 50%), black 0%, transparent 100%);
+  mask-image: radial-gradient(350px circle at var(--mx, 50%) var(--my, 50%), black 0%, transparent 100%);
 }
 
 /* Typography matching Moxmap brutalist headers */

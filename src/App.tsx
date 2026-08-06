@@ -4,8 +4,10 @@ import { AlbumDetailsPage } from '@/pages/AlbumDetailsPage';
 import { ArtistDiscographyPage } from '@/pages/ArtistDiscographyPage';
 import { PrivacyPage } from '@/pages/PrivacyPage';
 import { SharedCollectionPage } from '@/pages/SharedCollectionPage';
+import { useCursorSpotlight } from '@/hooks/useCursorSpotlight';
 
 export function App() {
+  useCursorSpotlight();
   return (
     <Router>
       <Routes>

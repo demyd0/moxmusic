@@ -122,7 +122,7 @@ export const ArtistDiscographyPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between bg-[#fafafa] text-[#0a0a0a]">
+    <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
       <div>
         <Header
           likedCount={userCollections.likedAlbums.length}
