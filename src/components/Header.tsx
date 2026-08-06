@@ -14,19 +14,22 @@ import {
 import { UsernameModal } from '@/components/UsernameModal';
 import { GdprConsentModal } from '@/components/GdprConsentModal';
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
-import { 
-  Search, 
-  Heart, 
-  Headphones, 
-  LogIn, 
-  LogOut, 
-  User as UserIcon, 
-  AlertTriangle, 
-  Download, 
-  Trash2, 
-  ChevronDown, 
+import { useTheme } from '@/hooks/useTheme';
+import {
+  Search,
+  Heart,
+  Headphones,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+  AlertTriangle,
+  Download,
+  Trash2,
+  ChevronDown,
   Check,
-  Edit3
+  Edit3,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -43,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
   toListenCount = 0,
 }) => {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
@@ -295,12 +299,41 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* High-Contrast Prominent Dropdown Menu */}
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 border-2 border-black bg-white p-3 hard-shadow-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 font-mono text-xs animate-fadeIn">
+                <div className="absolute right-0 top-full mt-2 w-64 border-2 border-black bg-white p-3 hard-shadow-lg z-50 font-mono text-xs animate-fadeIn">
                   <div className="border-b-2 border-black pb-2.5 mb-2.5 px-1">
                     <div className="font-extrabold text-black text-sm uppercase truncate">
                       @{userProfile?.username || 'user'}
                     </div>
                     <div className="text-[11px] text-neutral-500 truncate">{currentUser.email}</div>
+                  </div>
+
+                  {/* Appearance: light/dark toggle */}
+                  <div className="mb-2.5">
+                    <div className="px-1 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                      APPEARANCE
+                    </div>
+                    <div className="flex items-stretch border border-black hard-shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => setTheme('light')}
+                        className={`flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-2 font-bold uppercase transition-all ${
+                          theme === 'light' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        <Sun className="h-3.5 w-3.5" />
+                        <span>LIGHT</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTheme('dark')}
+                        className={`flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-2 border-l border-black font-bold uppercase transition-all ${
+                          theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        <Moon className="h-3.5 w-3.5" />
+                        <span>DARK</span>
+                      </button>
+                    </div>
                   </div>
 
                   <button
