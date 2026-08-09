@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
-import type { ProfileBackground, ProfileCustomization, ShowcaseType } from '@/types/profile';
+import type { ProfileBackground, ProfileCustomization, ShowcaseType, TextStyle, TextFont, TextEffect } from '@/types/profile';
 import {
+  DEFAULT_TEXT_STYLE,
   MAX_ALBUMS_PER_SHOWCASE,
   MAX_BIO_LENGTH,
   MAX_SHOWCASES,
@@ -62,6 +63,81 @@ export function backgroundToCss(bg: ProfileBackground): CSSProperties {
   return { backgroundColor: '#fafafa' };
 }
 
+// Curated preset lists for text styling. Deliberately fixed/small - the
+// editor UI only ever offers one of these, and sanitizeTextStyle() rejects
+// anything else, so a hand-crafted write can't smuggle in arbitrary CSS,
+// an external font URL, or anything that could break page layout / track
+// visitors via an off-site font fetch.
+export const TEXT_FONTS: { value: TextFont; label: string }[] = [
+  { value: 'sans', label: 'SANS' },
+  { value: 'header', label: 'DISPLAY' },
+  { value: 'mono', label: 'MONO' },
+  { value: 'serif', label: 'SERIF' },
+];
+
+export const TEXT_EFFECTS: { value: TextEffect; label: string }[] = [
+  { value: 'none', label: 'NONE' },
+  { value: 'glow', label: 'GLOW' },
+  { value: 'shadow', label: 'SHADOW' },
+  { value: 'outline', label: 'OUTLINE' },
+  { value: 'gradient', label: 'GRADIENT' },
+];
+
+const TEXT_FONT_VALUES: TextFont[] = TEXT_FONTS.map((f) => f.value);
+const TEXT_EFFECT_VALUES: TextEffect[] = TEXT_EFFECTS.map((f) => f.value);
+
+const FONT_FAMILY_MAP: Record<TextFont, string> = {
+  sans: 'var(--font-sans)',
+  header: 'var(--font-header)',
+  mono: 'var(--font-mono)',
+  serif: 'Georgia, "Times New Roman", serif',
+};
+
+export function sanitizeTextStyle(input: Partial<TextStyle> | undefined): TextStyle {
+  const font = TEXT_FONT_VALUES.includes(input?.font as TextFont) ? (input!.font as TextFont) : DEFAULT_TEXT_STYLE.font;
+  const color = input?.color && isValidHexColor(input.color) ? input.color : '';
+  const effect = TEXT_EFFECT_VALUES.includes(input?.effect as TextEffect) ? (input!.effect as TextEffect) : DEFAULT_TEXT_STYLE.effect;
+  return { font, color, effect };
+}
+
+/**
+ * Converts a curated TextStyle into real CSS. The "gradient" effect pairs
+ * the chosen color with the profile's accent color so it always looks
+ * intentional rather than needing a second color picker.
+ */
+export function textStyleToCss(style: TextStyle, accentColor: string): CSSProperties {
+  const family = FONT_FAMILY_MAP[style.font] || FONT_FAMILY_MAP.mono;
+  const color = isValidHexColor(style.color) ? style.color : undefined;
+  const accent = isValidHexColor(accentColor) ? accentColor : '#000000';
+  const css: CSSProperties = { fontFamily: family };
+
+  if (style.effect === 'gradient') {
+    const from = color || accent;
+    const to = from === accent ? '#000000' : accent;
+    return {
+      ...css,
+      backgroundImage: `linear-gradient(90deg, ${from}, ${to})`,
+      WebkitBackgroundClip: 'text',
+      backgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      color: 'transparent',
+    };
+  }
+
+  if (color) css.color = color;
+
+  if (style.effect === 'glow') {
+    const glow = color || accent;
+    css.textShadow = `0 0 6px ${glow}, 0 0 14px ${glow}`;
+  } else if (style.effect === 'shadow') {
+    css.textShadow = '2px 2px 0 rgba(0,0,0,0.25)';
+  } else if (style.effect === 'outline') {
+    (css as CSSProperties & { WebkitTextStroke?: string }).WebkitTextStroke = `1px ${color || accent}`;
+  }
+
+  return css;
+}
+
 /**
  * Clamps/repairs a customization object before it's written to Firestore -
  * defends against a hand-crafted write (bypassing the editor UI) blowing
@@ -74,6 +150,7 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
 
   const accentColor = isValidHexColor(input.accentColor) ? input.accentColor : '#000000';
   const bio = (input.bio || '').slice(0, MAX_BIO_LENGTH);
+  const bioStyle = sanitizeTextStyle(input.bioStyle);
 
   const showcases = (input.showcases || [])
     .slice(0, MAX_SHOWCASES)
@@ -83,7 +160,8 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
       type: SHOWCASE_TYPES.includes(s.type as ShowcaseType) ? (s.type as ShowcaseType) : 'albums',
       albumIds: (s.albumIds || []).slice(0, MAX_ALBUMS_PER_SHOWCASE),
       text: (s.text || '').slice(0, MAX_SHOWCASE_TEXT_LENGTH),
+      textStyle: sanitizeTextStyle(s.textStyle),
     }));
 
-  return { background, accentColor, bio, showcases };
+  return { background, accentColor, bio, bioStyle, showcases };
 }

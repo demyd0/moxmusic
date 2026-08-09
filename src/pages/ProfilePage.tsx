@@ -18,9 +18,9 @@ import {
   getFollowing,
   type FollowUser
 } from '@/services/followService';
-import { backgroundToCss, isValidHexColor } from '@/lib/profileValidation';
+import { backgroundToCss, isValidHexColor, textStyleToCss } from '@/lib/profileValidation';
 import { auth, signInWithGoogle } from '@/lib/firebase';
-import { DEFAULT_PROFILE_CUSTOMIZATION, type ProfileCustomization } from '@/types/profile';
+import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
 import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck } from 'lucide-react';
 
@@ -246,7 +246,10 @@ export const ProfilePage: React.FC = () => {
                         {displayHandle}
                       </h1>
                       {customization.bio ? (
-                        <p className="font-mono text-xs text-neutral-700 mt-1 whitespace-pre-wrap max-w-xl">
+                        <p
+                          className="text-xs mt-1 whitespace-pre-wrap max-w-xl"
+                          style={textStyleToCss(customization.bioStyle, accent)}
+                        >
                           {customization.bio}
                         </p>
                       ) : (
@@ -333,7 +336,10 @@ export const ProfilePage: React.FC = () => {
                       {showcase.title}
                     </h3>
                     {hasText && (
-                      <p className={`font-mono text-sm text-neutral-700 whitespace-pre-wrap ${hasAlbums ? 'mb-4' : ''}`}>
+                      <p
+                        className={`text-sm whitespace-pre-wrap ${hasAlbums ? 'mb-4' : ''}`}
+                        style={textStyleToCss(showcase.textStyle || DEFAULT_TEXT_STYLE, accent)}
+                      >
                         {showcase.text}
                       </p>
                     )}

@@ -9,6 +9,7 @@ import { getProfileCustomization, saveProfileCustomization } from '@/services/pr
 import { backgroundToCss, isValidHexColor, isValidBackgroundImageUrl } from '@/lib/profileValidation';
 import {
   DEFAULT_PROFILE_CUSTOMIZATION,
+  DEFAULT_TEXT_STYLE,
   MAX_ALBUMS_PER_SHOWCASE,
   MAX_BIO_LENGTH,
   MAX_SHOWCASES,
@@ -16,8 +17,10 @@ import {
   type ProfileCustomization,
   type ProfileBackgroundType,
   type ShowcaseType,
+  type TextStyle,
 } from '@/types/profile';
 import type { Album } from '@/types/album';
+import { StyledTextField } from '@/components/StyledTextField';
 import {
   ArrowLeft,
   Save,
@@ -145,7 +148,7 @@ export const ProfileEditPage: React.FC = () => {
     if (customization.showcases.length >= MAX_SHOWCASES) return;
     setCustomization((c) => ({
       ...c,
-      showcases: [...c.showcases, { id: `showcase-${Date.now()}`, title: 'MY FAVORITES', type, albumIds: [], text: '' }],
+      showcases: [...c.showcases, { id: `showcase-${Date.now()}`, title: 'MY FAVORITES', type, albumIds: [], text: '', textStyle: DEFAULT_TEXT_STYLE }],
     }));
   };
 
@@ -153,6 +156,13 @@ export const ProfileEditPage: React.FC = () => {
     setCustomization((c) => ({
       ...c,
       showcases: c.showcases.map((s) => (s.id === id ? { ...s, text: text.slice(0, MAX_SHOWCASE_TEXT_LENGTH) } : s)),
+    }));
+  };
+
+  const setShowcaseTextStyle = (id: string, textStyle: TextStyle) => {
+    setCustomization((c) => ({
+      ...c,
+      showcases: c.showcases.map((s) => (s.id === id ? { ...s, textStyle } : s)),
     }));
   };
 
@@ -420,12 +430,15 @@ export const ProfileEditPage: React.FC = () => {
                     {customization.bio.length}/{MAX_BIO_LENGTH}
                   </span>
                 </div>
-                <textarea
+                <StyledTextField
                   value={customization.bio}
-                  onChange={(e) => setCustomization((c) => ({ ...c, bio: e.target.value.slice(0, MAX_BIO_LENGTH) }))}
+                  onChange={(bio) => setCustomization((c) => ({ ...c, bio }))}
+                  style={customization.bioStyle}
+                  onStyleChange={(bioStyle) => setCustomization((c) => ({ ...c, bioStyle }))}
+                  accentColor={customization.accentColor}
                   placeholder="SAY SOMETHING ABOUT YOUR TASTE..."
                   rows={3}
-                  className="w-full border-2 border-black bg-white px-3.5 py-2.5 font-mono text-sm text-black placeholder-neutral-400 focus:bg-neutral-50 focus:outline-none resize-none"
+                  maxLength={MAX_BIO_LENGTH}
                 />
               </section>
 
@@ -518,16 +531,16 @@ export const ProfileEditPage: React.FC = () => {
 
                         {(showcase.type === 'text' || showcase.type === 'mixed') && (
                           <div className="mb-3">
-                            <textarea
+                            <StyledTextField
                               value={showcase.text || ''}
-                              onChange={(e) => setShowcaseText(showcase.id, e.target.value)}
+                              onChange={(text) => setShowcaseText(showcase.id, text)}
+                              style={showcase.textStyle || DEFAULT_TEXT_STYLE}
+                              onStyleChange={(textStyle) => setShowcaseTextStyle(showcase.id, textStyle)}
+                              accentColor={customization.accentColor}
                               placeholder="WRITE SOMETHING FOR THIS SHOWCASE..."
                               rows={3}
-                              className="w-full border-2 border-black bg-white px-3 py-2 font-mono text-xs text-black placeholder-neutral-400 focus:bg-neutral-50 focus:outline-none resize-none"
+                              maxLength={MAX_SHOWCASE_TEXT_LENGTH}
                             />
-                            <p className="font-mono text-[10px] text-neutral-400 text-right mt-1">
-                              {(showcase.text || '').length}/{MAX_SHOWCASE_TEXT_LENGTH}
-                            </p>
                           </div>
                         )}
 
