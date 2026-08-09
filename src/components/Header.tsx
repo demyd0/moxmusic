@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { onAuthStateChanged, type User } from 'firebase/auth';
@@ -14,7 +14,8 @@ import {
 import { UsernameModal } from '@/components/UsernameModal';
 import { GdprConsentModal } from '@/components/GdprConsentModal';
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
-import { useTheme } from '@/hooks/useTheme';
+import { WinampUnlockOverlay } from '@/components/WinampUnlockOverlay';
+import { useTheme, isWinampThemeUnlocked, unlockWinampTheme } from '@/hooks/useTheme';
 import {
   Search,
   Heart,
@@ -31,8 +32,12 @@ import {
   Sun,
   Moon,
   Upload,
-  Palette
+  Palette,
+  Radio
 } from 'lucide-react';
+
+const LOGO_UNLOCK_CLICKS = 5;
+const LOGO_UNLOCK_WINDOW_MS = 1500;
 
 interface HeaderProps {
   activeTab?: 'search' | 'liked' | 'toListen';
@@ -58,6 +63,10 @@ export const Header: React.FC<HeaderProps> = ({
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [notificationToast, setNotificationToast] = useState<string | null>(null);
+  const [winampUnlocked, setWinampUnlocked] = useState(() => isWinampThemeUnlocked());
+  const [showWinampUnlockOverlay, setShowWinampUnlockOverlay] = useState(false);
+  const logoClickCountRef = useRef(0);
+  const logoClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Subscribe to persistent Firebase Auth state & fetch User Profile
   useEffect(() => {
@@ -197,10 +206,31 @@ export const Header: React.FC<HeaderProps> = ({
       setActiveTab('search');
     }
     navigate('/');
+
+    // Secret unlock: 5 clicks on the logo within a short window reveals
+    // the hidden Winamp theme (see useTheme.ts). Doesn't interfere with
+    // the normal single-click "go home" behavior above.
+    logoClickCountRef.current += 1;
+    if (logoClickTimerRef.current) clearTimeout(logoClickTimerRef.current);
+    logoClickTimerRef.current = setTimeout(() => {
+      logoClickCountRef.current = 0;
+    }, LOGO_UNLOCK_WINDOW_MS);
+
+    if (logoClickCountRef.current >= LOGO_UNLOCK_CLICKS) {
+      logoClickCountRef.current = 0;
+      if (logoClickTimerRef.current) clearTimeout(logoClickTimerRef.current);
+      unlockWinampTheme();
+      setWinampUnlocked(true);
+      setTheme('winamp');
+      setShowWinampUnlockOverlay(true);
+    }
   };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b-2 border-black bg-white">
+      {showWinampUnlockOverlay && (
+        <WinampUnlockOverlay onDone={() => setShowWinampUnlockOverlay(false)} />
+      )}
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-6">
         {/* Minimalist Double MM Brand Logo ONLY (No text) */}
         <div 
@@ -345,6 +375,19 @@ export const Header: React.FC<HeaderProps> = ({
                         <Moon className="h-3.5 w-3.5" />
                         <span>DARK</span>
                       </button>
+                      {winampUnlocked && (
+                        <button
+                          type="button"
+                          onClick={() => setTheme('winamp')}
+                          title="A hidden theme you found - nice."
+                          className={`flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-2 border-l border-black font-bold uppercase transition-all ${
+                            theme === 'winamp' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                          }`}
+                        >
+                          <Radio className="h-3.5 w-3.5" />
+                          <span>WINAMP</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 

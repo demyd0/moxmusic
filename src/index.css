@@ -28,6 +28,20 @@
     --text-secondary: #d4d4d8;
     --text-muted: #a1a1aa;
   }
+
+  /* Hidden Winamp 2.x easter-egg theme - see useTheme.ts for the unlock
+     mechanism (click the header logo 5 times) and Header.tsx for the
+     switcher. Same override strategy as .dark below: recolor the site's
+     existing bg-white/border-black/text-black vocabulary instead of
+     adding per-component variants. */
+  .winamp {
+    --bg-primary: #05070c;
+    --bg-card: #12141c;
+    --border-color: #4a5a7a;
+    --text-primary: #e6ecff;
+    --text-secondary: #8fa3c9;
+    --text-muted: #5a6a8f;
+  }
 }
 
 body {
@@ -88,6 +102,18 @@ body::after {
     linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
 }
 
+.winamp body::before {
+  background-image:
+    linear-gradient(rgba(143, 163, 201, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143, 163, 201, 0.09) 1px, transparent 1px);
+}
+
+.winamp body::after {
+  background-image:
+    linear-gradient(rgba(77, 255, 77, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(77, 255, 77, 0.14) 1px, transparent 1px);
+}
+
 /* Typography matching Moxmap brutalist headers */
 h1, h2, h3, h4, h5, h6, .font-header {
   font-family: var(--font-header);
@@ -97,6 +123,10 @@ h1, h2, h3, h4, h5, h6, .font-header {
 }
 
 .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6, .dark .font-header {
+  color: var(--text-primary);
+}
+
+.winamp h1, .winamp h2, .winamp h3, .winamp h4, .winamp h5, .winamp h6, .winamp .font-header {
   color: var(--text-primary);
 }
 
@@ -128,6 +158,20 @@ h1, h2, h3, h4, h5, h6, .font-header {
   box-shadow: 6px 6px 0px 0px #52525b;
 }
 
+/* Winamp mode: a steel-blue offset shadow instead of black, matching the
+   metal-chrome look of the screensaver window. */
+.winamp .hard-shadow {
+  box-shadow: 3px 3px 0px 0px #33406b;
+}
+
+.winamp .hard-shadow-sm {
+  box-shadow: 2px 2px 0px 0px #33406b;
+}
+
+.winamp .hard-shadow-lg {
+  box-shadow: 6px 6px 0px 0px #33406b;
+}
+
 /* Crisp 90-degree Rectangular Buttons & Interactive Elements */
 button, .btn-brutalist {
   border-radius: 0px !important;
@@ -141,6 +185,10 @@ button:active, .btn-brutalist:active {
 
 .dark button:active, .dark .btn-brutalist:active {
   box-shadow: 1px 1px 0px 0px #52525b !important;
+}
+
+.winamp button:active, .winamp .btn-brutalist:active {
+  box-shadow: 1px 1px 0px 0px #33406b !important;
 }
 
 /* Album card LIKE/LISTEN/DELETE action overlay: always visible by default so
@@ -184,6 +232,13 @@ button:active, .btn-brutalist:active {
 }
 .dark ::-webkit-scrollbar-thumb {
   background: #52525b;
+}
+
+.winamp ::-webkit-scrollbar-track {
+  background: #05070c;
+}
+.winamp ::-webkit-scrollbar-thumb {
+  background: #4a5a7a;
 }
 
 /* ============================================================
@@ -266,6 +321,67 @@ button:active, .btn-brutalist:active {
    used specifically because they read fine on dark, so left alone. */
 .dark .text-emerald-600 { color: #34d399; }
 
+/* ============================================================
+   Winamp mode: the hidden easter-egg theme (see useTheme.ts)
+   ============================================================
+   Same override vocabulary as .dark above, just recolored: steel-blue
+   metal chrome for surfaces/borders, and the inverted "active" pill
+   becomes a pressed LCD-green readout - matching the screensaver
+   window's active preset button (ScreensaverWindow.tsx) so the whole
+   site reads as one consistent skin once unlocked.
+   ============================================================ */
+
+.winamp .bg-white { background-color: var(--bg-card); }
+.winamp .bg-neutral-50 { background-color: var(--bg-card); }
+.winamp .bg-neutral-100 { background-color: #1a1d2b; }
+.winamp .bg-neutral-200 { background-color: #232840; }
+.winamp .bg-neutral-800 { background-color: #2a3350; }
+.winamp .hover\:bg-neutral-100:hover { background-color: #232840; }
+.winamp .hover\:bg-neutral-800:hover { background-color: #33406b; }
+
+.winamp .border-black { border-color: var(--border-color); }
+.winamp .border-black\/10 { border-color: rgb(74 90 122 / 0.5); }
+.winamp .divide-black\/10 > :not([hidden]) ~ :not([hidden]) { border-color: rgb(74 90 122 / 0.5); }
+
+.winamp .text-black { color: var(--text-primary); }
+.winamp .text-neutral-400 { color: #6b7db0; }
+.winamp .text-neutral-500 { color: var(--text-muted); }
+.winamp .text-neutral-600 { color: var(--text-secondary); }
+.winamp .text-neutral-700 { color: #c3d0f0; }
+.winamp .hover\:text-black:hover { color: var(--text-primary); }
+
+.winamp .bg-\[\#fafafa\] { background-color: var(--bg-primary); }
+.winamp .text-\[\#0a0a0a\] { color: var(--text-primary); }
+
+/* Inverted "active/selected" pill becomes a pressed LCD-green readout,
+   exactly like the active preset button in ScreensaverWindow.tsx. */
+.winamp .bg-black { background-color: #0c2a0c; border-color: #245a24 !important; }
+.winamp .hover\:bg-black:hover { background-color: #123512; }
+
+.winamp .bg-black.text-white,
+.winamp .bg-black .text-white,
+.winamp .hover\:bg-black:hover.hover\:text-white:hover,
+.winamp .hover\:bg-black:hover .hover\:text-white:hover {
+  color: #4dff4d;
+  text-shadow: 0 0 6px rgba(77, 255, 77, 0.6);
+}
+
+.winamp .bg-black.border-white,
+.winamp .bg-black .border-white {
+  border-color: #245a24;
+}
+
+.winamp .bg-black.fill-white,
+.winamp .bg-black .fill-white {
+  fill: #4dff4d;
+}
+
+.winamp .bg-red-50 { background-color: rgb(127 29 29 / 0.25); }
+.winamp .border-red-600 { border-color: #f87171; }
+.winamp .text-red-600 { color: #f87171; }
+.winamp .text-red-700 { color: #fca5a5; }
+.winamp .text-emerald-600 { color: #4dff4d; }
+
 /* Avatar frames - cosmetic rewards for activity milestones, see
    src/lib/milestones.ts and src/lib/avatarFrames.ts. */
 .avatar-frame-bronze { border-color: #a5673a !important; box-shadow: 0 0 10px rgba(165, 103, 58, 0.5); }
@@ -304,4 +420,66 @@ button:active, .btn-brutalist:active {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   animation: frame-rainbow-spin 3s linear infinite;
+}
+
+/* Winamp theme unlock reveal - a diagonal steel-blue/LCD-green light band
+   that sweeps across the whole viewport once. The theme class is already
+   swapped before this mounts (see WinampUnlockOverlay.tsx), so the sweep
+   just sells the moment rather than gating the actual transition. */
+.winamp-unlock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.winamp-unlock-band {
+  position: absolute;
+  top: -60%;
+  left: -70%;
+  width: 240%;
+  height: 220%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 34%,
+    #1c2544 41%,
+    #33406b 46%,
+    #4dff4d 50%,
+    #33406b 54%,
+    #1c2544 59%,
+    transparent 66%,
+    transparent 100%
+  );
+  transform: translateX(-45%) rotate(8deg);
+  animation: winamp-sweep 1.15s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes winamp-sweep {
+  to {
+    transform: translateX(45%) rotate(8deg);
+  }
+}
+
+.winamp-unlock-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: clamp(1.1rem, 4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: #4dff4d;
+  text-shadow: 0 0 16px rgba(77, 255, 77, 0.85);
+  white-space: nowrap;
+  animation: winamp-label-flash 1.15s ease-out forwards;
+}
+
+@keyframes winamp-label-flash {
+  0% { opacity: 0; letter-spacing: 0.6em; }
+  25% { opacity: 1; letter-spacing: 0.3em; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
 }

@@ -13,8 +13,12 @@
       (function () {
         try {
           var stored = localStorage.getItem('moxmusic_theme');
-          var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (isDark) document.documentElement.classList.add('dark');
+          if (stored === 'winamp') {
+            document.documentElement.classList.add('winamp');
+          } else {
+            var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (isDark) document.documentElement.classList.add('dark');
+          }
         } catch (e) {}
       })();
     </script>
