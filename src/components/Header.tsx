@@ -30,7 +30,8 @@ import {
   Edit3,
   Sun,
   Moon,
-  Upload
+  Upload,
+  Palette
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -346,6 +347,30 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      navigate(`/share/${userProfile?.username || ''}`);
+                    }}
+                    className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-black border border-black bg-white hover:bg-black hover:text-white transition-all mb-2 hard-shadow-sm"
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    <span>MY PROFILE</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      navigate('/profile/edit');
+                    }}
+                    className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-black border border-black bg-white hover:bg-black hover:text-white transition-all mb-2 hard-shadow-sm"
+                  >
+                    <Palette className="h-4 w-4" />
+                    <span>CUSTOMIZE PROFILE</span>
+                  </button>
 
                   <button
                     type="button"

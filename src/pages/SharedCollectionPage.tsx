@@ -5,8 +5,12 @@ import { Footer } from '@/components/Footer';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
 import { fetchSharedLikedCollection } from '@/services/collectionService';
 import { getPublicUserProfile, resolveUsernameToUid } from '@/services/userService';
+import { getProfileCustomization } from '@/services/profileService';
+import { backgroundToCss, isValidHexColor } from '@/lib/profileValidation';
+import { auth } from '@/lib/firebase';
+import { DEFAULT_PROFILE_CUSTOMIZATION, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
-import { Heart, Disc3, Loader2, ArrowLeft, UserX } from 'lucide-react';
+import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings } from 'lucide-react';
 
 export const SharedCollectionPage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -14,14 +18,16 @@ export const SharedCollectionPage: React.FC = () => {
 
   const [albums, setAlbums] = useState<Album[]>([]);
   const [profile, setProfile] = useState<{ username: string; photoURL?: string } | null>(null);
+  const [customization, setCustomization] = useState<ProfileCustomization>(DEFAULT_PROFILE_CUSTOMIZATION);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
     if (!username) return;
     let isMounted = true;
 
-    async function loadSharedCollection() {
+    async function loadProfile() {
       setIsLoading(true);
       setNotFound(false);
       try {
@@ -29,9 +35,10 @@ export const SharedCollectionPage: React.FC = () => {
         // existed point straight at a raw Firebase uid, so fall back to
         // treating the param as a uid if it doesn't resolve as a username.
         const resolvedUid = (await resolveUsernameToUid(username!)) || username!;
-        const [userProfile, sharedAlbums] = await Promise.all([
+        const [userProfile, sharedAlbums, profileCustomization] = await Promise.all([
           getPublicUserProfile(resolvedUid),
           fetchSharedLikedCollection(resolvedUid),
+          getProfileCustomization(resolvedUid),
         ]);
 
         // The publicProfiles mirror only gets created/backfilled the next
@@ -48,6 +55,8 @@ export const SharedCollectionPage: React.FC = () => {
         if (isMounted) {
           setAlbums(sharedAlbums);
           setProfile(userProfile);
+          setCustomization(profileCustomization);
+          setIsOwnProfile(Boolean(auth.currentUser && auth.currentUser.uid === resolvedUid));
         }
       } catch (err) {
         console.error('Failed to load shared liked collection:', err);
@@ -57,7 +66,7 @@ export const SharedCollectionPage: React.FC = () => {
       }
     }
 
-    loadSharedCollection();
+    loadProfile();
 
     return () => {
       isMounted = false;
@@ -65,9 +74,19 @@ export const SharedCollectionPage: React.FC = () => {
   }, [username]);
 
   const displayHandle = profile?.username ? `@${profile.username.toUpperCase()}` : 'USER';
+  const accent = isValidHexColor(customization.accentColor) ? customization.accentColor : '#000000';
+  const albumsById = new Map(albums.map((a) => [a.id, a]));
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
+      {/* Custom profile background layer - sits behind everything, page's
+          own grid/spotlight background (body::before/::after) still shows
+          through where this doesn't cover since it's just a color/image,
+          not opaque chrome. */}
+      {!notFound && !isLoading && (
+        <div className="fixed inset-0 -z-[1] pointer-events-none" style={backgroundToCss(customization.background)} />
+      )}
+
       <div>
         <Header />
 
@@ -81,35 +100,11 @@ export const SharedCollectionPage: React.FC = () => {
             <span>DISCOVER MUSIC</span>
           </button>
 
-          {/* Sub Header Title */}
-          {!notFound && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b-2 border-black">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center border-2 border-black bg-black text-white hard-shadow-sm">
-                  <Heart className="h-6 w-6 fill-white" />
-                </div>
-                <div>
-                  <h1 className="font-header text-3xl sm:text-4xl font-extrabold text-black uppercase tracking-tight">
-                    {displayHandle}'S LIKED ALBUMS
-                  </h1>
-                  <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
-                    PUBLIC READ-ONLY COLLECTION
-                  </p>
-                </div>
-              </div>
-
-              <span className="border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hard-shadow-sm">
-                {albums.length} ALBUMS
-              </span>
-            </div>
-          )}
-
-          {/* 4-Column Read-Only Grid */}
           {isLoading ? (
             <div className="flex flex-col items-center justify-center border-2 border-black bg-white px-6 py-20 text-center hard-shadow">
               <Loader2 className="h-10 w-10 animate-spin text-black mb-3" />
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-black">
-                LOADING SHARED COLLECTION...
+                LOADING PROFILE...
               </span>
             </div>
           ) : notFound ? (
@@ -130,28 +125,113 @@ export const SharedCollectionPage: React.FC = () => {
                 GO TO SEARCH
               </button>
             </div>
-          ) : albums.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {albums.map((album) => (
-                <CollectionAlbumCard key={album.id} album={album} />
-              ))}
-            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center border-2 border-black bg-white px-6 py-16 text-center hard-shadow">
-              <Disc3 className="h-10 w-10 text-black mb-3" />
-              <h4 className="font-header text-xl font-extrabold uppercase text-black mb-1">
-                SHARED COLLECTION IS EMPTY
-              </h4>
-              <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider mb-6">
-                NO LIKED ALBUMS FOUND IN THIS PUBLIC PROFILE.
-              </p>
-              <button
-                onClick={() => navigate('/')}
-                className="border-2 border-black bg-black px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white"
+            <>
+              {/* Profile Header Card */}
+              <div
+                className="border-2 bg-white/95 backdrop-blur-sm p-6 hard-shadow mb-8"
+                style={{ borderColor: accent }}
               >
-                GO TO SEARCH
-              </button>
-            </div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center border-2 border-black text-white hard-shadow-sm"
+                      style={{ backgroundColor: accent }}
+                    >
+                      <Heart className="h-6 w-6 fill-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <h1 className="font-header text-3xl sm:text-4xl font-extrabold text-black uppercase tracking-tight truncate">
+                        {displayHandle}
+                      </h1>
+                      {customization.bio ? (
+                        <p className="font-mono text-xs text-neutral-700 mt-1 whitespace-pre-wrap max-w-xl">
+                          {customization.bio}
+                        </p>
+                      ) : (
+                        <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
+                          PUBLIC PROFILE
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isOwnProfile && (
+                      <button
+                        onClick={() => navigate('/profile/edit')}
+                        className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all hard-shadow-sm"
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>EDIT PROFILE</span>
+                      </button>
+                    )}
+                    <span className="border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hard-shadow-sm">
+                      {albums.length} ALBUMS
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Showcases */}
+              {customization.showcases.map((showcase) => {
+                const showcaseAlbums = showcase.albumIds
+                  .map((id) => albumsById.get(id))
+                  .filter((a): a is Album => Boolean(a));
+                if (showcaseAlbums.length === 0) return null;
+
+                return (
+                  <section
+                    key={showcase.id}
+                    className="border-2 bg-white/95 backdrop-blur-sm p-5 hard-shadow mb-6"
+                    style={{ borderColor: accent }}
+                  >
+                    <h3
+                      className="font-header text-lg font-extrabold uppercase mb-4"
+                      style={{ color: accent }}
+                    >
+                      {showcase.title}
+                    </h3>
+                    <div className="flex gap-4 overflow-x-auto pb-1">
+                      {showcaseAlbums.map((album) => (
+                        <div key={album.id} className="w-36 shrink-0">
+                          <CollectionAlbumCard album={album} />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+
+              {/* Full Liked Grid */}
+              <div className="border-b-2 border-black pb-3 mb-6">
+                <h2 className="font-header text-xl font-extrabold uppercase text-black">ALL LIKED ALBUMS</h2>
+              </div>
+
+              {albums.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {albums.map((album) => (
+                    <CollectionAlbumCard key={album.id} album={album} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center border-2 border-black bg-white px-6 py-16 text-center hard-shadow">
+                  <Disc3 className="h-10 w-10 text-black mb-3" />
+                  <h4 className="font-header text-xl font-extrabold uppercase text-black mb-1">
+                    SHARED COLLECTION IS EMPTY
+                  </h4>
+                  <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider mb-6">
+                    NO LIKED ALBUMS FOUND IN THIS PUBLIC PROFILE.
+                  </p>
+                  <button
+                    onClick={() => navigate('/')}
+                    className="border-2 border-black bg-black px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white"
+                  >
+                    GO TO SEARCH
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>
