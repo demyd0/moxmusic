@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Monitor } from 'lucide-react';
+import { ScreensaverWindow } from './ScreensaverWindow';
 
 export const Footer: React.FC = () => {
+  const [showScreensaver, setShowScreensaver] = useState(false);
+
   return (
     <footer className="mt-20 border-t-2 border-black bg-white py-8">
+      {showScreensaver && <ScreensaverWindow onClose={() => setShowScreensaver(false)} />}
       <div className="mx-auto flex max-w-6xl flex-col sm:flex-row items-center justify-between gap-4 px-6 font-mono text-xs text-neutral-600 uppercase tracking-wider">
         <div>
           Data sources:{' '}
@@ -46,6 +51,15 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setShowScreensaver(true)}
+            title="Open the screensaver"
+            className="inline-flex items-center gap-1.5 border border-black bg-neutral-100 px-2.5 py-1 font-bold text-black hover:bg-black hover:text-white transition-all"
+          >
+            <Monitor className="h-3 w-3" />
+            <span>SCREENSAVER</span>
+          </button>
           <Link
             to="/privacy"
             className="border border-black bg-neutral-100 px-2.5 py-1 font-bold text-black hover:bg-black hover:text-white transition-all"
