@@ -3,14 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
+import { AuthPromptModal } from '@/components/AuthPromptModal';
+import { FollowListModal } from '@/components/FollowListModal';
 import { fetchSharedLikedCollection } from '@/services/collectionService';
 import { getPublicUserProfile, resolveUsernameToUid } from '@/services/userService';
 import { getProfileCustomization } from '@/services/profileService';
+import {
+  isFollowing,
+  followUser,
+  unfollowUser,
+  getFollowerCount,
+  getFollowingCount,
+  getFollowers,
+  getFollowing,
+  type FollowUser
+} from '@/services/followService';
 import { backgroundToCss, isValidHexColor } from '@/lib/profileValidation';
-import { auth } from '@/lib/firebase';
+import { auth, signInWithGoogle } from '@/lib/firebase';
 import { DEFAULT_PROFILE_CUSTOMIZATION, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
-import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings } from 'lucide-react';
+import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck } from 'lucide-react';
 
 export const SharedCollectionPage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -21,7 +33,30 @@ export const SharedCollectionPage: React.FC = () => {
   const [customization, setCustomization] = useState<ProfileCustomization>(DEFAULT_PROFILE_CUSTOMIZATION);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [resolvedUid, setResolvedUid] = useState('');
+  const [currentUserUid, setCurrentUserUid] = useState<string | null>(null);
+
+  // Follow state
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [amFollowing, setAmFollowing] = useState(false);
+  const [isFollowActionLoading, setIsFollowActionLoading] = useState(false);
+  const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
+  const [listModal, setListModal] = useState<'followers' | 'following' | null>(null);
+  const [listUsers, setListUsers] = useState<FollowUser[]>([]);
+  const [isListLoading, setIsListLoading] = useState(false);
+
+  const isOwnProfile = Boolean(currentUserUid && resolvedUid && currentUserUid === resolvedUid);
+
+  // Track the viewer's own auth state separately from the profile being
+  // viewed, so "is this my profile" / "am I following them" stay correct
+  // even if auth resolves after the profile data already loaded.
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUserUid(user && !user.isAnonymous ? user.uid : null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!username) return;
@@ -35,10 +70,12 @@ export const SharedCollectionPage: React.FC = () => {
         // existed point straight at a raw Firebase uid, so fall back to
         // treating the param as a uid if it doesn't resolve as a username.
         const resolvedUid = (await resolveUsernameToUid(username!)) || username!;
-        const [userProfile, sharedAlbums, profileCustomization] = await Promise.all([
+        const [userProfile, sharedAlbums, profileCustomization, followers, following] = await Promise.all([
           getPublicUserProfile(resolvedUid),
           fetchSharedLikedCollection(resolvedUid),
           getProfileCustomization(resolvedUid),
+          getFollowerCount(resolvedUid),
+          getFollowingCount(resolvedUid),
         ]);
 
         // The publicProfiles mirror only gets created/backfilled the next
@@ -56,7 +93,9 @@ export const SharedCollectionPage: React.FC = () => {
           setAlbums(sharedAlbums);
           setProfile(userProfile);
           setCustomization(profileCustomization);
-          setIsOwnProfile(Boolean(auth.currentUser && auth.currentUser.uid === resolvedUid));
+          setResolvedUid(resolvedUid);
+          setFollowerCount(followers);
+          setFollowingCount(following);
         }
       } catch (err) {
         console.error('Failed to load shared liked collection:', err);
@@ -72,6 +111,57 @@ export const SharedCollectionPage: React.FC = () => {
       isMounted = false;
     };
   }, [username]);
+
+  // Check follow status once we know both who's viewing and who's being viewed
+  useEffect(() => {
+    if (!currentUserUid || !resolvedUid || currentUserUid === resolvedUid) {
+      setAmFollowing(false);
+      return;
+    }
+    let isMounted = true;
+    isFollowing(currentUserUid, resolvedUid).then((result) => {
+      if (isMounted) setAmFollowing(result);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUserUid, resolvedUid]);
+
+  const handleToggleFollow = async () => {
+    if (!currentUserUid) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
+    if (!resolvedUid || isFollowActionLoading) return;
+
+    setIsFollowActionLoading(true);
+    try {
+      if (amFollowing) {
+        await unfollowUser(currentUserUid, resolvedUid);
+        setAmFollowing(false);
+        setFollowerCount((c) => Math.max(0, c - 1));
+      } else {
+        await followUser(currentUserUid, resolvedUid);
+        setAmFollowing(true);
+        setFollowerCount((c) => c + 1);
+      }
+    } catch (err) {
+      console.error('Follow toggle failed:', err);
+    } finally {
+      setIsFollowActionLoading(false);
+    }
+  };
+
+  const openFollowList = async (kind: 'followers' | 'following') => {
+    setListModal(kind);
+    setIsListLoading(true);
+    try {
+      const users = kind === 'followers' ? await getFollowers(resolvedUid) : await getFollowing(resolvedUid);
+      setListUsers(users);
+    } finally {
+      setIsListLoading(false);
+    }
+  };
 
   const displayHandle = profile?.username ? `@${profile.username.toUpperCase()}` : 'USER';
   const accent = isValidHexColor(customization.accentColor) ? customization.accentColor : '#000000';
@@ -153,17 +243,53 @@ export const SharedCollectionPage: React.FC = () => {
                           PUBLIC PROFILE
                         </p>
                       )}
+
+                      <div className="flex items-center gap-3 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => openFollowList('followers')}
+                          className="font-mono text-xs text-black hover:underline"
+                        >
+                          <strong>{followerCount}</strong>{' '}
+                          <span className="text-neutral-500 uppercase tracking-wider">FOLLOWERS</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openFollowList('following')}
+                          className="font-mono text-xs text-black hover:underline"
+                        >
+                          <strong>{followingCount}</strong>{' '}
+                          <span className="text-neutral-500 uppercase tracking-wider">FOLLOWING</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    {isOwnProfile && (
+                    {isOwnProfile ? (
                       <button
                         onClick={() => navigate('/profile/edit')}
                         className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all hard-shadow-sm"
                       >
                         <Settings className="h-4 w-4" />
                         <span>EDIT PROFILE</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleToggleFollow}
+                        disabled={isFollowActionLoading}
+                        className={`inline-flex items-center gap-1.5 border-2 border-black px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-all hard-shadow-sm disabled:opacity-50 ${
+                          amFollowing ? 'bg-white text-black hover:bg-red-600 hover:text-white hover:border-red-600 group' : 'bg-black text-white hover:bg-neutral-800'
+                        }`}
+                      >
+                        {isFollowActionLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : amFollowing ? (
+                          <UserCheck className="h-4 w-4" />
+                        ) : (
+                          <UserPlus className="h-4 w-4" />
+                        )}
+                        <span>{amFollowing ? 'FOLLOWING' : 'FOLLOW'}</span>
                       </button>
                     )}
                     <span className="border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hard-shadow-sm">
@@ -237,6 +363,21 @@ export const SharedCollectionPage: React.FC = () => {
       </div>
 
       <Footer />
+
+      <AuthPromptModal
+        isOpen={isAuthPromptOpen}
+        onClose={() => setIsAuthPromptOpen(false)}
+        onSignIn={signInWithGoogle}
+      />
+
+      {listModal && (
+        <FollowListModal
+          title={listModal === 'followers' ? 'FOLLOWERS' : 'FOLLOWING'}
+          users={listUsers}
+          isLoading={isListLoading}
+          onClose={() => setListModal(null)}
+        />
+      )}
     </div>
   );
 };

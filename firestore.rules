@@ -8,6 +8,7 @@ rules_version = '2';
 //     users/{uid}/toListen/{id} to-listen queue — owner only, never shared publicly
 //   publicProfiles/{uid}        public-safe mirror (username + photoURL only, no email)
 //   usernames/{name}            handle -> uid uniqueness registry
+//   follows/{followerUid_followingUid}  one doc per follow relationship
 //
 // Deploy with: firebase deploy --only firestore:rules
 // (requires the Firebase CLI and firebase.json pointing at this file)
@@ -57,6 +58,23 @@ service cloud.firestore {
       // uniqueness check alone (checkUsernameAvailable in userService.ts)
       // cannot be trusted, since anyone can call the Firestore SDK directly.
       allow update, delete: if isOwner(resource.data.uid);
+    }
+
+    match /follows/{followId} {
+      // Follower/following counts and lists are public, same as everything
+      // else on a profile page.
+      allow read: if true;
+
+      // Doc id must be "{followerUid}_{followingUid}" and match the auth'd
+      // user as the follower - prevents both spoofing someone else's follow
+      // and following yourself.
+      allow create: if request.auth != null
+                    && request.resource.data.followerUid == request.auth.uid
+                    && request.resource.data.followingUid != request.auth.uid
+                    && followId == request.resource.data.followerUid + '_' + request.resource.data.followingUid;
+
+      // Unfollow: only the follower who created it.
+      allow delete: if isOwner(resource.data.followerUid);
     }
   }
 }
