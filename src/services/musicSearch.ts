@@ -201,7 +201,13 @@ export async function fetchAlbumById(id: string): Promise<Album | null> {
     const cleanMbid = id.replace('mb-', '');
     await enforceMbRateLimit();
     try {
-      const url = `https://musicbrainz.org/ws/2/release/${cleanMbid}?fmt=json`;
+      // inc=artist-credits is required here - unlike the search endpoint,
+      // MusicBrainz's single-release lookup omits artist-credit entirely
+      // by default, which is why this was falling back to "Unknown Artist"
+      // for every release opened from search (the artist name showed up
+      // fine in the results grid, which uses the search endpoint, but not
+      // once you clicked into the album).
+      const url = `https://musicbrainz.org/ws/2/release/${cleanMbid}?fmt=json&inc=artist-credits`;
       const res = await fetch(url, {
         headers: {
           'User-Agent': 'MusicTracker/1.0 (personal non-commercial project - contact@mviewie.app)',
