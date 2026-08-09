@@ -4,6 +4,7 @@ import { AlbumDetailsPage } from '@/pages/AlbumDetailsPage';
 import { ArtistDiscographyPage } from '@/pages/ArtistDiscographyPage';
 import { PrivacyPage } from '@/pages/PrivacyPage';
 import { SharedCollectionPage } from '@/pages/SharedCollectionPage';
+import { ImportPage } from '@/pages/ImportPage';
 import { useCursorSpotlight } from '@/hooks/useCursorSpotlight';
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
         <Route path="/artist/:id" element={<ArtistDiscographyPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/share/:username" element={<SharedCollectionPage />} />
+        <Route path="/import" element={<ImportPage />} />
       </Routes>
     </Router>
   );

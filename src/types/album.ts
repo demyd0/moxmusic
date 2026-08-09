@@ -20,6 +20,14 @@ export interface Album {
   mbid?: string;
   dateAdded?: string;
   tracks?: Track[];
+  /** 'track' for an individually-liked song (e.g. from a library import);
+   *  absent/'album' for a full album. Kept on the same Album shape rather
+   *  than a separate type so liked/toListen storage and card components
+   *  don't need a second parallel model. */
+  kind?: 'album' | 'track';
+  /** Only set when kind === 'track': the album this song belongs to, so
+   *  the UI can show "from {albumTitle}" instead of nothing. */
+  albumTitle?: string;
 }
 
 export interface SearchOptions {

@@ -18,9 +18,10 @@ import {
 } from '@/services/collectionService';
 import type { UserCollectionsState } from '@/services/collectionService';
 import type { Album } from '@/types/album';
-import { 
-  Disc3, 
-  SearchX, 
+import { sortAlbums, SORT_OPTIONS, type SortKey } from '@/lib/collectionSort';
+import {
+  Disc3,
+  SearchX,
   Heart,
   Headphones,
   Plus,
@@ -29,7 +30,10 @@ import {
   TrendingUp,
   RefreshCw,
   Share2,
-  Check
+  Check,
+  ArrowUpDown,
+  Music2,
+  Disc
 } from 'lucide-react';
 
 export const HelloPage: React.FC = () => {
@@ -67,6 +71,10 @@ export const HelloPage: React.FC = () => {
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
+
+  // Liked/To Listen collection view controls
+  const [sortKey, setSortKey] = useState<SortKey>('dateAddedDesc');
+  const [likedKindFilter, setLikedKindFilter] = useState<'all' | 'album' | 'track'>('all');
 
   // Recommendations state
   const [recommendations, setRecommendations] = useState<{
@@ -265,6 +273,17 @@ export const HelloPage: React.FC = () => {
   const manualCount = manualAlbums.length;
 
   const isSearching = query.trim().length > 0;
+
+  // Liked collection: filter by album/track, then apply chosen sort
+  const likedAlbumsFiltered = userCollections.likedAlbums.filter((a) => {
+    if (likedKindFilter === 'all') return true;
+    if (likedKindFilter === 'track') return a.kind === 'track';
+    return a.kind !== 'track';
+  });
+  const likedTracksCount = userCollections.likedAlbums.filter((a) => a.kind === 'track').length;
+  const likedAlbumsCount = userCollections.likedAlbums.length - likedTracksCount;
+  const sortedLikedAlbums = sortAlbums(likedAlbumsFiltered, sortKey);
+  const sortedToListenAlbums = sortAlbums(userCollections.toListenAlbums, sortKey);
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
@@ -539,11 +558,68 @@ export const HelloPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* View controls: album/track filter (Liked only) + sort */}
+              {((activeTab === 'liked' && userCollections.likedAlbums.length > 0) ||
+                (activeTab === 'toListen' && userCollections.toListenAlbums.length > 0)) && (
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                  {activeTab === 'liked' && likedTracksCount > 0 ? (
+                    <div className="flex items-center border-2 border-black hard-shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => setLikedKindFilter('all')}
+                        className={`min-h-[36px] px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                          likedKindFilter === 'all' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        ALL ({userCollections.likedAlbums.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLikedKindFilter('album')}
+                        className={`min-h-[36px] flex items-center gap-1.5 px-3.5 py-1.5 border-l-2 border-black font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                          likedKindFilter === 'album' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        <Disc className="h-3.5 w-3.5" />
+                        <span>ALBUMS ({likedAlbumsCount})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLikedKindFilter('track')}
+                        className={`min-h-[36px] flex items-center gap-1.5 px-3.5 py-1.5 border-l-2 border-black font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                          likedKindFilter === 'track' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        <Music2 className="h-3.5 w-3.5" />
+                        <span>TRACKS ({likedTracksCount})</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+
+                  <label className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-black hard-shadow-sm cursor-pointer">
+                    <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+                    <select
+                      value={sortKey}
+                      onChange={(e) => setSortKey(e.target.value as SortKey)}
+                      className="bg-white outline-none cursor-pointer"
+                    >
+                      {SORT_OPTIONS.map((opt) => (
+                        <option key={opt.key} value={opt.key}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
+
               {/* Collection Grid — Exactly 4 Columns on Desktop (2 on Mobile) */}
               {activeTab === 'liked' && (
-                userCollections.likedAlbums.length > 0 ? (
+                sortedLikedAlbums.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {userCollections.likedAlbums.map((album) => (
+                    {sortedLikedAlbums.map((album) => (
                       <CollectionAlbumCard
                         key={album.id}
                         album={album}
@@ -553,6 +629,24 @@ export const HelloPage: React.FC = () => {
                         onRemove={handleToggleLike}
                       />
                     ))}
+                  </div>
+                ) : userCollections.likedAlbums.length > 0 ? (
+                  <div className="flex flex-col items-center justify-center border-2 border-black bg-white px-6 py-16 text-center hard-shadow">
+                    <div className="flex h-14 w-14 items-center justify-center border-2 border-black bg-neutral-100 text-black mb-4">
+                      {likedKindFilter === 'track' ? <Music2 className="h-7 w-7" /> : <Disc className="h-7 w-7" />}
+                    </div>
+                    <h4 className="font-header text-xl font-extrabold uppercase text-black mb-1">
+                      NO {likedKindFilter === 'track' ? 'TRACKS' : 'ALBUMS'} HERE
+                    </h4>
+                    <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider mb-6">
+                      TRY THE "ALL" FILTER TO SEE YOUR WHOLE LIKED COLLECTION.
+                    </p>
+                    <button
+                      onClick={() => setLikedKindFilter('all')}
+                      className="border-2 border-black bg-black px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white hover:bg-neutral-800 transition-all"
+                    >
+                      SHOW ALL
+                    </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center border-2 border-black bg-white px-6 py-16 text-center hard-shadow">
@@ -574,9 +668,9 @@ export const HelloPage: React.FC = () => {
               )}
 
               {activeTab === 'toListen' && (
-                userCollections.toListenAlbums.length > 0 ? (
+                sortedToListenAlbums.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {userCollections.toListenAlbums.map((album) => (
+                    {sortedToListenAlbums.map((album) => (
                       <CollectionAlbumCard
                         key={album.id}
                         album={album}

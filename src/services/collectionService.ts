@@ -1,11 +1,12 @@
 import { db } from '@/lib/firebase';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
   getDocs,
-  onSnapshot 
+  onSnapshot,
+  writeBatch
 } from 'firebase/firestore';
 import type { Album } from '@/types/album';
 
@@ -230,6 +231,8 @@ export async function toggleLikeAlbum(
       releaseYear: album.releaseYear || undefined,
       source: album.source,
       dateAdded: new Date().toISOString(),
+      kind: album.kind || undefined,
+      albumTitle: album.albumTitle || undefined,
     };
 
     try {
@@ -277,6 +280,8 @@ export async function toggleToListenAlbum(
       releaseYear: album.releaseYear || undefined,
       source: album.source,
       dateAdded: new Date().toISOString(),
+      kind: album.kind || undefined,
+      albumTitle: album.albumTitle || undefined,
     };
 
     try {
@@ -292,4 +297,42 @@ export async function toggleToListenAlbum(
       setLocalCollection(`mviewie_toListen_${uid}`, local);
     }
   }
+}
+
+/**
+ * Bulk-add matched tracks/albums from a library import into 'liked'.
+ * Chunks into batches of 400 (Firestore's write limit is 500 per batch;
+ * 400 leaves headroom) so a large import (hundreds of tracks) doesn't
+ * exceed it. Existing entries are overwritten (merge), never duplicated,
+ * since each doc id is the track/album's own catalog id.
+ */
+export async function bulkAddLikedItems(uid: string, items: Album[]): Promise<void> {
+  const CHUNK_SIZE = 400;
+  const now = new Date().toISOString();
+
+  for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+    const chunk = items.slice(i, i + CHUNK_SIZE);
+    const batch = writeBatch(db);
+
+    for (const item of chunk) {
+      const docRef = doc(db, 'users', uid, 'liked', item.id);
+      const itemDoc: Album = {
+        id: item.id,
+        title: item.title,
+        artist: item.artist,
+        coverUrl: item.coverUrl || undefined,
+        releaseYear: item.releaseYear || undefined,
+        source: item.source,
+        dateAdded: item.dateAdded || now,
+        kind: item.kind || undefined,
+        albumTitle: item.albumTitle || undefined,
+      };
+      batch.set(docRef, itemDoc, { merge: true });
+    }
+
+    await batch.commit();
+  }
+
+  // Local storage mirrors are refreshed by the live onSnapshot listener
+  // once the writes land, same as every other write path in this file.
 }

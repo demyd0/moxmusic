@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { Album } from '@/types/album';
-import { Disc3, Heart, Headphones, Trash2 } from 'lucide-react';
+import { buildYoutubeMusicSearchUrl } from '@/lib/youtubeMusic';
+import { Disc3, Heart, Headphones, Trash2, Music2 } from 'lucide-react';
 
 interface CollectionAlbumCardProps {
   album: Album;
@@ -35,7 +36,16 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
       })
     : null;
 
+  const isTrack = album.kind === 'track';
+
   const handleCardClick = () => {
+    if (isTrack) {
+      // Imported tracks have no internal album page to resolve to (no
+      // matching iTunes/MusicBrainz id) - send the click to a YouTube
+      // Music search instead of a dead /album/import-xxxx route.
+      window.open(buildYoutubeMusicSearchUrl(album.artist, album.title, false), '_blank', 'noopener,noreferrer');
+      return;
+    }
     navigate(`/album/${album.id}`);
   };
 
@@ -48,6 +58,15 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
         onClick={handleCardClick}
         className="relative aspect-square w-full border border-black bg-neutral-100 cursor-pointer overflow-hidden"
       >
+        {/* Track badge - keeps individually-liked songs from reading as
+            albums at a glance in a mixed grid */}
+        {isTrack && (
+          <div className="absolute left-1.5 top-1.5 z-30 flex items-center gap-1 border border-black bg-white px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-black">
+            <Music2 className="h-2.5 w-2.5" />
+            <span>TRACK</span>
+          </div>
+        )}
+
         {/* Loading Spinner */}
         {!imageLoaded && !imageError && album.coverUrl && (
           <div className="absolute inset-0 flex items-center justify-center bg-neutral-200 animate-pulse">
@@ -70,7 +89,11 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
         ) : (
           /* Brutalist Fallback Placeholder */
           <div className="flex h-full w-full flex-col items-center justify-center bg-neutral-100 p-4 text-center">
-            <Disc3 className="h-8 w-8 text-black mb-2" />
+            {isTrack ? (
+              <Music2 className="h-8 w-8 text-black mb-2" />
+            ) : (
+              <Disc3 className="h-8 w-8 text-black mb-2" />
+            )}
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-600">NO COVER</span>
           </div>
         )}
@@ -190,10 +213,12 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
           </Link>
         </div>
 
-        {/* Bottom Metadata: Release Year (Bottom-Left) & Date Added (Right) */}
-        <div className="mt-2.5 flex items-center justify-between border-t border-black/10 pt-2 font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-          <span>{album.releaseYear || 'N/A'}</span>
-          {formattedDate && <span>ADDED: {formattedDate.toUpperCase()}</span>}
+        {/* Bottom Metadata: album context or release year (left) & date added (right) */}
+        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-black/10 pt-2 font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+          <span className="truncate">
+            {isTrack ? (album.albumTitle ? `FROM ${album.albumTitle}` : 'SINGLE') : album.releaseYear || 'N/A'}
+          </span>
+          {formattedDate && <span className="shrink-0">ADDED: {formattedDate.toUpperCase()}</span>}
         </div>
       </div>
     </div>

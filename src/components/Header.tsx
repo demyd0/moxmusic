@@ -29,7 +29,8 @@ import {
   Check,
   Edit3,
   Sun,
-  Moon
+  Moon,
+  Upload
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -267,6 +268,16 @@ export const Header: React.FC<HeaderProps> = ({
                 {toListenCount}
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/import')}
+            className="min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 border-l-2 border-black bg-white text-black hover:bg-neutral-100 transition-all"
+            title="Import your library"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">IMPORT</span>
           </button>
         </nav>
 
