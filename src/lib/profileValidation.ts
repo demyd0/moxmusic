@@ -1,5 +1,13 @@
 import type { CSSProperties } from 'react';
-import type { ProfileBackground, ProfileCustomization, ShowcaseType, TextStyle, TextFont, TextEffect } from '@/types/profile';
+import type {
+  ProfileBackground,
+  ProfileCustomization,
+  ShowcaseType,
+  TextStyle,
+  TextFont,
+  TextEffect,
+  BackgroundEffectType,
+} from '@/types/profile';
 import {
   DEFAULT_TEXT_STYLE,
   MAX_ALBUMS_PER_SHOWCASE,
@@ -9,6 +17,19 @@ import {
 } from '@/types/profile';
 
 const SHOWCASE_TYPES: ShowcaseType[] = ['albums', 'text', 'mixed'];
+
+export const BACKGROUND_EFFECTS: { value: BackgroundEffectType; label: string }[] = [
+  { value: 'none', label: 'NONE' },
+  { value: 'snow', label: 'SNOW' },
+  { value: 'stars', label: 'STARS' },
+  { value: 'smoke', label: 'SMOKE' },
+];
+
+const BACKGROUND_EFFECT_VALUES: BackgroundEffectType[] = BACKGROUND_EFFECTS.map((e) => e.value);
+
+export function sanitizeBackgroundEffect(value: unknown): BackgroundEffectType {
+  return BACKGROUND_EFFECT_VALUES.includes(value as BackgroundEffectType) ? (value as BackgroundEffectType) : 'none';
+}
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
@@ -144,9 +165,10 @@ export function textStyleToCss(style: TextStyle, accentColor: string): CSSProper
  * up the doc size or smuggling a bad URL scheme through.
  */
 export function sanitizeCustomization(input: ProfileCustomization): ProfileCustomization {
-  const background = isValidBackground(input.background)
-    ? input.background
-    : { type: 'color' as const, value: '#fafafa' };
+  const background = {
+    ...(isValidBackground(input.background) ? input.background : { type: 'color' as const, value: '#fafafa' }),
+    effect: sanitizeBackgroundEffect(input.background?.effect),
+  };
 
   const accentColor = isValidHexColor(input.accentColor) ? input.accentColor : '#000000';
   const bio = (input.bio || '').slice(0, MAX_BIO_LENGTH);

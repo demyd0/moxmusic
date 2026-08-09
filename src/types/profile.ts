@@ -1,11 +1,17 @@
 export type ProfileBackgroundType = 'color' | 'gradient' | 'image';
 
+/** Layered on top of the background color/gradient/image via a <canvas>
+ *  overlay. A fixed preset list, same reasoning as TextEffect - no
+ *  free-form canvas/JS input from the user, just a choice of animation. */
+export type BackgroundEffectType = 'none' | 'snow' | 'stars' | 'smoke';
+
 export interface ProfileBackground {
   type: ProfileBackgroundType;
   /** 'color': a hex string. 'gradient': "colorA|colorB|angleDeg".
    *  'image': an https:// URL (a .gif URL animates on its own - no
    *  separate "gif" type needed). */
   value: string;
+  effect?: BackgroundEffectType;
 }
 
 export type ShowcaseType = 'albums' | 'text' | 'mixed';

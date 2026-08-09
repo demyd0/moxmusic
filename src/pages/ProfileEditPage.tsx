@@ -6,7 +6,7 @@ import { auth } from '@/lib/firebase';
 import { getUserProfile, updateAvatarUrl } from '@/services/userService';
 import { subscribeUserCollections } from '@/services/collectionService';
 import { getProfileCustomization, saveProfileCustomization } from '@/services/profileService';
-import { backgroundToCss, isValidHexColor, isValidBackgroundImageUrl } from '@/lib/profileValidation';
+import { backgroundToCss, isValidHexColor, isValidBackgroundImageUrl, BACKGROUND_EFFECTS } from '@/lib/profileValidation';
 import {
   DEFAULT_PROFILE_CUSTOMIZATION,
   DEFAULT_TEXT_STYLE,
@@ -18,6 +18,7 @@ import {
   type ProfileBackgroundType,
   type ShowcaseType,
   type TextStyle,
+  type BackgroundEffectType,
 } from '@/types/profile';
 import type { Album } from '@/types/album';
 import { StyledTextField } from '@/components/StyledTextField';
@@ -115,11 +116,11 @@ export const ProfileEditPage: React.FC = () => {
 
   const setBackgroundType = (type: ProfileBackgroundType) => {
     if (type === 'color') {
-      setCustomization((c) => ({ ...c, background: { type, value: isValidHexColor(c.background.value) ? c.background.value : '#fafafa' } }));
+      setCustomization((c) => ({ ...c, background: { ...c.background, type, value: isValidHexColor(c.background.value) ? c.background.value : '#fafafa' } }));
     } else if (type === 'gradient') {
-      setCustomization((c) => ({ ...c, background: { type, value: `${gradientA}|${gradientB}|${gradientAngle}` } }));
+      setCustomization((c) => ({ ...c, background: { ...c.background, type, value: `${gradientA}|${gradientB}|${gradientAngle}` } }));
     } else {
-      setCustomization((c) => ({ ...c, background: { type, value: imageUrlDraft } }));
+      setCustomization((c) => ({ ...c, background: { ...c.background, type, value: imageUrlDraft } }));
     }
   };
 
@@ -127,7 +128,7 @@ export const ProfileEditPage: React.FC = () => {
     setGradientA(a);
     setGradientB(b);
     setGradientAngle(angle);
-    setCustomization((c) => ({ ...c, background: { type: 'gradient', value: `${a}|${b}|${angle}` } }));
+    setCustomization((c) => ({ ...c, background: { ...c.background, type: 'gradient', value: `${a}|${b}|${angle}` } }));
   };
 
   const applyImageUrl = (url: string) => {
@@ -135,8 +136,12 @@ export const ProfileEditPage: React.FC = () => {
     const valid = url.trim() === '' || isValidBackgroundImageUrl(url);
     setImageUrlError(!valid);
     if (valid && url.trim()) {
-      setCustomization((c) => ({ ...c, background: { type: 'image', value: url.trim() } }));
+      setCustomization((c) => ({ ...c, background: { ...c.background, type: 'image', value: url.trim() } }));
     }
+  };
+
+  const setBackgroundEffect = (effect: BackgroundEffectType) => {
+    setCustomization((c) => ({ ...c, background: { ...c.background, effect } }));
   };
 
   const applyAvatarUrl = (url: string) => {
@@ -359,7 +364,7 @@ export const ProfileEditPage: React.FC = () => {
                     <input
                       type="color"
                       value={isValidHexColor(customization.background.value) ? customization.background.value : '#fafafa'}
-                      onChange={(e) => setCustomization((c) => ({ ...c, background: { type: 'color', value: e.target.value } }))}
+                      onChange={(e) => setCustomization((c) => ({ ...c, background: { ...c.background, type: 'color', value: e.target.value } }))}
                       className="h-11 w-16 border-2 border-black cursor-pointer"
                     />
                     <span className="font-mono text-xs text-neutral-600 uppercase">{customization.background.value}</span>
@@ -406,6 +411,28 @@ export const ProfileEditPage: React.FC = () => {
                     </p>
                   </div>
                 )}
+
+                <div className="mt-5 pt-5 border-t-2 border-black/10">
+                  <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-neutral-500 mb-2.5">
+                    PARTICLE EFFECT
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {BACKGROUND_EFFECTS.map((eff) => (
+                      <button
+                        key={eff.value}
+                        type="button"
+                        onClick={() => setBackgroundEffect(eff.value)}
+                        className={`border-2 border-black px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                          (customization.background.effect || 'none') === eff.value
+                            ? 'bg-black text-white'
+                            : 'bg-white text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        {eff.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </section>
 
               {/* Accent color */}

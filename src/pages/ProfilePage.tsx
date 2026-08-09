@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { FollowListModal } from '@/components/FollowListModal';
+import { BackgroundEffectCanvas } from '@/components/BackgroundEffectCanvas';
 import { fetchSharedLikedCollection } from '@/services/collectionService';
 import { getPublicUserProfile, resolveUsernameToUid } from '@/services/userService';
 import { getProfileCustomization } from '@/services/profileService';
@@ -185,7 +186,10 @@ export const ProfilePage: React.FC = () => {
           through where this doesn't cover since it's just a color/image,
           not opaque chrome. */}
       {!notFound && !isLoading && (
-        <div className="fixed inset-0 -z-[1] pointer-events-none" style={backgroundToCss(customization.background)} />
+        <>
+          <div className="fixed inset-0 -z-[1] pointer-events-none" style={backgroundToCss(customization.background)} />
+          <BackgroundEffectCanvas effect={customization.background.effect || 'none'} />
+        </>
       )}
 
       <div>
