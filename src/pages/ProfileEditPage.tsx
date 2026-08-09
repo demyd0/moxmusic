@@ -12,8 +12,10 @@ import {
   MAX_ALBUMS_PER_SHOWCASE,
   MAX_BIO_LENGTH,
   MAX_SHOWCASES,
+  MAX_SHOWCASE_TEXT_LENGTH,
   type ProfileCustomization,
   type ProfileBackgroundType,
+  type ShowcaseType,
 } from '@/types/profile';
 import type { Album } from '@/types/album';
 import {
@@ -30,12 +32,21 @@ import {
   ArrowDown,
   Check,
   UserCircle2,
+  Type as TypeIcon,
+  LayoutGrid,
+  Rows3,
 } from 'lucide-react';
 
 const BG_TYPES: { type: ProfileBackgroundType; label: string; icon: React.ReactNode }[] = [
   { type: 'color', label: 'COLOR', icon: <Palette className="h-3.5 w-3.5" /> },
   { type: 'gradient', label: 'GRADIENT', icon: <Blend className="h-3.5 w-3.5" /> },
   { type: 'image', label: 'IMAGE / GIF', icon: <ImageIcon className="h-3.5 w-3.5" /> },
+];
+
+const SHOWCASE_TYPES: { type: ShowcaseType; label: string; icon: React.ReactNode }[] = [
+  { type: 'albums', label: 'ALBUMS', icon: <LayoutGrid className="h-3.5 w-3.5" /> },
+  { type: 'text', label: 'TEXT', icon: <TypeIcon className="h-3.5 w-3.5" /> },
+  { type: 'mixed', label: 'MIXED', icon: <Rows3 className="h-3.5 w-3.5" /> },
 ];
 
 export const ProfileEditPage: React.FC = () => {
@@ -130,11 +141,18 @@ export const ProfileEditPage: React.FC = () => {
     setAvatarUrlError(url.trim() !== '' && !isValidBackgroundImageUrl(url));
   };
 
-  const addShowcase = () => {
+  const addShowcase = (type: ShowcaseType) => {
     if (customization.showcases.length >= MAX_SHOWCASES) return;
     setCustomization((c) => ({
       ...c,
-      showcases: [...c.showcases, { id: `showcase-${Date.now()}`, title: 'MY FAVORITES', albumIds: [] }],
+      showcases: [...c.showcases, { id: `showcase-${Date.now()}`, title: 'MY FAVORITES', type, albumIds: [], text: '' }],
+    }));
+  };
+
+  const setShowcaseText = (id: string, text: string) => {
+    setCustomization((c) => ({
+      ...c,
+      showcases: c.showcases.map((s) => (s.id === id ? { ...s, text: text.slice(0, MAX_SHOWCASE_TEXT_LENGTH) } : s)),
     }));
   };
 
@@ -413,22 +431,33 @@ export const ProfileEditPage: React.FC = () => {
 
               {/* Showcases */}
               <section className="border-2 border-black bg-white p-6 hard-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-header text-lg font-extrabold uppercase text-black">SHOWCASES</h2>
-                  <button
-                    type="button"
-                    onClick={addShowcase}
-                    disabled={customization.showcases.length >= MAX_SHOWCASES}
-                    className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all disabled:opacity-40"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>ADD SHOWCASE</span>
-                  </button>
+                <div className="flex flex-col gap-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-header text-lg font-extrabold uppercase text-black">SHOWCASES</h2>
+                    <span className="font-mono text-[11px] text-neutral-400">
+                      {customization.showcases.length}/{MAX_SHOWCASES}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    {SHOWCASE_TYPES.map(({ type, label, icon }) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => addShowcase(type)}
+                        disabled={customization.showcases.length >= MAX_SHOWCASES}
+                        className="flex flex-1 items-center justify-center gap-1.5 border-2 border-black bg-white px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all disabled:opacity-40"
+                      >
+                        <Plus className="h-3 w-3" />
+                        {icon}
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {customization.showcases.length === 0 ? (
                   <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider py-6 text-center">
-                    NO SHOWCASES YET — PIN YOUR FAVORITE ALBUMS LIKE A STEAM SHOWCASE.
+                    NO SHOWCASES YET — PIN ALBUMS OR WRITE A BLURB, LIKE A STEAM SHOWCASE.
                   </p>
                 ) : (
                   <div className="space-y-4">
@@ -466,42 +495,82 @@ export const ProfileEditPage: React.FC = () => {
                           </button>
                         </div>
 
-                        <p className="font-mono text-[10px] text-neutral-400 uppercase tracking-wider mb-2">
-                          {showcase.albumIds.length}/{MAX_ALBUMS_PER_SHOWCASE} ALBUMS — CLICK TO ADD/REMOVE FROM YOUR LIKED ALBUMS
-                        </p>
+                        <div className="flex gap-1.5 mb-3">
+                          {SHOWCASE_TYPES.map(({ type, label, icon }) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => setCustomization((c) => ({
+                                ...c,
+                                showcases: c.showcases.map((s) => (s.id === showcase.id ? { ...s, type } : s)),
+                              }))}
+                              className={`inline-flex items-center gap-1 border-2 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                (showcase.type || 'albums') === type
+                                  ? 'border-black bg-black text-white'
+                                  : 'border-black/20 text-neutral-400 hover:border-black/50 hover:text-black'
+                              }`}
+                            >
+                              {icon}
+                              <span>{label}</span>
+                            </button>
+                          ))}
+                        </div>
 
-                        {likedAlbums.length === 0 ? (
-                          <p className="font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
-                            LIKE SOME ALBUMS FIRST TO PIN THEM HERE.
-                          </p>
-                        ) : (
-                          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-52 overflow-y-auto">
-                            {likedAlbums.map((album) => {
-                              const isPicked = showcase.albumIds.includes(album.id);
-                              return (
-                                <button
-                                  key={album.id}
-                                  type="button"
-                                  onClick={() => toggleAlbumInShowcase(showcase.id, album.id)}
-                                  title={`${album.title} — ${album.artist}`}
-                                  className={`relative aspect-square border-2 overflow-hidden transition-all ${
-                                    isPicked ? 'border-black' : 'border-black/20 opacity-60 hover:opacity-100'
-                                  }`}
-                                >
-                                  {album.coverUrl ? (
-                                    <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
-                                  ) : (
-                                    <div className="h-full w-full bg-neutral-100" />
-                                  )}
-                                  {isPicked && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                                      <Check className="h-4 w-4 text-white" />
-                                    </div>
-                                  )}
-                                </button>
-                              );
-                            })}
+                        {(showcase.type === 'text' || showcase.type === 'mixed') && (
+                          <div className="mb-3">
+                            <textarea
+                              value={showcase.text || ''}
+                              onChange={(e) => setShowcaseText(showcase.id, e.target.value)}
+                              placeholder="WRITE SOMETHING FOR THIS SHOWCASE..."
+                              rows={3}
+                              className="w-full border-2 border-black bg-white px-3 py-2 font-mono text-xs text-black placeholder-neutral-400 focus:bg-neutral-50 focus:outline-none resize-none"
+                            />
+                            <p className="font-mono text-[10px] text-neutral-400 text-right mt-1">
+                              {(showcase.text || '').length}/{MAX_SHOWCASE_TEXT_LENGTH}
+                            </p>
                           </div>
+                        )}
+
+                        {(showcase.type || 'albums') !== 'text' && (
+                          <>
+                            <p className="font-mono text-[10px] text-neutral-400 uppercase tracking-wider mb-2">
+                              {showcase.albumIds.length}/{MAX_ALBUMS_PER_SHOWCASE} ALBUMS — CLICK TO ADD/REMOVE FROM YOUR LIKED ALBUMS
+                            </p>
+
+                            {likedAlbums.length === 0 ? (
+                              <p className="font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
+                                LIKE SOME ALBUMS FIRST TO PIN THEM HERE.
+                              </p>
+                            ) : (
+                              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-52 overflow-y-auto">
+                                {likedAlbums.map((album) => {
+                                  const isPicked = showcase.albumIds.includes(album.id);
+                                  return (
+                                    <button
+                                      key={album.id}
+                                      type="button"
+                                      onClick={() => toggleAlbumInShowcase(showcase.id, album.id)}
+                                      title={`${album.title} — ${album.artist}`}
+                                      className={`relative aspect-square border-2 overflow-hidden transition-all ${
+                                        isPicked ? 'border-black' : 'border-black/20 opacity-60 hover:opacity-100'
+                                      }`}
+                                    >
+                                      {album.coverUrl ? (
+                                        <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
+                                      ) : (
+                                        <div className="h-full w-full bg-neutral-100" />
+                                      )}
+                                      {isPicked && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                                          <Check className="h-4 w-4 text-white" />
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     ))}

@@ -8,10 +8,16 @@ export interface ProfileBackground {
   value: string;
 }
 
+export type ShowcaseType = 'albums' | 'text' | 'mixed';
+
 export interface ProfileShowcase {
   id: string;
   title: string;
+  /** Missing on showcases created before this field existed - treat as 'albums'. */
+  type?: ShowcaseType;
   albumIds: string[];
+  /** Used when type is 'text' or 'mixed'. */
+  text?: string;
 }
 
 export interface ProfileCustomization {
@@ -33,3 +39,4 @@ export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomization = {
 export const MAX_BIO_LENGTH = 280;
 export const MAX_SHOWCASES = 6;
 export const MAX_ALBUMS_PER_SHOWCASE = 12;
+export const MAX_SHOWCASE_TEXT_LENGTH = 300;

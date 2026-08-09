@@ -1,6 +1,13 @@
 import type { CSSProperties } from 'react';
-import type { ProfileBackground, ProfileCustomization } from '@/types/profile';
-import { MAX_ALBUMS_PER_SHOWCASE, MAX_BIO_LENGTH, MAX_SHOWCASES } from '@/types/profile';
+import type { ProfileBackground, ProfileCustomization, ShowcaseType } from '@/types/profile';
+import {
+  MAX_ALBUMS_PER_SHOWCASE,
+  MAX_BIO_LENGTH,
+  MAX_SHOWCASES,
+  MAX_SHOWCASE_TEXT_LENGTH,
+} from '@/types/profile';
+
+const SHOWCASE_TYPES: ShowcaseType[] = ['albums', 'text', 'mixed'];
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
@@ -73,7 +80,9 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
     .map((s) => ({
       id: s.id,
       title: (s.title || 'SHOWCASE').slice(0, 40),
+      type: SHOWCASE_TYPES.includes(s.type as ShowcaseType) ? (s.type as ShowcaseType) : 'albums',
       albumIds: (s.albumIds || []).slice(0, MAX_ALBUMS_PER_SHOWCASE),
+      text: (s.text || '').slice(0, MAX_SHOWCASE_TEXT_LENGTH),
     }));
 
   return { background, accentColor, bio, showcases };

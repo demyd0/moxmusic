@@ -312,10 +312,13 @@ export const ProfilePage: React.FC = () => {
 
               {/* Showcases */}
               {customization.showcases.map((showcase) => {
+                const type = showcase.type || 'albums';
                 const showcaseAlbums = showcase.albumIds
                   .map((id) => albumsById.get(id))
                   .filter((a): a is Album => Boolean(a));
-                if (showcaseAlbums.length === 0) return null;
+                const hasText = type !== 'albums' && Boolean(showcase.text?.trim());
+                const hasAlbums = type !== 'text' && showcaseAlbums.length > 0;
+                if (!hasText && !hasAlbums) return null;
 
                 return (
                   <section
@@ -329,13 +332,20 @@ export const ProfilePage: React.FC = () => {
                     >
                       {showcase.title}
                     </h3>
-                    <div className="flex gap-4 overflow-x-auto pb-1">
-                      {showcaseAlbums.map((album) => (
-                        <div key={album.id} className="w-36 shrink-0">
-                          <CollectionAlbumCard album={album} />
-                        </div>
-                      ))}
-                    </div>
+                    {hasText && (
+                      <p className={`font-mono text-sm text-neutral-700 whitespace-pre-wrap ${hasAlbums ? 'mb-4' : ''}`}>
+                        {showcase.text}
+                      </p>
+                    )}
+                    {hasAlbums && (
+                      <div className="flex gap-4 overflow-x-auto pb-1">
+                        {showcaseAlbums.map((album) => (
+                          <div key={album.id} className="w-36 shrink-0">
+                            <CollectionAlbumCard album={album} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </section>
                 );
               })}
