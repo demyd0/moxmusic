@@ -22,17 +22,29 @@ export const ScreensaverWindow: React.FC<{ onClose: () => void }> = ({ onClose }
 
   const handleDragStart = (e: React.PointerEvent) => {
     dragRef.current = { startX: e.clientX, startY: e.clientY, origX: rect.x, origY: rect.y };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    // Can throw NotFoundError in rare edge cases (pointer already released,
+    // etc.) - non-fatal either way, dragging still works via bubbling.
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
   };
 
   const handleDragMove = (e: React.PointerEvent) => {
-    if (!dragRef.current) return;
-    const dx = e.clientX - dragRef.current.startX;
-    const dy = e.clientY - dragRef.current.startY;
+    const drag = dragRef.current;
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    // Capture drag/resize into local consts rather than re-reading the ref
+    // inside the setState updater: React can batch several pointer events
+    // together, so by the time this updater actually runs, a later
+    // pointerup in the same batch may have already nulled the ref out
+    // from under it (that was crashing the whole app - see handleDragEnd).
     setRect((r) => ({
       ...r,
-      x: Math.min(Math.max(0, dragRef.current!.origX + dx), window.innerWidth - 100),
-      y: Math.min(Math.max(0, dragRef.current!.origY + dy), window.innerHeight - 40),
+      x: Math.min(Math.max(0, drag.origX + dx), window.innerWidth - 100),
+      y: Math.min(Math.max(0, drag.origY + dy), window.innerHeight - 40),
     }));
   };
 
@@ -43,18 +55,23 @@ export const ScreensaverWindow: React.FC<{ onClose: () => void }> = ({ onClose }
   const handleResizeStart = (e: React.PointerEvent) => {
     e.stopPropagation();
     resizeRef.current = { startX: e.clientX, startY: e.clientY, origW: rect.w, origH: rect.h };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
   };
 
   const handleResizeMove = (e: React.PointerEvent) => {
-    if (!resizeRef.current) return;
     e.stopPropagation();
-    const dx = e.clientX - resizeRef.current.startX;
-    const dy = e.clientY - resizeRef.current.startY;
+    const resize = resizeRef.current;
+    if (!resize) return;
+    const dx = e.clientX - resize.startX;
+    const dy = e.clientY - resize.startY;
     setRect((r) => ({
       ...r,
-      w: Math.max(MIN_WIDTH, resizeRef.current!.origW + dx),
-      h: Math.max(MIN_HEIGHT, resizeRef.current!.origH + dy),
+      w: Math.max(MIN_WIDTH, resize.origW + dx),
+      h: Math.max(MIN_HEIGHT, resize.origH + dy),
     }));
   };
 
