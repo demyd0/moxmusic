@@ -20,10 +20,11 @@ import {
 } from '@/services/followService';
 import { backgroundToCss, isValidHexColor, textStyleToCss } from '@/lib/profileValidation';
 import { computeTopGenres } from '@/lib/genreBadges';
+import { sortAlbums } from '@/lib/collectionSort';
 import { auth, signInWithGoogle } from '@/lib/firebase';
 import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
-import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck } from 'lucide-react';
+import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck, Music } from 'lucide-react';
 
 /**
  * The full customizable profile: background, accent color, bio, follow
@@ -175,6 +176,7 @@ export const ProfilePage: React.FC = () => {
   const accent = isValidHexColor(customization.accentColor) ? customization.accentColor : '#000000';
   const albumsById = new Map(albums.map((a) => [a.id, a]));
   const topGenres = computeTopGenres(albums);
+  const latestAlbum = sortAlbums(albums, 'dateAddedDesc')[0];
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
@@ -272,6 +274,20 @@ export const ProfilePage: React.FC = () => {
                             </span>
                           ))}
                         </div>
+                      )}
+
+                      {latestAlbum && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/album/${latestAlbum.id}`)}
+                          className="inline-flex items-center gap-1.5 mt-2 max-w-full font-mono text-[11px] text-neutral-500 hover:text-black transition-colors"
+                        >
+                          <Music className="h-3 w-3 shrink-0" />
+                          <span className="uppercase tracking-wider shrink-0">RECENTLY LIKED:</span>
+                          <span className="truncate text-black font-bold">
+                            {latestAlbum.title} — {latestAlbum.artist}
+                          </span>
+                        </button>
                       )}
 
                       <div className="flex items-center gap-3 mt-2">
