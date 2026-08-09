@@ -1,6 +1,10 @@
 export type AlbumSource = 'itunes' | 'musicbrainz' | 'manual';
 
 export interface Track {
+  /** Globally unique id (e.g. "itunes-track-123" / "mb-track-abc"), so a
+   *  single track can be liked independently of its parent album. Absent
+   *  for sources where the underlying API doesn't hand back a stable id. */
+  id?: string;
   trackNumber: number;
   title: string;
   durationMs?: number;

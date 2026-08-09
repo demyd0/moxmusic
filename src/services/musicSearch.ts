@@ -255,6 +255,7 @@ export async function fetchAlbumTracklist(albumId: string): Promise<Track[]> {
       const tracks: Track[] = data.results
         .filter((item: any) => item.wrapperType === 'track')
         .map((item: any) => ({
+          id: item.trackId ? `itunes-track-${item.trackId}` : undefined,
           trackNumber: item.trackNumber || 1,
           title: item.trackName || 'Untitled Track',
           durationMs: item.trackTimeMillis,
@@ -287,6 +288,7 @@ export async function fetchAlbumTracklist(albumId: string): Promise<Track[]> {
       if (!media || !media.tracks || !Array.isArray(media.tracks)) return [];
 
       return media.tracks.map((t: any, index: number) => ({
+        id: t.recording?.id ? `mb-track-${t.recording.id}` : undefined,
         trackNumber: t.position || index + 1,
         title: t.title || t.recording?.title || 'Untitled Track',
         durationMs: t.length || t.recording?.length,

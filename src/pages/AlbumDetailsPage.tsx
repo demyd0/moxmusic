@@ -168,6 +168,27 @@ export const AlbumDetailsPage: React.FC = () => {
     await toggleToListenAlbum(userId, album, isToListen);
   };
 
+  const handleToggleTrackLike = async (track: Track) => {
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
+    if (!userId || !album || !track.id) return;
+
+    const trackAsAlbum: Album = {
+      id: track.id,
+      title: track.title,
+      artist: album.artist,
+      coverUrl: album.coverUrl,
+      source: album.source,
+      kind: 'track',
+      albumTitle: album.title,
+    };
+
+    const isTrackLiked = userCollections.likedIds.has(track.id);
+    await toggleLikeAlbum(userId, trackAsAlbum, isTrackLiked);
+  };
+
   const formatDuration = (ms?: number) => {
     if (!ms) return '--:--';
     const minutes = Math.floor(ms / 60000);
@@ -376,6 +397,22 @@ export const AlbumDetailsPage: React.FC = () => {
                               <td className="py-3 px-4 text-right text-neutral-600">{formatDuration(track.durationMs)}</td>
                               <td className="py-3 px-4">
                                 <div className="flex items-center justify-end gap-2">
+                                  {track.id && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleTrackLike(track)}
+                                      title={userCollections.likedIds.has(track.id) ? 'Unlike this track' : 'Like this track'}
+                                      className={`flex h-7 w-7 items-center justify-center border border-black transition-all ${
+                                        userCollections.likedIds.has(track.id)
+                                          ? 'bg-black text-white'
+                                          : 'bg-white text-black hover:bg-neutral-100'
+                                      }`}
+                                    >
+                                      <Heart
+                                        className={`h-3.5 w-3.5 ${userCollections.likedIds.has(track.id) ? 'fill-white text-white' : 'text-black'}`}
+                                      />
+                                    </button>
+                                  )}
                                   {track.previewUrl && (
                                     <button
                                       type="button"
