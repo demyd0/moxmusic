@@ -1,11 +1,13 @@
 import { db, auth } from '@/lib/firebase';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  deleteDoc, 
-  collection, 
-  getDocs 
+import {
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  updateDoc,
+  increment,
 } from 'firebase/firestore';
 import type { Album } from '@/types/album';
 import { omitUndefined } from '@/lib/utils';
@@ -115,7 +117,7 @@ export async function resolveUsernameToUid(username: string): Promise<string | n
  */
 export async function getPublicUserProfile(
   uid: string
-): Promise<Pick<UserProfile, 'uid' | 'username' | 'photoURL'> | null> {
+): Promise<(Pick<UserProfile, 'uid' | 'username' | 'photoURL'> & { viewCount: number }) | null> {
   if (!uid) return null;
   try {
     const docRef = doc(db, 'publicProfiles', uid);
@@ -123,13 +125,28 @@ export async function getPublicUserProfile(
     if (snap.exists()) {
       const data = snap.data();
       if (data?.username) {
-        return { uid, username: data.username, photoURL: data.photoURL };
+        return { uid, username: data.username, photoURL: data.photoURL, viewCount: data.viewCount || 0 };
       }
     }
   } catch (error) {
     console.warn('Failed to fetch public profile from Firestore:', error);
   }
   return null;
+}
+
+/**
+ * Bumps a profile's public view counter by exactly 1. Works for anonymous
+ * visitors too (no auth required) - firestore.rules only allows this exact
+ * "viewCount and nothing else, by exactly +1" update from a non-owner, so
+ * it can't be abused to overwrite any other part of the public profile.
+ */
+export async function incrementProfileView(uid: string): Promise<void> {
+  if (!uid) return;
+  try {
+    await updateDoc(doc(db, 'publicProfiles', uid), { viewCount: increment(1) });
+  } catch (error) {
+    console.warn('Failed to record profile view:', error);
+  }
 }
 
 /**

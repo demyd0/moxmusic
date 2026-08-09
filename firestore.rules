@@ -43,6 +43,14 @@ service cloud.firestore {
       // Username + photoURL only. Safe for anyone to read.
       allow read: if true;
       allow write: if isOwner(uid);
+
+      // Anyone (including signed-out visitors) may bump the public view
+      // counter by exactly 1 and touch nothing else - this is what powers
+      // the profile view count without letting a visitor overwrite the
+      // owner's bio/background/customization.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+                    && request.resource.data.viewCount ==
+                       (resource.data.viewCount is int ? resource.data.viewCount : 0) + 1;
     }
 
     match /usernames/{name} {

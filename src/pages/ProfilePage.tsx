@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -7,7 +7,7 @@ import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { FollowListModal } from '@/components/FollowListModal';
 import { BackgroundEffectCanvas } from '@/components/BackgroundEffectCanvas';
 import { fetchSharedLikedCollection } from '@/services/collectionService';
-import { getPublicUserProfile, resolveUsernameToUid } from '@/services/userService';
+import { getPublicUserProfile, resolveUsernameToUid, incrementProfileView } from '@/services/userService';
 import { getProfileCustomization } from '@/services/profileService';
 import {
   isFollowing,
@@ -25,7 +25,7 @@ import { sortAlbums } from '@/lib/collectionSort';
 import { auth, signInWithGoogle } from '@/lib/firebase';
 import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
-import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck, Music } from 'lucide-react';
+import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck, Music, Eye } from 'lucide-react';
 
 /**
  * The full customizable profile: background, accent color, bio, follow
@@ -45,6 +45,9 @@ export const ProfilePage: React.FC = () => {
   const [notFound, setNotFound] = useState(false);
   const [resolvedUid, setResolvedUid] = useState('');
   const [currentUserUid, setCurrentUserUid] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [viewCount, setViewCount] = useState(0);
+  const hasCountedViewRef = useRef(false);
 
   // Follow state
   const [followerCount, setFollowerCount] = useState(0);
@@ -64,9 +67,22 @@ export const ProfilePage: React.FC = () => {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUserUid(user && !user.isAnonymous ? user.uid : null);
+      setAuthChecked(true);
     });
     return () => unsubscribe();
   }, []);
+
+  // Count a profile view once we know both who's being viewed and (now
+  // that auth has resolved) whether the viewer is the owner - never
+  // counts the owner looking at their own profile, and only ever fires
+  // once per page visit.
+  useEffect(() => {
+    if (!resolvedUid || !authChecked || hasCountedViewRef.current) return;
+    if (currentUserUid === resolvedUid) return;
+    hasCountedViewRef.current = true;
+    incrementProfileView(resolvedUid);
+    setViewCount((c) => c + 1);
+  }, [resolvedUid, authChecked, currentUserUid]);
 
   useEffect(() => {
     if (!username) return;
@@ -106,6 +122,7 @@ export const ProfilePage: React.FC = () => {
           setResolvedUid(resolvedUid);
           setFollowerCount(followers);
           setFollowingCount(following);
+          setViewCount(userProfile?.viewCount || 0);
         }
       } catch (err) {
         console.error('Failed to load profile:', err);
@@ -311,6 +328,11 @@ export const ProfilePage: React.FC = () => {
                           <strong>{followingCount}</strong>{' '}
                           <span className="text-neutral-500 uppercase tracking-wider">FOLLOWING</span>
                         </button>
+                        <span className="inline-flex items-center gap-1 font-mono text-xs text-neutral-500">
+                          <Eye className="h-3.5 w-3.5" />
+                          <strong className="text-black">{viewCount}</strong>
+                          <span className="uppercase tracking-wider">VIEWS</span>
+                        </span>
                       </div>
                     </div>
                   </div>
