@@ -19,6 +19,7 @@ import {
   type FollowUser
 } from '@/services/followService';
 import { backgroundToCss, isValidHexColor, textStyleToCss } from '@/lib/profileValidation';
+import { computeTopGenres } from '@/lib/genreBadges';
 import { auth, signInWithGoogle } from '@/lib/firebase';
 import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
@@ -173,6 +174,7 @@ export const ProfilePage: React.FC = () => {
   const displayHandle = profile?.username ? `@${profile.username.toUpperCase()}` : 'USER';
   const accent = isValidHexColor(customization.accentColor) ? customization.accentColor : '#000000';
   const albumsById = new Map(albums.map((a) => [a.id, a]));
+  const topGenres = computeTopGenres(albums);
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
@@ -256,6 +258,20 @@ export const ProfilePage: React.FC = () => {
                         <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
                           PUBLIC PROFILE
                         </p>
+                      )}
+
+                      {topGenres.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          {topGenres.map((genre) => (
+                            <span
+                              key={genre}
+                              className="border-2 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider"
+                              style={{ borderColor: accent, color: accent }}
+                            >
+                              {genre}
+                            </span>
+                          ))}
+                        </div>
                       )}
 
                       <div className="flex items-center gap-3 mt-2">
