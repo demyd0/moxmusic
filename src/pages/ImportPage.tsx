@@ -34,6 +34,12 @@ const SERVICES: ServiceOption[] = [
     exportUrl: 'https://exportify.net/',
   },
   {
+    name: 'APPLE MUSIC',
+    color: '#FA233B',
+    instructions: 'Sign in with Apple on TuneMyMusic, pick your library, export as CSV.',
+    exportUrl: 'https://www.tunemymusic.com/transfer/apple-music-to-file',
+  },
+  {
     name: 'YOUTUBE MUSIC',
     color: '#FF0000',
     instructions: 'Sign in with Google on TuneMyMusic, pick your library, export as CSV.',
@@ -199,7 +205,7 @@ export const ImportPage: React.FC = () => {
               WE DON'T CONNECT TO THESE ACCOUNTS DIRECTLY — EXPORT A FILE, THEN UPLOAD IT BELOW
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {SERVICES.map((service) => (
                 <a
                   key={service.name}

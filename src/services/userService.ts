@@ -8,6 +8,7 @@ import {
   getDocs 
 } from 'firebase/firestore';
 import type { Album } from '@/types/album';
+import { omitUndefined } from '@/lib/utils';
 
 export interface UserProfile {
   uid: string;
@@ -208,14 +209,14 @@ export async function saveUserProfile(
   // 2. Save profile in 'users' collection (private - includes email)
   const docRef = doc(db, 'users', uid);
   try {
-    await setDoc(docRef, {
+    await setDoc(docRef, omitUndefined({
       username: profile.username,
       email: profile.email,
       photoURL: profile.photoURL,
       createdAt: profile.createdAt,
       consentGiven: profile.consentGiven,
       consentDate: profile.consentDate,
-    }, { merge: true });
+    }), { merge: true });
   } catch (error) {
     console.warn('Firestore user profile write failed, updating local storage:', error);
   }

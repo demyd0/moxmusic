@@ -61,8 +61,10 @@ export const HelloPage: React.FC = () => {
     }
   };
 
-  // Search state — Default query is EMPTY
-  const [query, setQuery] = useState('');
+  // Search state — restored from ?q= on mount so the browser BACK button
+  // (e.g. from an album details page) returns to the same search instead
+  // of a blank search tab.
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
   const [enableBroadSearch, setEnableBroadSearch] = useState(false);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [manualAlbums, setManualAlbums] = useState<Album[]>([]);
@@ -225,21 +227,36 @@ export const HelloPage: React.FC = () => {
     }
   }, []);
 
-  // Debounce search effect (400ms)
+  // Debounce search effect (400ms) - also mirrors the query into ?q= so
+  // the back button can restore it (see the query useState above).
   useEffect(() => {
     if (!query.trim()) {
       setAlbums([]);
       setSearchedMb(false);
       setIsLoading(false);
-      return;
     }
 
     const timer = setTimeout(() => {
-      performSearch(query, enableBroadSearch);
+      if (query.trim()) {
+        performSearch(query, enableBroadSearch);
+      }
+
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (query.trim()) {
+            next.set('q', query);
+          } else {
+            next.delete('q');
+          }
+          return next;
+        },
+        { replace: true }
+      );
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [query, enableBroadSearch, performSearch]);
+  }, [query, enableBroadSearch, performSearch, setSearchParams]);
 
   // 5. Collection Toggle Handlers — Intercepts unauthenticated guests
   const handleToggleLike = async (album: Album) => {

@@ -9,6 +9,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import type { Album } from '@/types/album';
+import { omitUndefined } from '@/lib/utils';
 
 export interface UserCollectionsState {
   likedIds: Set<string>;
@@ -236,7 +237,7 @@ export async function toggleLikeAlbum(
     };
 
     try {
-      await setDoc(docRef, albumDoc);
+      await setDoc(docRef, omitUndefined(albumDoc));
     } catch (error) {
       console.warn('Firestore write error, updating local storage:', error);
     }
@@ -285,7 +286,7 @@ export async function toggleToListenAlbum(
     };
 
     try {
-      await setDoc(docRef, albumDoc);
+      await setDoc(docRef, omitUndefined(albumDoc));
     } catch (error) {
       console.warn('Firestore write error, updating local storage:', error);
     }
@@ -327,7 +328,7 @@ export async function bulkAddLikedItems(uid: string, items: Album[]): Promise<vo
         kind: item.kind || undefined,
         albumTitle: item.albumTitle || undefined,
       };
-      batch.set(docRef, itemDoc, { merge: true });
+      batch.set(docRef, omitUndefined(itemDoc), { merge: true });
     }
 
     await batch.commit();
