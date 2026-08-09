@@ -352,7 +352,7 @@ export const Header: React.FC<HeaderProps> = ({
                     type="button"
                     onClick={() => {
                       setIsProfileDropdownOpen(false);
-                      navigate(`/share/${userProfile?.username || ''}`);
+                      navigate(`/profile/${userProfile?.username || ''}`);
                     }}
                     className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-black border border-black bg-white hover:bg-black hover:text-white transition-all mb-2 hard-shadow-sm"
                   >
