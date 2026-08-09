@@ -273,7 +273,17 @@ button:active, .btn-brutalist:active {
 
 .dark .border-black { border-color: var(--border-color); }
 .dark .border-black\/10 { border-color: rgb(82 82 91 / 0.5); }
+.dark .border-black\/15 { border-color: rgb(82 82 91 / 0.5); }
+.dark .border-black\/20 { border-color: rgb(82 82 91 / 0.6); }
+.dark .border-black\/50 { border-color: rgb(82 82 91 / 0.8); }
 .dark .divide-black\/10 > :not([hidden]) ~ :not([hidden]) { border-color: rgb(82 82 91 / 0.5); }
+
+/* bg-white/95 (translucent card over a custom background - profile
+   header, showcases, live preview) wasn't covered by the plain .bg-white
+   rule above, so its text (correctly inverted via .dark .text-black)
+   ended up light-on-near-white - the exact "white on white" bug reported
+   by users. */
+.dark .bg-white\/95 { background-color: color-mix(in srgb, var(--bg-card) 95%, transparent); }
 
 .dark .text-black { color: var(--text-primary); }
 .dark .text-neutral-400 { color: #71717a; }
@@ -332,6 +342,7 @@ button:active, .btn-brutalist:active {
    ============================================================ */
 
 .winamp .bg-white { background-color: var(--bg-card); }
+.winamp .bg-white\/95 { background-color: color-mix(in srgb, var(--bg-card) 95%, transparent); }
 .winamp .bg-neutral-50 { background-color: var(--bg-card); }
 .winamp .bg-neutral-100 { background-color: #1a1d2b; }
 .winamp .bg-neutral-200 { background-color: #232840; }
@@ -341,6 +352,9 @@ button:active, .btn-brutalist:active {
 
 .winamp .border-black { border-color: var(--border-color); }
 .winamp .border-black\/10 { border-color: rgb(74 90 122 / 0.5); }
+.winamp .border-black\/15 { border-color: rgb(74 90 122 / 0.5); }
+.winamp .border-black\/20 { border-color: rgb(74 90 122 / 0.6); }
+.winamp .border-black\/50 { border-color: rgb(74 90 122 / 0.8); }
 .winamp .divide-black\/10 > :not([hidden]) ~ :not([hidden]) { border-color: rgb(74 90 122 / 0.5); }
 
 .winamp .text-black { color: var(--text-primary); }
