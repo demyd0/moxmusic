@@ -11,13 +11,51 @@ const MIN_MB_CALL_INTERVAL_MS = 850;
 async function enforceMbRateLimit(): Promise<void> {
   const now = Date.now();
   const timeSinceLastCall = now - lastMbCallTimestamp;
-  
+
   if (timeSinceLastCall < MIN_MB_CALL_INTERVAL_MS) {
     const waitTime = MIN_MB_CALL_INTERVAL_MS - timeSinceLastCall;
     await new Promise((resolve) => setTimeout(resolve, waitTime));
   }
-  
+
   lastMbCallTimestamp = Date.now();
+}
+
+/**
+ * Fetches JSON from MusicBrainz with the required User-Agent header, rate
+ * limiting, and a couple of retries on a 503. MusicBrainz's servers return
+ * "The MusicBrainz web server is currently busy. Please try again later."
+ * fairly often even well under the request-rate limit - in testing, a
+ * retry a second or two later almost always succeeds, so treating a 503 as
+ * a hard failure (which is what every call site here used to do) was
+ * showing "Unknown Album"/"Unknown Artist" for releases that genuinely
+ * exist and would have loaded fine on the next attempt.
+ */
+async function fetchMusicBrainzJson(url: string, retries = 2): Promise<any | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    await enforceMbRateLimit();
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'MusicTracker/1.0 (personal non-commercial project - contact@mviewie.app)',
+          'Accept': 'application/json',
+        },
+      });
+      if (res.ok) return await res.json();
+      if (res.status === 503 && attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        continue;
+      }
+      return null;
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        continue;
+      }
+      console.error('MusicBrainz request failed after retries:', err);
+      return null;
+    }
+  }
+  return null;
 }
 
 /**
@@ -64,21 +102,11 @@ export async function searchiTunes(query: string): Promise<Album[]> {
 export async function searchMusicBrainz(query: string): Promise<Album[]> {
   if (!query.trim()) return [];
 
-  await enforceMbRateLimit();
-
   try {
     const url = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(query.trim())}&fmt=json&limit=16`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'MusicTracker/1.0 (personal non-commercial project - contact@mviewie.app)',
-        'Accept': 'application/json',
-      },
-    });
+    const data = await fetchMusicBrainzJson(url);
 
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    if (!data.releases || !Array.isArray(data.releases)) return [];
+    if (!data?.releases || !Array.isArray(data.releases)) return [];
 
     return data.releases.map((release: any) => {
       let artistName = 'Unknown Artist';
@@ -199,7 +227,6 @@ export async function fetchAlbumById(id: string): Promise<Album | null> {
   // MusicBrainz Direct Lookup
   if (id.startsWith('mb-')) {
     const cleanMbid = id.replace('mb-', '');
-    await enforceMbRateLimit();
     try {
       // inc=artist-credits is required here - unlike the search endpoint,
       // MusicBrainz's single-release lookup omits artist-credit entirely
@@ -208,14 +235,8 @@ export async function fetchAlbumById(id: string): Promise<Album | null> {
       // fine in the results grid, which uses the search endpoint, but not
       // once you clicked into the album).
       const url = `https://musicbrainz.org/ws/2/release/${cleanMbid}?fmt=json&inc=artist-credits`;
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'MusicTracker/1.0 (personal non-commercial project - contact@mviewie.app)',
-          'Accept': 'application/json',
-        },
-      });
-      if (res.ok) {
-        const release = await res.json();
+      const release = await fetchMusicBrainzJson(url);
+      if (release) {
         let artistName = 'Unknown Artist';
         let artistMbid: string | undefined = undefined;
         if (release['artist-credit'] && Array.isArray(release['artist-credit']) && release['artist-credit'].length > 0) {
@@ -279,18 +300,10 @@ export async function fetchAlbumTracklist(albumId: string): Promise<Track[]> {
   // MusicBrainz Album Lookup
   if (albumId.startsWith('mb-')) {
     const cleanMbid = albumId.replace('mb-', '');
-    await enforceMbRateLimit();
     try {
       const url = `https://musicbrainz.org/ws/2/release/${cleanMbid}?inc=recordings&fmt=json`;
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'MusicTracker/1.0 (personal non-commercial project - contact@mviewie.app)',
-          'Accept': 'application/json',
-        },
-      });
-      if (!res.ok) return [];
-      const data = await res.json();
-      const media = data.media?.[0];
+      const data = await fetchMusicBrainzJson(url);
+      const media = data?.media?.[0];
       if (!media || !media.tracks || !Array.isArray(media.tracks)) return [];
 
       return media.tracks.map((t: any, index: number) => ({
@@ -356,33 +369,24 @@ export async function fetchArtistDiscography(
   // 2. MusicBrainz Release-Group Discography Lookup
   if (artistIdOrName.startsWith('mb-')) {
     const cleanMbid = artistIdOrName.replace('mb-', '');
-    await enforceMbRateLimit();
     try {
       const url = `https://musicbrainz.org/ws/2/release-group?artist=${cleanMbid}&type=album&fmt=json&limit=50`;
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'MusicTracker/1.0 (personal non-commercial project - contact@mviewie.app)',
-          'Accept': 'application/json',
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const releaseGroups = data['release-groups'];
-        if (Array.isArray(releaseGroups) && releaseGroups.length > 0) {
-          const artistName = releaseGroups[0]?.['artist-credit']?.[0]?.name || artistNameHint || 'Artist Discography';
-          const albums: Album[] = releaseGroups.map((rg: any) => ({
-            id: `mb-${rg.id}`,
-            mbid: rg.id,
-            title: rg.title || 'Untitled Album',
-            artist: artistName,
-            artistId: artistIdOrName,
-            coverUrl: `https://coverartarchive.org/release-group/${rg.id}/front`,
-            releaseYear: rg['first-release-date'] ? rg['first-release-date'].substring(0, 4) : undefined,
-            source: 'musicbrainz',
-          }));
+      const data = await fetchMusicBrainzJson(url);
+      const releaseGroups = data?.['release-groups'];
+      if (Array.isArray(releaseGroups) && releaseGroups.length > 0) {
+        const artistName = releaseGroups[0]?.['artist-credit']?.[0]?.name || artistNameHint || 'Artist Discography';
+        const albums: Album[] = releaseGroups.map((rg: any) => ({
+          id: `mb-${rg.id}`,
+          mbid: rg.id,
+          title: rg.title || 'Untitled Album',
+          artist: artistName,
+          artistId: artistIdOrName,
+          coverUrl: `https://coverartarchive.org/release-group/${rg.id}/front`,
+          releaseYear: rg['first-release-date'] ? rg['first-release-date'].substring(0, 4) : undefined,
+          source: 'musicbrainz',
+        }));
 
-          return { artistName, albums };
-        }
+        return { artistName, albums };
       }
     } catch (err) {
       console.error('MusicBrainz release-group lookup failed:', err);

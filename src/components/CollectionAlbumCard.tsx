@@ -52,7 +52,7 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
   const artistTargetUrl = `/artist/${encodeURIComponent(album.artistId || album.artist)}?name=${encodeURIComponent(album.artist)}`;
 
   return (
-    <div className="group relative flex flex-col border-2 border-black bg-white p-3.5 hard-shadow transition-all duration-150 hover:-translate-y-0.5">
+    <div className="group relative flex flex-col border-2 border-black bg-white p-2 hard-shadow transition-all duration-150 hover:-translate-y-0.5">
       {/* 100% Clean Cover Image Container */}
       <div 
         onClick={handleCardClick}
