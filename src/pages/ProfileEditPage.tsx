@@ -273,7 +273,7 @@ export const ProfileEditPage: React.FC = () => {
               <section className="border-2 border-black bg-white p-6 hard-shadow">
                 <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">AVATAR</h2>
                 <div className="flex items-center gap-4">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center border-2 border-black bg-neutral-100 p-1 overflow-hidden">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center border-2 border-black bg-neutral-100 overflow-hidden">
                     {avatarUrlDraft.trim() && !avatarUrlError ? (
                       <img
                         src={avatarUrlDraft}

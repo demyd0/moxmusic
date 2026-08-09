@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
-import { fetchAlbumById, fetchAlbumTracklist } from '@/services/musicSearch';
+import { fetchAlbumWithTracklist } from '@/services/musicSearch';
 import { fetchBandcampLinks, type BandcampLookupResponse } from '@/services/bandcamp';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { buildYoutubeMusicSearchUrl } from '@/lib/youtubeMusic';
@@ -105,10 +105,7 @@ export const AlbumDetailsPage: React.FC = () => {
       setIsBandcampLoading(true);
       try {
         const decodedId = decodeURIComponent(id!);
-        const [albumData, tracklist] = await Promise.all([
-          fetchAlbumById(decodedId),
-          fetchAlbumTracklist(decodedId),
-        ]);
+        const { album: albumData, tracks: tracklist } = await fetchAlbumWithTracklist(decodedId);
 
         const resolvedAlbum = albumData || {
           id: decodedId,

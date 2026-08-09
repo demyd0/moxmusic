@@ -232,7 +232,7 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className="flex h-16 w-16 shrink-0 items-center justify-center border-2 border-black p-1 text-white hard-shadow-sm overflow-hidden"
+                      className="flex h-16 w-16 shrink-0 items-center justify-center border-2 border-black text-white hard-shadow-sm overflow-hidden"
                       style={{ backgroundColor: accent }}
                     >
                       {profile?.photoURL ? (

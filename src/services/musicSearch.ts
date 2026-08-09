@@ -20,21 +20,27 @@ async function enforceMbRateLimit(): Promise<void> {
   lastMbCallTimestamp = Date.now();
 }
 
+const MB_REQUEST_TIMEOUT_MS = 6000;
+
 /**
  * Fetches JSON from MusicBrainz with the required User-Agent header, rate
- * limiting, and a couple of retries on a 503. MusicBrainz's servers return
- * "The MusicBrainz web server is currently busy. Please try again later."
- * fairly often even well under the request-rate limit - in testing, a
- * retry a second or two later almost always succeeds, so treating a 503 as
- * a hard failure (which is what every call site here used to do) was
- * showing "Unknown Album"/"Unknown Artist" for releases that genuinely
- * exist and would have loaded fine on the next attempt.
+ * limiting, a hard per-attempt timeout, and a couple of retries on a 503
+ * or timeout. MusicBrainz's servers return "The MusicBrainz web server is
+ * currently busy. Please try again later." fairly often even well under
+ * the request-rate limit - in testing, a retry a second or two later
+ * almost always succeeds. Without the timeout, a request that just hangs
+ * (rather than cleanly erroring) had no bound at all - the browser's own
+ * default is minutes, which is what "loads forever and never opens" was:
+ * not a crash, just a fetch() nobody ever gave up on.
  */
 async function fetchMusicBrainzJson(url: string, retries = 2): Promise<any | null> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     await enforceMbRateLimit();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), MB_REQUEST_TIMEOUT_MS);
     try {
       const res = await fetch(url, {
+        signal: controller.signal,
         headers: {
           'User-Agent': 'MusicTracker/1.0 (personal non-commercial project - contact@mviewie.app)',
           'Accept': 'application/json',
@@ -42,17 +48,19 @@ async function fetchMusicBrainzJson(url: string, retries = 2): Promise<any | nul
       });
       if (res.ok) return await res.json();
       if (res.status === 503 && attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
         continue;
       }
       return null;
     } catch (err) {
       if (attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
         continue;
       }
       console.error('MusicBrainz request failed after retries:', err);
       return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   return null;
@@ -319,6 +327,70 @@ export async function fetchAlbumTracklist(albumId: string): Promise<Track[]> {
   }
 
   return [];
+}
+
+/**
+ * Fetch an album and its tracklist together. For MusicBrainz this is ONE
+ * network request (inc=artist-credits+recordings) instead of the two
+ * fetchAlbumById + fetchAlbumTracklist calls the album details page used
+ * to make separately - each MusicBrainz request costs at least the 850ms
+ * rate-limit spacing plus whatever retry backoff it needs, so halving the
+ * request count roughly halves both the typical wait and the odds of the
+ * page hitting a 503 at all. iTunes doesn't have this reliability problem
+ * (it's fast and rarely errors), so it keeps making its own two
+ * lightweight calls in parallel rather than needing this treatment.
+ */
+export async function fetchAlbumWithTracklist(id: string): Promise<{ album: Album | null; tracks: Track[] }> {
+  if (!id) return { album: null, tracks: [] };
+
+  if (id.startsWith('mb-')) {
+    const cleanMbid = id.replace('mb-', '');
+    try {
+      const url = `https://musicbrainz.org/ws/2/release/${cleanMbid}?fmt=json&inc=artist-credits+recordings`;
+      const release = await fetchMusicBrainzJson(url);
+      if (!release) return { album: null, tracks: [] };
+
+      let artistName = 'Unknown Artist';
+      let artistMbid: string | undefined = undefined;
+      if (release['artist-credit'] && Array.isArray(release['artist-credit']) && release['artist-credit'].length > 0) {
+        artistName = release['artist-credit'].map((ac: any) => ac.name || ac.artist?.name || '').filter(Boolean).join(' & ') || artistName;
+        artistMbid = release['artist-credit'][0]?.artist?.id;
+      }
+
+      const album: Album = {
+        id: `mb-${release.id}`,
+        mbid: release.id,
+        title: release.title || 'Untitled Release',
+        artist: artistName,
+        artistId: artistMbid ? `mb-${artistMbid}` : undefined,
+        coverUrl: `https://coverartarchive.org/release/${release.id}/front`,
+        releaseYear: release.date ? release.date.substring(0, 4) : undefined,
+        source: 'musicbrainz',
+        trackCount: release['media']?.[0]?.['track-count'],
+      };
+
+      const media = release.media?.[0];
+      const tracks: Track[] =
+        media?.tracks && Array.isArray(media.tracks)
+          ? media.tracks.map((t: any, index: number) => ({
+              id: t.recording?.id ? `mb-track-${t.recording.id}` : undefined,
+              trackNumber: t.position || index + 1,
+              title: t.title || t.recording?.title || 'Untitled Track',
+              durationMs: t.length || t.recording?.length,
+            }))
+          : [];
+
+      return { album, tracks };
+    } catch (err) {
+      console.error('MusicBrainz combined release lookup failed:', err);
+      return { album: null, tracks: [] };
+    }
+  }
+
+  // iTunes: two fast, reliable calls in parallel - no reliability problem
+  // to work around here.
+  const [album, tracks] = await Promise.all([fetchAlbumById(id), fetchAlbumTracklist(id)]);
+  return { album, tracks };
 }
 
 /**
