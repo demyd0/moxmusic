@@ -15,6 +15,7 @@ import {
   MAX_SHOWCASES,
   MAX_SHOWCASE_TEXT_LENGTH,
 } from '@/types/profile';
+import { sanitizeAvatarFrame } from './avatarFrames';
 
 const SHOWCASE_TYPES: ShowcaseType[] = ['albums', 'text', 'mixed'];
 
@@ -185,5 +186,7 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
       textStyle: sanitizeTextStyle(s.textStyle),
     }));
 
-  return { background, accentColor, bio, bioStyle, showcases };
+  const avatarFrame = sanitizeAvatarFrame(input.avatarFrame);
+
+  return { background, accentColor, bio, bioStyle, showcases, avatarFrame };
 }

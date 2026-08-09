@@ -42,12 +42,19 @@ export interface ProfileShowcase {
   textStyle?: TextStyle;
 }
 
+/** Cosmetic ring around the avatar, earned by hitting an activity
+ *  milestone (see src/lib/milestones.ts). Client-checked only - like the
+ *  rest of this app there's no server-side enforcement, so this is a
+ *  vanity reward, not an access-controlled asset. */
+export type AvatarFrame = 'none' | 'bronze' | 'silver' | 'gold' | 'neon' | 'rainbow';
+
 export interface ProfileCustomization {
   background: ProfileBackground;
   accentColor: string;
   bio: string;
   bioStyle: TextStyle;
   showcases: ProfileShowcase[];
+  avatarFrame?: AvatarFrame;
 }
 
 export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomization = {
@@ -56,6 +63,7 @@ export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomization = {
   bio: '',
   bioStyle: DEFAULT_TEXT_STYLE,
   showcases: [],
+  avatarFrame: 'none',
 };
 
 // Sanity limits so one profile can't bloat its Firestore doc or turn

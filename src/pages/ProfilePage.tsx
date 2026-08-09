@@ -22,6 +22,7 @@ import {
 import { backgroundToCss, isValidHexColor, textStyleToCss } from '@/lib/profileValidation';
 import { computeTopGenres } from '@/lib/genreBadges';
 import { sortAlbums } from '@/lib/collectionSort';
+import { avatarFrameWrapperClassName } from '@/lib/avatarFrames';
 import { auth, signInWithGoogle } from '@/lib/firebase';
 import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
@@ -256,15 +257,17 @@ export const ProfilePage: React.FC = () => {
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="flex h-28 w-28 shrink-0 items-center justify-center border-2 border-black text-white hard-shadow-sm overflow-hidden"
-                      style={{ backgroundColor: accent }}
-                    >
-                      {profile?.photoURL ? (
-                        <img src={profile.photoURL} alt={displayHandle} className="h-full w-full object-cover" />
-                      ) : (
-                        <Heart className="h-11 w-11 fill-white" />
-                      )}
+                    <div className={`shrink-0 ${avatarFrameWrapperClassName(customization.avatarFrame)}`}>
+                      <div
+                        className="flex h-28 w-28 items-center justify-center border-2 border-black text-white hard-shadow-sm overflow-hidden"
+                        style={{ backgroundColor: accent }}
+                      >
+                        {profile?.photoURL ? (
+                          <img src={profile.photoURL} alt={displayHandle} className="h-full w-full object-cover" />
+                        ) : (
+                          <Heart className="h-11 w-11 fill-white" />
+                        )}
+                      </div>
                     </div>
                     <div className="min-w-0">
                       <h1 className="font-header text-3xl sm:text-4xl font-extrabold text-black uppercase tracking-tight truncate">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -6,7 +6,11 @@ import { auth } from '@/lib/firebase';
 import { getUserProfile, updateAvatarUrl } from '@/services/userService';
 import { subscribeUserCollections } from '@/services/collectionService';
 import { getProfileCustomization, saveProfileCustomization } from '@/services/profileService';
+import { getFollowerCount, getFollowingCount } from '@/services/followService';
 import { backgroundToCss, isValidHexColor, isValidBackgroundImageUrl, BACKGROUND_EFFECTS } from '@/lib/profileValidation';
+import { AVATAR_FRAMES, avatarFrameWrapperClassName } from '@/lib/avatarFrames';
+import { getUnlockedFrames, getNewlyUnlocked, markMilestonesSeen, type Milestone } from '@/lib/milestones';
+import { MilestoneRevealModal } from '@/components/MilestoneRevealModal';
 import {
   DEFAULT_PROFILE_CUSTOMIZATION,
   DEFAULT_TEXT_STYLE,
@@ -39,6 +43,7 @@ import {
   Type as TypeIcon,
   LayoutGrid,
   Rows3,
+  Lock,
 } from 'lucide-react';
 
 const BG_TYPES: { type: ProfileBackgroundType; label: string; icon: React.ReactNode }[] = [
@@ -74,6 +79,13 @@ export const ProfileEditPage: React.FC = () => {
   const [avatarUrlDraft, setAvatarUrlDraft] = useState('');
   const [avatarUrlError, setAvatarUrlError] = useState(false);
 
+  const [totalLikedCount, setTotalLikedCount] = useState(0);
+  const [likedCollectionsReady, setLikedCollectionsReady] = useState(false);
+  const [followerCount, setFollowerCount] = useState<number | null>(null);
+  const [followingCount, setFollowingCount] = useState<number | null>(null);
+  const [newlyUnlocked, setNewlyUnlocked] = useState<Milestone[]>([]);
+  const hasCheckedMilestonesRef = useRef(false);
+
   useEffect(() => {
     let unsubCollections: (() => void) | undefined;
 
@@ -103,7 +115,13 @@ export const ProfileEditPage: React.FC = () => {
 
       unsubCollections = subscribeUserCollections(user.uid, (state) => {
         setLikedAlbums(state.likedAlbums.filter((a) => a.kind !== 'track'));
+        setTotalLikedCount(state.likedAlbums.length);
+        setLikedCollectionsReady(true);
       });
+
+      const [followers, following] = await Promise.all([getFollowerCount(user.uid), getFollowingCount(user.uid)]);
+      setFollowerCount(followers);
+      setFollowingCount(following);
 
       setIsLoading(false);
     });
@@ -113,6 +131,26 @@ export const ProfileEditPage: React.FC = () => {
       unsubAuth();
     };
   }, []);
+
+  // Check for newly-earned milestones once we actually have real stats -
+  // fires once per page visit so it can't spam the reveal modal.
+  useEffect(() => {
+    if (!userId || !likedCollectionsReady || followerCount === null || followingCount === null) return;
+    if (hasCheckedMilestonesRef.current) return;
+    hasCheckedMilestonesRef.current = true;
+    setNewlyUnlocked(getNewlyUnlocked({ likedCount: totalLikedCount, followerCount, followingCount }, userId));
+  }, [userId, likedCollectionsReady, followerCount, followingCount, totalLikedCount]);
+
+  const dismissMilestoneReveal = () => {
+    if (userId) markMilestonesSeen(userId, newlyUnlocked.map((m) => m.id));
+    setNewlyUnlocked([]);
+  };
+
+  const unlockedFrames = getUnlockedFrames({
+    likedCount: totalLikedCount,
+    followerCount: followerCount || 0,
+    followingCount: followingCount || 0,
+  });
 
   const setBackgroundType = (type: ProfileBackgroundType) => {
     if (type === 'color') {
@@ -262,6 +300,7 @@ export const ProfileEditPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
+      <MilestoneRevealModal milestones={newlyUnlocked} onDone={dismissMilestoneReveal} />
       <div>
         <Header />
 
@@ -306,17 +345,19 @@ export const ProfileEditPage: React.FC = () => {
               <section className="border-2 border-black bg-white p-6 hard-shadow">
                 <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">AVATAR</h2>
                 <div className="flex items-center gap-4">
-                  <div className="flex h-28 w-28 shrink-0 items-center justify-center border-2 border-black bg-neutral-100 overflow-hidden">
-                    {avatarUrlDraft.trim() && !avatarUrlError ? (
-                      <img
-                        src={avatarUrlDraft}
-                        alt="Avatar preview"
-                        className="h-full w-full object-cover"
-                        onError={() => setAvatarUrlError(true)}
-                      />
-                    ) : (
-                      <UserCircle2 className="h-8 w-8 text-neutral-400" />
-                    )}
+                  <div className={`shrink-0 ${avatarFrameWrapperClassName(customization.avatarFrame)}`}>
+                    <div className="flex h-28 w-28 items-center justify-center border-2 border-black bg-neutral-100 overflow-hidden">
+                      {avatarUrlDraft.trim() && !avatarUrlError ? (
+                        <img
+                          src={avatarUrlDraft}
+                          alt="Avatar preview"
+                          className="h-full w-full object-cover"
+                          onError={() => setAvatarUrlError(true)}
+                        />
+                      ) : (
+                        <UserCircle2 className="h-8 w-8 text-neutral-400" />
+                      )}
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <input
@@ -333,6 +374,37 @@ export const ProfileEditPage: React.FC = () => {
                         MUST BE A LINK STARTING WITH HTTPS://
                       </p>
                     )}
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-5 border-t-2 border-black/10">
+                  <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-neutral-500 mb-2.5">
+                    AVATAR FRAME — EARNED BY ACTIVITY MILESTONES
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {AVATAR_FRAMES.map((f) => {
+                      const isUnlocked = unlockedFrames.includes(f.value);
+                      const isSelected = (customization.avatarFrame || 'none') === f.value;
+                      return (
+                        <button
+                          key={f.value}
+                          type="button"
+                          disabled={!isUnlocked}
+                          onClick={() => setCustomization((c) => ({ ...c, avatarFrame: f.value }))}
+                          title={isUnlocked ? f.label : 'LOCKED — KEEP LISTENING TO UNLOCK'}
+                          className={`inline-flex items-center gap-1.5 border-2 border-black px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                            isSelected
+                              ? 'bg-black text-white'
+                              : isUnlocked
+                                ? 'bg-white text-black hover:bg-neutral-100'
+                                : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {!isUnlocked && <Lock className="h-3 w-3" />}
+                          <span>{f.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </section>
