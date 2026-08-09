@@ -232,10 +232,14 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center border-2 border-black text-white hard-shadow-sm"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center border-2 border-black text-white hard-shadow-sm overflow-hidden"
                       style={{ backgroundColor: accent }}
                     >
-                      <Heart className="h-6 w-6 fill-white" />
+                      {profile?.photoURL ? (
+                        <img src={profile.photoURL} alt={displayHandle} className="h-full w-full object-cover" />
+                      ) : (
+                        <Heart className="h-6 w-6 fill-white" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <h1 className="font-header text-3xl sm:text-4xl font-extrabold text-black uppercase tracking-tight truncate">

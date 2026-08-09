@@ -241,6 +241,22 @@ export async function saveUserProfile(
 }
 
 /**
+ * Update the avatar shown on a profile. Writes both the private
+ * users/{uid} doc and the public publicProfiles/{uid} mirror together -
+ * saveUserProfile falls back to `existing?.photoURL` from the private doc
+ * whenever the username is changed later, so leaving that doc's photoURL
+ * stale would silently revert a custom avatar back to the old value on
+ * the next username edit.
+ */
+export async function updateAvatarUrl(uid: string, photoURL: string): Promise<void> {
+  const clean = photoURL.trim();
+  await Promise.all([
+    setDoc(doc(db, 'users', uid), { photoURL: clean }, { merge: true }),
+    setDoc(doc(db, 'publicProfiles', uid), { photoURL: clean }, { merge: true }),
+  ]);
+}
+
+/**
  * Record First-Time Privacy Policy Consent in Firestore
  */
 export async function recordUserConsent(uid: string): Promise<void> {

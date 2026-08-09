@@ -468,7 +468,6 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Username Configuration Modal */}
       <UsernameModal
         isOpen={isUsernameModalOpen}
-        currentUserEmail={currentUser?.email}
         initialUsername={userProfile?.username || ''}
         onClose={userProfile ? () => setIsUsernameModalOpen(false) : undefined}
         onSubmit={handleSaveUsername}

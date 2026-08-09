@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { User as UserIcon, Check, AlertCircle, X, Crown } from 'lucide-react';
+import { User as UserIcon, Check, AlertCircle, X } from 'lucide-react';
 
 interface UsernameModalProps {
   isOpen: boolean;
-  currentUserEmail?: string | null;
   initialUsername?: string;
   onClose?: () => void;
   onSubmit: (username: string) => Promise<void>;
 }
 
-export const UsernameModal: React.FC<UsernameModalProps> = ({ 
-  isOpen, 
-  currentUserEmail,
+const MIN_USERNAME_LENGTH = 3;
+
+export const UsernameModal: React.FC<UsernameModalProps> = ({
+  isOpen,
   initialUsername = '',
   onClose,
-  onSubmit 
+  onSubmit
 }) => {
   const [username, setUsername] = useState(initialUsername);
   const [error, setError] = useState<string | null>(null);
@@ -28,24 +28,16 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({
 
   if (!isOpen) return null;
 
-  // VIP override check for owner account (demyd)
-  const isVipUser = Boolean(
-    currentUserEmail && currentUserEmail.toLowerCase().includes('demyd')
-  );
-
-  const minLength = isVipUser ? 1 : 3;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = username.trim();
 
-    if (cleaned.length < minLength) {
-      setError(`Username must be at least ${minLength} character${minLength > 1 ? 's' : ''} long.`);
+    if (cleaned.length < MIN_USERNAME_LENGTH) {
+      setError(`Username must be at least ${MIN_USERNAME_LENGTH} characters long.`);
       return;
     }
 
-    const regex = isVipUser ? /^[a-zA-Z0-9_]{1,20}$/ : /^[a-zA-Z0-9_]{3,20}$/;
-    if (!regex.test(cleaned)) {
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleaned)) {
       setError('Only letters, numbers, and underscores are allowed.');
       return;
     }
@@ -77,21 +69,14 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center gap-3 border-b-2 border-black pb-4 mb-6">
           <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-black text-white hard-shadow-sm">
-            {isVipUser ? <Crown className="h-5 w-5 text-amber-400" /> : <UserIcon className="h-5 w-5" />}
+            <UserIcon className="h-5 w-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-header text-xl font-extrabold uppercase text-black">
-                {initialUsername ? 'CHANGE USERNAME' : 'CHOOSE USERNAME'}
-              </h3>
-              {isVipUser && (
-                <span className="border border-black bg-amber-400 text-black px-1.5 py-0.2 font-mono text-[9px] font-bold uppercase">
-                  VIP 1-CHAR
-                </span>
-              )}
-            </div>
+            <h3 className="font-header text-xl font-extrabold uppercase text-black">
+              {initialUsername ? 'CHANGE USERNAME' : 'CHOOSE USERNAME'}
+            </h3>
             <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
-              {isVipUser ? 'VIP PRIVILEGE: 1 TO 20 CHARACTERS' : 'MIN 3 CHARACTERS (LETTERS, NUMBERS, UNDERSCORE)'}
+              MIN 3 CHARACTERS (LETTERS, NUMBERS, UNDERSCORE)
             </p>
           </div>
         </div>
@@ -111,7 +96,7 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({
                   setUsername(e.target.value);
                   setError(null);
                 }}
-                placeholder={isVipUser ? "d" : "demyd"}
+                placeholder="musiclover"
                 maxLength={20}
                 required
                 className="w-full border-2 border-black bg-white pl-8 pr-3 py-2 text-black font-bold uppercase placeholder:text-neutral-400 focus:outline-none focus:bg-neutral-50"

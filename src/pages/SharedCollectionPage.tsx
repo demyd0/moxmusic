@@ -85,8 +85,12 @@ export const SharedCollectionPage: React.FC = () => {
           {!notFound && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b-2 border-black">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center border-2 border-black bg-black text-white hard-shadow-sm">
-                  <Heart className="h-6 w-6 fill-white" />
+                <div className="flex h-12 w-12 items-center justify-center border-2 border-black bg-black text-white hard-shadow-sm overflow-hidden">
+                  {profile?.photoURL ? (
+                    <img src={profile.photoURL} alt={displayHandle} className="h-full w-full object-cover" />
+                  ) : (
+                    <Heart className="h-6 w-6 fill-white" />
+                  )}
                 </div>
                 <div>
                   <h1 className="font-header text-3xl sm:text-4xl font-extrabold text-black uppercase tracking-tight">

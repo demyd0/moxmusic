@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { auth } from '@/lib/firebase';
-import { getUserProfile } from '@/services/userService';
+import { getUserProfile, updateAvatarUrl } from '@/services/userService';
 import { subscribeUserCollections } from '@/services/collectionService';
 import { getProfileCustomization, saveProfileCustomization } from '@/services/profileService';
 import { backgroundToCss, isValidHexColor, isValidBackgroundImageUrl } from '@/lib/profileValidation';
@@ -29,6 +29,7 @@ import {
   ArrowUp,
   ArrowDown,
   Check,
+  UserCircle2,
 } from 'lucide-react';
 
 const BG_TYPES: { type: ProfileBackgroundType; label: string; icon: React.ReactNode }[] = [
@@ -55,6 +56,9 @@ export const ProfileEditPage: React.FC = () => {
   const [imageUrlDraft, setImageUrlDraft] = useState('');
   const [imageUrlError, setImageUrlError] = useState(false);
 
+  const [avatarUrlDraft, setAvatarUrlDraft] = useState('');
+  const [avatarUrlError, setAvatarUrlError] = useState(false);
+
   useEffect(() => {
     let unsubCollections: (() => void) | undefined;
 
@@ -69,6 +73,7 @@ export const ProfileEditPage: React.FC = () => {
 
       const profile = await getUserProfile(user.uid);
       setUsername(profile?.username || '');
+      setAvatarUrlDraft(profile?.photoURL || '');
 
       const custom = await getProfileCustomization(user.uid);
       setCustomization(custom);
@@ -120,6 +125,11 @@ export const ProfileEditPage: React.FC = () => {
     }
   };
 
+  const applyAvatarUrl = (url: string) => {
+    setAvatarUrlDraft(url);
+    setAvatarUrlError(url.trim() !== '' && !isValidBackgroundImageUrl(url));
+  };
+
   const addShowcase = () => {
     if (customization.showcases.length >= MAX_SHOWCASES) return;
     setCustomization((c) => ({
@@ -163,15 +173,18 @@ export const ProfileEditPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!userId) return;
+    if (!userId || avatarUrlError) return;
     setIsSaving(true);
     setSaved(false);
     try {
-      await saveProfileCustomization(userId, customization);
+      await Promise.all([
+        saveProfileCustomization(userId, customization),
+        updateAvatarUrl(userId, avatarUrlDraft.trim()),
+      ]);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
-      console.error('Failed to save profile customization:', err);
+      console.error('Failed to save profile:', err);
     } finally {
       setIsSaving(false);
     }
@@ -256,6 +269,41 @@ export const ProfileEditPage: React.FC = () => {
           <div className="grid lg:grid-cols-[1fr_320px] gap-6">
             {/* Left: editor controls */}
             <div className="space-y-6">
+              {/* Avatar */}
+              <section className="border-2 border-black bg-white p-6 hard-shadow">
+                <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">AVATAR</h2>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center border-2 border-black bg-neutral-100 overflow-hidden">
+                    {avatarUrlDraft.trim() && !avatarUrlError ? (
+                      <img
+                        src={avatarUrlDraft}
+                        alt="Avatar preview"
+                        className="h-full w-full object-cover"
+                        onError={() => setAvatarUrlError(true)}
+                      />
+                    ) : (
+                      <UserCircle2 className="h-8 w-8 text-neutral-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <input
+                      type="text"
+                      value={avatarUrlDraft}
+                      onChange={(e) => applyAvatarUrl(e.target.value)}
+                      placeholder="HTTPS://... (LEAVE EMPTY FOR NO AVATAR)"
+                      className={`w-full border-2 bg-white px-3.5 py-2.5 font-mono text-sm text-black placeholder-neutral-400 focus:outline-none ${
+                        avatarUrlError ? 'border-red-600' : 'border-black focus:bg-neutral-50'
+                      }`}
+                    />
+                    {avatarUrlError && (
+                      <p className="mt-1.5 font-mono text-[11px] text-red-600 uppercase tracking-wider">
+                        MUST BE A LINK STARTING WITH HTTPS://
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+
               {/* Background */}
               <section className="border-2 border-black bg-white p-6 hard-shadow">
                 <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">BACKGROUND</h2>
@@ -474,8 +522,17 @@ export const ProfileEditPage: React.FC = () => {
                     className="border-2 bg-white/95 backdrop-blur-sm p-3.5"
                     style={{ borderColor: isValidHexColor(customization.accentColor) ? customization.accentColor : '#000' }}
                   >
-                    <div className="font-header text-lg font-extrabold uppercase text-black truncate">
-                      @{username || 'YOU'}
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-black bg-neutral-100 overflow-hidden">
+                        {avatarUrlDraft.trim() && !avatarUrlError ? (
+                          <img src={avatarUrlDraft} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <UserCircle2 className="h-5 w-5 text-neutral-400" />
+                        )}
+                      </div>
+                      <div className="font-header text-lg font-extrabold uppercase text-black truncate">
+                        @{username || 'YOU'}
+                      </div>
                     </div>
                     {customization.bio && (
                       <p className="mt-1 font-mono text-[11px] text-neutral-700 line-clamp-3 whitespace-pre-wrap">
