@@ -1,12 +1,13 @@
 import React, { useRef, useState } from 'react';
 import { ScreensaverCanvas } from './ScreensaverCanvas';
 import { SCREENSAVER_PRESETS, type ScreensaverPreset } from '@/lib/screensaverPresets';
-import { X, Monitor } from 'lucide-react';
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 260;
 
 interface Rect { x: number; y: number; w: number; h: number; }
+
+const GRIP_PATTERN = 'repeating-linear-gradient(90deg, #7d92c2 0px, #7d92c2 1px, transparent 1px, transparent 3px)';
 
 export const ScreensaverWindow: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [rect, setRect] = useState<Rect>(() => ({
@@ -63,47 +64,88 @@ export const ScreensaverWindow: React.FC<{ onClose: () => void }> = ({ onClose }
 
   return (
     <div
-      className="fixed z-[100] flex flex-col border-2 border-black bg-white hard-shadow"
-      style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
+      className="fixed z-[100] flex flex-col"
+      style={{
+        left: rect.x,
+        top: rect.y,
+        width: rect.w,
+        height: rect.h,
+        background: 'linear-gradient(135deg, #d8d8d8, #9a9a9a)',
+        border: '2px outset #cfcfcf',
+        boxShadow: '3px 3px 10px rgba(0,0,0,0.6)',
+        fontFamily: 'var(--font-mono)',
+      }}
     >
-      {/* Title bar - drag handle */}
+      {/* Title bar - drag handle, classic Winamp gradient + grip pattern */}
       <div
         onPointerDown={handleDragStart}
         onPointerMove={handleDragMove}
         onPointerUp={handleDragEnd}
-        className="flex items-center justify-between border-b-2 border-black bg-black px-3 py-2 cursor-move select-none touch-none"
+        className="flex items-center gap-2 px-1.5 py-1 cursor-move select-none touch-none"
+        style={{
+          background: 'linear-gradient(180deg, #6377a8 0%, #33406b 50%, #1c2544 100%)',
+          borderBottom: '1px solid #000',
+        }}
       >
-        <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-white">
-          <Monitor className="h-3.5 w-3.5" />
-          <span>SCREENSAVER.EXE</span>
-        </div>
+        <div className="h-3 flex-1" style={{ backgroundImage: GRIP_PATTERN }} />
+        <span
+          className="shrink-0 text-[10px] font-bold uppercase"
+          style={{ color: '#dbe6ff', letterSpacing: '0.15em' }}
+        >
+          ▸ SCREENSAVER
+        </span>
+        <div className="h-3 flex-1" style={{ backgroundImage: GRIP_PATTERN }} />
         <button
           type="button"
           onClick={onClose}
-          className="flex h-6 w-6 items-center justify-center border border-white/30 text-white hover:bg-white hover:text-black transition-colors"
+          className="flex shrink-0 items-center justify-center text-[10px] font-bold leading-none text-black"
+          style={{
+            width: 15,
+            height: 13,
+            background: 'linear-gradient(180deg, #f0f0f0, #b0b0b0)',
+            border: '1px outset #e0e0e0',
+          }}
         >
-          <X className="h-3.5 w-3.5" />
+          ×
         </button>
       </div>
 
-      {/* Preset picker */}
-      <div className="flex flex-wrap gap-1 border-b-2 border-black bg-neutral-100 p-1.5">
-        {SCREENSAVER_PRESETS.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            onClick={() => setPreset(p.value)}
-            className={`border border-black px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
-              preset === p.value ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-200'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+      {/* Preset picker - LCD-green "pressed" style for the active one */}
+      <div
+        className="flex flex-wrap gap-1 p-1.5"
+        style={{
+          background: 'linear-gradient(180deg, #c4c4c4, #9c9c9c)',
+          borderBottom: '1px solid #000',
+          borderTop: '1px solid #ececec',
+        }}
+      >
+        {SCREENSAVER_PRESETS.map((p) => {
+          const active = preset === p.value;
+          return (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => setPreset(p.value)}
+              className="text-[9px] font-bold uppercase tracking-wide"
+              style={{
+                padding: '3px 7px',
+                color: active ? '#4dff4d' : '#111',
+                background: active ? 'linear-gradient(180deg, #0c2a0c, #041604)' : 'linear-gradient(180deg, #e0e0e0, #b0b0b0)',
+                border: active ? '1px inset #333' : '1px outset #e6e6e6',
+                textShadow: active ? '0 0 4px #4dff4d' : 'none',
+              }}
+            >
+              {p.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Canvas body */}
-      <div className="relative flex-1 overflow-hidden">
+      {/* Canvas body - inset bevel frame around the black display */}
+      <div
+        className="relative flex-1 overflow-hidden m-1"
+        style={{ border: '2px inset #808080' }}
+      >
         <ScreensaverCanvas preset={preset} />
       </div>
 
@@ -114,7 +156,7 @@ export const ScreensaverWindow: React.FC<{ onClose: () => void }> = ({ onClose }
         onPointerUp={handleResizeEnd}
         className="absolute bottom-0 right-0 h-5 w-5 cursor-nwse-resize touch-none"
         style={{
-          background: 'repeating-linear-gradient(135deg, #000 0px, #000 2px, transparent 2px, transparent 5px)',
+          background: 'repeating-linear-gradient(135deg, #6a6a6a 0px, #6a6a6a 1px, transparent 1px, transparent 3px)',
         }}
       />
     </div>
