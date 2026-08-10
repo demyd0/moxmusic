@@ -184,6 +184,7 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
       albumIds: (s.albumIds || []).slice(0, MAX_ALBUMS_PER_SHOWCASE),
       text: (s.text || '').slice(0, MAX_SHOWCASE_TEXT_LENGTH),
       textStyle: sanitizeTextStyle(s.textStyle),
+      titleStyle: sanitizeTextStyle(s.titleStyle),
     }));
 
   const avatarFrame = sanitizeAvatarFrame(input.avatarFrame);

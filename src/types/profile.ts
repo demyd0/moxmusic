@@ -30,6 +30,10 @@ export interface TextStyle {
 }
 
 export const DEFAULT_TEXT_STYLE: TextStyle = { font: 'mono', color: '', effect: 'none' };
+/** Showcase titles previously always rendered in the header font via a
+ *  fixed className - default new titleStyle to match so existing
+ *  showcases don't visually change when this field is introduced. */
+export const DEFAULT_TITLE_STYLE: TextStyle = { font: 'header', color: '', effect: 'none' };
 
 export interface ProfileShowcase {
   id: string;
@@ -40,6 +44,7 @@ export interface ProfileShowcase {
   /** Used when type is 'text' or 'mixed'. */
   text?: string;
   textStyle?: TextStyle;
+  titleStyle?: TextStyle;
 }
 
 /** Cosmetic ring around the avatar, earned by hitting an activity

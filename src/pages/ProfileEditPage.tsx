@@ -14,6 +14,7 @@ import { MilestoneRevealModal } from '@/components/MilestoneRevealModal';
 import {
   DEFAULT_PROFILE_CUSTOMIZATION,
   DEFAULT_TEXT_STYLE,
+  DEFAULT_TITLE_STYLE,
   MAX_ALBUMS_PER_SHOWCASE,
   MAX_BIO_LENGTH,
   MAX_SHOWCASES,
@@ -191,7 +192,7 @@ export const ProfileEditPage: React.FC = () => {
     if (customization.showcases.length >= MAX_SHOWCASES) return;
     setCustomization((c) => ({
       ...c,
-      showcases: [...c.showcases, { id: `showcase-${Date.now()}`, title: 'MY FAVORITES', type, albumIds: [], text: '', textStyle: DEFAULT_TEXT_STYLE }],
+      showcases: [...c.showcases, { id: `showcase-${Date.now()}`, title: 'MY FAVORITES', type, albumIds: [], text: '', textStyle: DEFAULT_TEXT_STYLE, titleStyle: DEFAULT_TITLE_STYLE }],
     }));
   };
 
@@ -206,6 +207,13 @@ export const ProfileEditPage: React.FC = () => {
     setCustomization((c) => ({
       ...c,
       showcases: c.showcases.map((s) => (s.id === id ? { ...s, textStyle } : s)),
+    }));
+  };
+
+  const setShowcaseTitleStyle = (id: string, titleStyle: TextStyle) => {
+    setCustomization((c) => ({
+      ...c,
+      showcases: c.showcases.map((s) => (s.id === id ? { ...s, titleStyle } : s)),
     }));
   };
 
@@ -575,13 +583,18 @@ export const ProfileEditPage: React.FC = () => {
                   <div className="space-y-4">
                     {customization.showcases.map((showcase, index) => (
                       <div key={showcase.id} className="border-2 border-black p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <input
-                            type="text"
-                            value={showcase.title}
-                            onChange={(e) => renameShowcase(showcase.id, e.target.value.slice(0, 40))}
-                            className="flex-1 border-2 border-black bg-white px-3 py-1.5 font-mono text-xs font-bold uppercase text-black focus:outline-none focus:bg-neutral-50"
-                          />
+                        <div className="flex items-start gap-2 mb-3">
+                          <div className="flex-1">
+                            <StyledTextField
+                              value={showcase.title}
+                              onChange={(title) => renameShowcase(showcase.id, title)}
+                              style={showcase.titleStyle || DEFAULT_TITLE_STYLE}
+                              onStyleChange={(titleStyle) => setShowcaseTitleStyle(showcase.id, titleStyle)}
+                              accentColor={customization.accentColor}
+                              multiline={false}
+                              maxLength={40}
+                            />
+                          </div>
                           <button
                             type="button"
                             onClick={() => moveShowcase(index, -1)}

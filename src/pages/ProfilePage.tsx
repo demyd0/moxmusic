@@ -24,7 +24,7 @@ import { computeTopGenres } from '@/lib/genreBadges';
 import { sortAlbums } from '@/lib/collectionSort';
 import { avatarFrameWrapperClassName } from '@/lib/avatarFrames';
 import { auth, signInWithGoogle } from '@/lib/firebase';
-import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, type ProfileCustomization } from '@/types/profile';
+import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, DEFAULT_TITLE_STYLE, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
 import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck, Music, Eye } from 'lucide-react';
 
@@ -391,8 +391,8 @@ export const ProfilePage: React.FC = () => {
                     style={{ borderColor: accent }}
                   >
                     <h3
-                      className="font-header text-lg font-extrabold uppercase mb-4"
-                      style={{ color: accent }}
+                      className="text-lg font-extrabold uppercase mb-4"
+                      style={textStyleToCss(showcase.titleStyle || DEFAULT_TITLE_STYLE, accent)}
                     >
                       {showcase.title}
                     </h3>

@@ -12,6 +12,9 @@ interface StyledTextFieldProps {
   placeholder?: string;
   rows?: number;
   maxLength: number;
+  /** false renders a single-line <input> instead of a <textarea> - for
+   *  titles/headings rather than body text. Defaults to true. */
+  multiline?: boolean;
 }
 
 /**
@@ -29,6 +32,7 @@ export const StyledTextField: React.FC<StyledTextFieldProps> = ({
   placeholder,
   rows = 3,
   maxLength,
+  multiline = true,
 }) => {
   const [isActive, setIsActive] = useState(false);
 
@@ -102,14 +106,25 @@ export const StyledTextField: React.FC<StyledTextFieldProps> = ({
         </div>
       )}
 
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value.slice(0, maxLength))}
-        placeholder={placeholder}
-        rows={rows}
-        style={textStyleToCss(style, accentColor)}
-        className="w-full border-2 border-black bg-white px-3.5 py-2.5 text-sm placeholder-neutral-400 focus:bg-neutral-50 focus:outline-none resize-none"
-      />
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value.slice(0, maxLength))}
+          placeholder={placeholder}
+          rows={rows}
+          style={textStyleToCss(style, accentColor)}
+          className="w-full border-2 border-black bg-white px-3.5 py-2.5 text-sm placeholder-neutral-400 focus:bg-neutral-50 focus:outline-none resize-none"
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value.slice(0, maxLength))}
+          placeholder={placeholder}
+          style={textStyleToCss(style, accentColor)}
+          className="w-full border-2 border-black bg-white px-3.5 py-2.5 text-sm placeholder-neutral-400 focus:bg-neutral-50 focus:outline-none"
+        />
+      )}
     </div>
   );
 };
