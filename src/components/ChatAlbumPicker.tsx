@@ -10,9 +10,20 @@ interface ChatAlbumPickerProps {
 
 /** Small popover for attaching one of the sender's own liked albums to a
  *  chat message - covers overlap like records in a shop bin (see the
- *  .vinyl-stack/.vinyl-cover rules in index.css); hovering one lifts it
- *  into full view while the covers in front of it slide out of the way. */
+ *  .vinyl-stack/.vinyl-cover rules in index.css); hovering one pushes its
+ *  neighbor aside to show it in full. Wheel-to-scroll horizontally so
+ *  flipping through a big collection doesn't require the scrollbar. */
 export const ChatAlbumPicker: React.FC<ChatAlbumPickerProps> = ({ albums, onPick, onClose }) => {
+  // Converts normal vertical mouse-wheel motion into horizontal scroll,
+  // so you can flip through the stack just by scrolling over it instead
+  // of having to grab the scrollbar - same trick as flipping through
+  // records by spinning past them.
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY === 0) return;
+    e.currentTarget.scrollLeft += e.deltaY;
+    e.preventDefault();
+  };
+
   return (
     <div className="absolute bottom-full left-0 right-0 mb-2 border-2 border-black bg-white hard-shadow-sm max-h-64 overflow-hidden flex flex-col z-10">
       <div className="flex items-center justify-between border-b-2 border-black px-3 py-2 shrink-0">
@@ -26,7 +37,7 @@ export const ChatAlbumPicker: React.FC<ChatAlbumPickerProps> = ({ albums, onPick
           LIKE SOME ALBUMS FIRST TO SHARE THEM.
         </p>
       ) : (
-        <div className="vinyl-stack overflow-x-auto overflow-y-hidden px-4 pt-8 pb-5">
+        <div className="vinyl-stack overflow-x-auto overflow-y-hidden px-4 pt-8 pb-5" onWheel={handleWheel}>
           {albums.map((album) => (
             <button
               key={album.id}
