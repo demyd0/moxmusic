@@ -9,6 +9,8 @@ rules_version = '2';
 //   publicProfiles/{uid}        public-safe mirror (username + photoURL only, no email)
 //   usernames/{name}            handle -> uid uniqueness registry
 //   follows/{followerUid_followingUid}  one doc per follow relationship
+//   conversations/{uid1_uid2}   DM between two mutual-follows, uid1 < uid2 in the doc id
+//     conversations/{id}/messages/{id}  individual messages (immutable once sent)
 //
 // Deploy with: firebase deploy --only firestore:rules
 // (requires the Firebase CLI and firebase.json pointing at this file)
@@ -83,6 +85,54 @@ service cloud.firestore {
 
       // Unfollow: only the follower who created it.
       allow delete: if isOwner(resource.data.followerUid);
+    }
+
+    match /conversations/{conversationId} {
+      function isMutualFollow(a, b) {
+        return exists(/databases/$(database)/documents/follows/$(a + '_' + b))
+            && exists(/databases/$(database)/documents/follows/$(b + '_' + a));
+      }
+
+      // Only the two participants may read a conversation - it's a private DM.
+      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+
+      // Doc id must be "{uid1}_{uid2}" in exactly the order the two uids
+      // appear in participants - makes the id deterministic (one
+      // conversation per pair) without trusting the client's sort. Chat is
+      // scoped to mutual follows only, per product decision.
+      allow create: if request.auth != null
+                    && request.resource.data.participants is list
+                    && request.resource.data.participants.size() == 2
+                    && request.auth.uid in request.resource.data.participants
+                    && conversationId == request.resource.data.participants[0] + '_' + request.resource.data.participants[1]
+                    && isMutualFollow(request.resource.data.participants[0], request.resource.data.participants[1]);
+
+      // Updating last-message preview / read state - the participants list
+      // itself can never change after creation.
+      allow update: if request.auth != null
+                    && request.auth.uid in resource.data.participants
+                    && request.resource.data.participants == resource.data.participants;
+
+      match /messages/{messageId} {
+        function conversation() {
+          return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+        }
+
+        allow read: if request.auth != null && request.auth.uid in conversation().participants;
+
+        allow create: if request.auth != null
+                      && request.auth.uid in conversation().participants
+                      && request.resource.data.senderId == request.auth.uid
+                      && (
+                           (request.resource.data.text is string
+                            && request.resource.data.text.size() > 0
+                            && request.resource.data.text.size() <= 2000)
+                           || request.resource.data.album is map
+                         );
+
+        // Immutable once sent - no edit/delete in v1.
+        allow update, delete: if false;
+      }
     }
   }
 }

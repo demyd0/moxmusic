@@ -25,9 +25,10 @@ import { computeTopGenres } from '@/lib/genreBadges';
 import { sortAlbums } from '@/lib/collectionSort';
 import { avatarFrameWrapperClassName } from '@/lib/avatarFrames';
 import { auth, signInWithGoogle } from '@/lib/firebase';
+import { useChat } from '@/contexts/ChatContext';
 import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, DEFAULT_TITLE_STYLE, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
-import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck, Music, Eye } from 'lucide-react';
+import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck, Music, Eye, MessageCircle } from 'lucide-react';
 
 /**
  * The full customizable profile: background, accent color, bio, follow
@@ -39,6 +40,7 @@ import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck,
 export const ProfilePage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const { openConversationWith } = useChat();
 
   const [albums, setAlbums] = useState<Album[]>([]);
   const [profile, setProfile] = useState<{ username: string; photoURL?: string } | null>(null);
@@ -55,6 +57,7 @@ export const ProfilePage: React.FC = () => {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [amFollowing, setAmFollowing] = useState(false);
+  const [theyFollowMe, setTheyFollowMe] = useState(false);
   const [isFollowActionLoading, setIsFollowActionLoading] = useState(false);
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [listModal, setListModal] = useState<'followers' | 'following' | null>(null);
@@ -145,12 +148,17 @@ export const ProfilePage: React.FC = () => {
   useEffect(() => {
     if (!currentUserUid || !resolvedUid || currentUserUid === resolvedUid) {
       setAmFollowing(false);
+      setTheyFollowMe(false);
       return;
     }
     let isMounted = true;
-    isFollowing(currentUserUid, resolvedUid).then((result) => {
-      if (isMounted) setAmFollowing(result);
-    });
+    Promise.all([isFollowing(currentUserUid, resolvedUid), isFollowing(resolvedUid, currentUserUid)]).then(
+      ([iFollowThem, theyFollowMeResult]) => {
+        if (!isMounted) return;
+        setAmFollowing(iFollowThem);
+        setTheyFollowMe(theyFollowMeResult);
+      }
+    );
     return () => {
       isMounted = false;
     };
@@ -372,6 +380,18 @@ export const ProfilePage: React.FC = () => {
                           <UserPlus className="h-4 w-4" />
                         )}
                         <span>{amFollowing ? 'FOLLOWING' : 'FOLLOW'}</span>
+                      </button>
+                    )}
+                    {!isOwnProfile && amFollowing && theyFollowMe && (
+                      <button
+                        onClick={() =>
+                          openConversationWith(resolvedUid, { username: profile?.username || '', photoURL: profile?.photoURL })
+                        }
+                        title="You follow each other - you can message"
+                        className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all hard-shadow-sm"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span>MESSAGE</span>
                       </button>
                     )}
                     <span className="border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hard-shadow-sm">

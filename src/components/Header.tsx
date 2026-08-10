@@ -16,6 +16,7 @@ import { GdprConsentModal } from '@/components/GdprConsentModal';
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 import { WinampUnlockOverlay } from '@/components/WinampUnlockOverlay';
 import { useTheme, isWinampThemeUnlocked, unlockWinampTheme } from '@/hooks/useTheme';
+import { useChat } from '@/contexts/ChatContext';
 import {
   Search,
   Heart,
@@ -33,7 +34,8 @@ import {
   Moon,
   Upload,
   Palette,
-  Radio
+  Radio,
+  MessageCircle
 } from 'lucide-react';
 
 const LOGO_UNLOCK_CLICKS = 5;
@@ -54,6 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const { openList, unreadCount } = useChat();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
@@ -325,6 +328,21 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right User Profile Dropdown Pill */}
         <div className="flex items-center gap-2 relative shrink-0">
+          {currentUser && (
+            <button
+              type="button"
+              onClick={() => openList()}
+              title="Messages"
+              className="relative flex h-10 w-10 items-center justify-center border-2 border-black bg-white text-black hover:bg-neutral-100 transition-all hard-shadow"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center border border-black bg-red-600 px-0.5 font-mono text-[9px] font-bold text-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
           {currentUser ? (
             /* User Profile Button with High-Contrast Dropdown Menu */
             <div className="relative">

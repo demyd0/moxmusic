@@ -23,6 +23,11 @@ export async function isFollowing(followerUid: string, followingUid: string): Pr
   }
 }
 
+export async function isMutualFollow(uidA: string, uidB: string): Promise<boolean> {
+  const [a, b] = await Promise.all([isFollowing(uidA, uidB), isFollowing(uidB, uidA)]);
+  return a && b;
+}
+
 export async function followUser(followerUid: string, followingUid: string): Promise<void> {
   if (!followerUid || !followingUid || followerUid === followingUid) return;
   const docRef = doc(db, 'follows', followDocId(followerUid, followingUid));
