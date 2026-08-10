@@ -102,6 +102,28 @@ async function fetchLastFmTagTopArtists(tag: string): Promise<string[]> {
   }
 }
 
+/**
+ * Fetch an artist's top Last.fm tags, proxied through the same
+ * key-hiding Vercel function pattern as the other Last.fm calls here.
+ */
+async function fetchLastFmArtistTags(artistName: string): Promise<string[]> {
+  try {
+    const proxyUrl = `/api/artist-tags?artist=${encodeURIComponent(artistName.trim())}`;
+    const proxyRes = await fetch(proxyUrl);
+    if (!proxyRes.ok) return [];
+    const data = await proxyRes.json();
+    if (!Array.isArray(data?.tags)) return [];
+    return data.tags;
+  } catch (error) {
+    console.error(`fetchLastFmArtistTags failed for "${artistName}":`, error);
+    return [];
+  }
+}
+
+function tagMatchesGenre(tags: string[], genreLower: string): boolean {
+  return tags.some((t) => t === genreLower || t.includes(genreLower) || genreLower.includes(t));
+}
+
 function shuffle<T>(list: T[]): T[] {
   const arr = [...list];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -112,9 +134,22 @@ function shuffle<T>(list: T[]): T[] {
 }
 
 /**
- * Genre/tag-targeted recommendations - e.g. "ambient" - independent of the
- * user's liked-artist similarity graph, for when they want to explore a
- * specific mood/genre rather than more of what they already like.
+ * Genre/tag-targeted recommendations - e.g. "ambient". Actually reasons
+ * from the user's own taste instead of just returning Last.fm's global
+ * top artists for the tag:
+ *
+ *  1. Check which of the user's LIKED artists are themselves tagged with
+ *     this genre - if any are, use those as the seed for similar-artist
+ *     expansion (so "ambient" recommendations come from the ambient
+ *     artists you already like, not a generic chart).
+ *  2. If none of your liked artists match this genre (cold start within
+ *     it), fall back to your WHOLE liked catalog as the seed - still
+ *     reasoning from your actual taste - but then verify each candidate
+ *     is actually tagged with the genre before keeping it, so the result
+ *     stays genre-relevant instead of turning into "more of everything".
+ *  3. Only if that still comes up empty (obscure/misspelled tag, or a
+ *     brand new account with nothing liked) fall back to Last.fm's
+ *     global top artists for the tag, so the feature never dead-ends.
  */
 export async function getGenreRecommendations(
   genre: string,
@@ -122,9 +157,11 @@ export async function getGenreRecommendations(
   toListenAlbums: Album[] = []
 ): Promise<{ artistName: string; albums: Album[]; isFallback: boolean }> {
   const trimmed = genre.trim();
+  const genreLower = trimmed.toLowerCase();
   if (!trimmed) return { artistName: trimmed, albums: [], isFallback: false };
 
-  const likedArtistSet = new Set(likedAlbums.map((a) => a.artist.trim().toLowerCase()).filter(Boolean));
+  const likedArtistNames = Array.from(new Set(likedAlbums.map((a) => a.artist.trim()).filter(Boolean))).slice(0, 60);
+  const likedArtistSet = new Set(likedArtistNames.map((a) => a.toLowerCase()));
   const toListenArtistSet = new Set(toListenAlbums.map((a) => a.artist.trim().toLowerCase()).filter(Boolean));
   const seenAlbumKeys = new Set<string>(
     [...likedAlbums, ...toListenAlbums].map(
@@ -132,19 +169,73 @@ export async function getGenreRecommendations(
     )
   );
 
-  const tagArtists = await fetchLastFmTagTopArtists(trimmed);
-  const candidateArtists = shuffle(
-    tagArtists.filter((name) => {
-      const lower = name.toLowerCase();
-      return !likedArtistSet.has(lower) && !toListenArtistSet.has(lower);
-    })
-  ).slice(0, 16);
+  // Step 1: which liked artists are actually tagged with this genre?
+  let genreSeedArtists: string[] = [];
+  if (likedArtistNames.length > 0) {
+    const tagResults = await Promise.allSettled(likedArtistNames.map((name) => fetchLastFmArtistTags(name)));
+    genreSeedArtists = likedArtistNames.filter((_, i) => {
+      const res = tagResults[i];
+      return res.status === 'fulfilled' && tagMatchesGenre(res.value, genreLower);
+    });
+  }
 
-  if (candidateArtists.length === 0) {
+  const usedWholeCatalogFallback = genreSeedArtists.length === 0;
+  const seedArtists = genreSeedArtists.length > 0 ? genreSeedArtists : likedArtistNames;
+
+  const candidateFrequencyMap = new Map<string, number>();
+  const candidateMatchSumMap = new Map<string, number>();
+
+  if (seedArtists.length > 0) {
+    const similarResults = await Promise.allSettled(seedArtists.map((artist) => fetchLastFmSimilar(artist)));
+    for (const result of similarResults) {
+      if (result.status !== 'fulfilled') continue;
+      for (const sim of result.value) {
+        const simLower = sim.name.toLowerCase();
+        if (likedArtistSet.has(simLower) || toListenArtistSet.has(simLower)) continue;
+        candidateFrequencyMap.set(sim.name, (candidateFrequencyMap.get(sim.name) || 0) + 1);
+        candidateMatchSumMap.set(sim.name, (candidateMatchSumMap.get(sim.name) || 0) + sim.match);
+      }
+    }
+  }
+
+  const rankedCandidates = [...candidateFrequencyMap.entries()]
+    .map(([name, freq]) => ({ name, freq, avgMatch: (candidateMatchSumMap.get(name) || 0) / freq }))
+    .sort((a, b) => (b.freq !== a.freq ? b.freq - a.freq : b.avgMatch - a.avgMatch));
+
+  let finalArtists: string[] = [];
+  if (!usedWholeCatalogFallback) {
+    // Seed was already genre-matched, so its similar artists should be too.
+    finalArtists = rankedCandidates.slice(0, 16).map((c) => c.name);
+  } else {
+    // Seed was the whole catalog (cold start in this genre) - verify each
+    // candidate is actually tagged with the genre before trusting it.
+    const toCheck = rankedCandidates.slice(0, 40);
+    const tagCheckResults = await Promise.allSettled(toCheck.map((c) => fetchLastFmArtistTags(c.name)));
+    finalArtists = toCheck
+      .filter((_, i) => {
+        const res = tagCheckResults[i];
+        return res.status === 'fulfilled' && tagMatchesGenre(res.value, genreLower);
+      })
+      .slice(0, 16)
+      .map((c) => c.name);
+  }
+
+  // Last resort: global top artists for the tag, unfiltered by taste.
+  if (finalArtists.length === 0) {
+    const tagArtists = await fetchLastFmTagTopArtists(trimmed);
+    finalArtists = shuffle(
+      tagArtists.filter((name) => {
+        const lower = name.toLowerCase();
+        return !likedArtistSet.has(lower) && !toListenArtistSet.has(lower);
+      })
+    ).slice(0, 16);
+  }
+
+  if (finalArtists.length === 0) {
     return { artistName: trimmed, albums: [], isFallback: false };
   }
 
-  const albumFetchResults = await Promise.allSettled(candidateArtists.map((name) => fetchTopAlbumsForArtist(name)));
+  const albumFetchResults = await Promise.allSettled(finalArtists.map((name) => fetchTopAlbumsForArtist(name)));
 
   const albums: Album[] = [];
   for (const res of albumFetchResults) {
