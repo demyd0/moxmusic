@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Album } from '@/types/album';
-import { X, Disc3 } from 'lucide-react';
+import { X, Disc3, Music2 } from 'lucide-react';
 
 interface ChatAlbumPickerProps {
   albums: Album[];
@@ -44,8 +44,13 @@ export const ChatAlbumPicker: React.FC<ChatAlbumPickerProps> = ({ albums, onPick
               type="button"
               onClick={() => onPick(album)}
               title={`${album.title} — ${album.artist}`}
-              className="vinyl-cover h-20 w-20 border-2 border-black bg-white overflow-hidden"
+              className="vinyl-cover relative h-20 w-20 border-2 border-black bg-white overflow-hidden"
             >
+              {album.kind === 'track' && (
+                <span className="absolute left-0.5 top-0.5 z-10 flex items-center justify-center border border-black bg-white p-0.5">
+                  <Music2 className="h-2.5 w-2.5 text-black" />
+                </span>
+              )}
               {album.coverUrl ? (
                 <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
               ) : (

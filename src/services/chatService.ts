@@ -5,6 +5,7 @@ import {
   addDoc,
   setDoc,
   updateDoc,
+  deleteField,
   onSnapshot,
   query,
   where,
@@ -85,6 +86,21 @@ export async function sendMessage(
   });
 }
 
+/** Sets, changes, or clears (by passing the same emoji again) the caller's
+ *  single reaction on a message. firestore.rules restricts each caller to
+ *  only ever touching their own key in the map. */
+export async function toggleMessageReaction(
+  conversationId: string,
+  messageId: string,
+  uid: string,
+  emoji: string,
+  currentReaction: string | undefined
+): Promise<void> {
+  await updateDoc(doc(db, 'conversations', conversationId, 'messages', messageId), {
+    [`reactions.${uid}`]: currentReaction === emoji ? deleteField() : emoji,
+  });
+}
+
 export async function markConversationRead(conversationId: string, uid: string): Promise<void> {
   try {
     await updateDoc(doc(db, 'conversations', conversationId), {
@@ -142,6 +158,7 @@ export function subscribeToMessages(conversationId: string, callback: (messages:
             text: data.text,
             album: data.album,
             createdAt: toMillis(data.createdAt),
+            reactions: data.reactions,
           } as ChatMessage;
         })
         .sort((a, b) => a.createdAt - b.createdAt);

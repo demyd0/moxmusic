@@ -19,7 +19,7 @@ import {
 } from '@/types/profile';
 import { sanitizeAvatarFrame } from './avatarFrames';
 
-const SHOWCASE_TYPES: ShowcaseType[] = ['albums', 'text', 'mixed'];
+const SHOWCASE_TYPES: ShowcaseType[] = ['albums', 'text', 'mixed', 'media'];
 
 export const BACKGROUND_EFFECTS: { value: BackgroundEffectType; label: string }[] = [
   { value: 'none', label: 'NONE' },
@@ -212,6 +212,7 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
       text: (s.text || '').slice(0, MAX_SHOWCASE_TEXT_LENGTH),
       textStyle: sanitizeTextStyle(s.textStyle),
       titleStyle: sanitizeTextStyle(s.titleStyle),
+      imageUrl: s.imageUrl && isValidBackgroundImageUrl(s.imageUrl) ? s.imageUrl : undefined,
     }));
 
   const avatarFrame = sanitizeAvatarFrame(input.avatarFrame);

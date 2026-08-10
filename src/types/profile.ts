@@ -16,7 +16,7 @@ export interface ProfileBackground {
   effect?: BackgroundEffectType;
 }
 
-export type ShowcaseType = 'albums' | 'text' | 'mixed';
+export type ShowcaseType = 'albums' | 'text' | 'mixed' | 'media';
 
 /** Curated font/color/effect presets for bio & showcase text - deliberately
  *  NOT free-form CSS/HTML, so this can't become an XSS or layout-breaking
@@ -47,6 +47,10 @@ export interface ProfileShowcase {
   text?: string;
   textStyle?: TextStyle;
   titleStyle?: TextStyle;
+  /** Used when type is 'media': an https:// image or .gif URL, same
+   *  validation as a profile background image - shown large, no album
+   *  grid. */
+  imageUrl?: string;
 }
 
 /** Cosmetic ring around the avatar, earned by hitting an activity

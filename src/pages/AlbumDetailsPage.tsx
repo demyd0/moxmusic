@@ -9,6 +9,7 @@ import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { buildGeniusSearchUrl } from '@/lib/genius';
 import { getPreferredService, type StreamingService } from '@/lib/streamingServices';
 import { StreamingServiceButton } from '@/components/StreamingServiceButton';
+import { AlbumReactionWidget } from '@/components/AlbumReactionWidget';
 import {
   subscribeUserCollections,
   toggleLikeAlbum,
@@ -264,9 +265,20 @@ export const AlbumDetailsPage: React.FC = () => {
                     </Link>
 
                     {album.genre && (
-                      <span className="inline-block border border-black bg-white px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-neutral-700 mb-6">
+                      <span className="inline-block border border-black bg-white px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-neutral-700 mb-4">
                         GENRE: {album.genre}
                       </span>
+                    )}
+
+                    {userId && (
+                      <div className="mb-6">
+                        <AlbumReactionWidget
+                          albumId={album.id}
+                          currentUserId={userId}
+                          isAuthenticated={isAuthenticated}
+                          onRequireAuth={() => setIsAuthPromptOpen(true)}
+                        />
+                      </div>
                     )}
                   </div>
 
@@ -393,6 +405,15 @@ export const AlbumDetailsPage: React.FC = () => {
                               <td className="py-3 px-4 text-right text-neutral-600">{formatDuration(track.durationMs)}</td>
                               <td className="py-3 px-4">
                                 <div className="flex items-center justify-end gap-2">
+                                  {track.id && userId && (
+                                    <AlbumReactionWidget
+                                      albumId={track.id}
+                                      currentUserId={userId}
+                                      isAuthenticated={isAuthenticated}
+                                      onRequireAuth={() => setIsAuthPromptOpen(true)}
+                                      compact
+                                    />
+                                  )}
                                   {track.id && (
                                     <button
                                       type="button"

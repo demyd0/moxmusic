@@ -67,6 +67,7 @@ const SHOWCASE_TYPES: { type: ShowcaseType; label: string; icon: React.ReactNode
   { type: 'albums', label: 'ALBUMS', icon: <LayoutGrid className="h-3.5 w-3.5" /> },
   { type: 'text', label: 'TEXT', icon: <TypeIcon className="h-3.5 w-3.5" /> },
   { type: 'mixed', label: 'MIXED', icon: <Rows3 className="h-3.5 w-3.5" /> },
+  { type: 'media', label: 'IMAGE / GIF', icon: <ImageIcon className="h-3.5 w-3.5" /> },
 ];
 
 export const ProfileEditPage: React.FC = () => {
@@ -269,6 +270,13 @@ export const ProfileEditPage: React.FC = () => {
     setCustomization((c) => ({
       ...c,
       showcases: c.showcases.map((s) => (s.id === id ? { ...s, titleStyle } : s)),
+    }));
+  };
+
+  const setShowcaseImageUrl = (id: string, imageUrl: string) => {
+    setCustomization((c) => ({
+      ...c,
+      showcases: c.showcases.map((s) => (s.id === id ? { ...s, imageUrl } : s)),
     }));
   };
 
@@ -775,7 +783,33 @@ export const ProfileEditPage: React.FC = () => {
                           </div>
                         )}
 
-                        {(showcase.type || 'albums') !== 'text' && (
+                        {showcase.type === 'media' && (
+                          <div className="mb-3">
+                            <input
+                              type="text"
+                              value={showcase.imageUrl || ''}
+                              onChange={(e) => setShowcaseImageUrl(showcase.id, e.target.value)}
+                              placeholder="HTTPS://... IMAGE OR GIF URL"
+                              className={`w-full border-2 bg-white px-3 py-2 font-mono text-xs text-black placeholder-neutral-400 focus:outline-none ${
+                                showcase.imageUrl && !isValidBackgroundImageUrl(showcase.imageUrl)
+                                  ? 'border-red-600'
+                                  : 'border-black focus:bg-neutral-50'
+                              }`}
+                            />
+                            {showcase.imageUrl && !isValidBackgroundImageUrl(showcase.imageUrl) && (
+                              <p className="mt-1 font-mono text-[10px] text-red-600 uppercase tracking-wider">
+                                MUST BE AN HTTPS:// URL
+                              </p>
+                            )}
+                            {showcase.imageUrl && isValidBackgroundImageUrl(showcase.imageUrl) && (
+                              <div className="mt-2 max-h-48 overflow-hidden border-2 border-black">
+                                <img src={showcase.imageUrl} alt="" className="w-full object-cover" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {(showcase.type || 'albums') === 'albums' || showcase.type === 'mixed' ? (
                           <>
                             <p className="font-mono text-[10px] text-neutral-400 uppercase tracking-wider mb-2">
                               {showcase.albumIds.length}/{MAX_ALBUMS_PER_SHOWCASE} ALBUMS — CLICK TO ADD/REMOVE FROM YOUR LIKED ALBUMS
@@ -815,7 +849,7 @@ export const ProfileEditPage: React.FC = () => {
                               </div>
                             )}
                           </>
-                        )}
+                        ) : null}
                       </div>
                     ))}
                   </div>

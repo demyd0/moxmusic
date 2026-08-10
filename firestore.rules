@@ -10,7 +10,8 @@ rules_version = '2';
 //   usernames/{name}            handle -> uid uniqueness registry
 //   follows/{followerUid_followingUid}  one doc per follow relationship
 //   conversations/{uid1_uid2}   DM between two mutual-follows, uid1 < uid2 in the doc id
-//     conversations/{id}/messages/{id}  individual messages (immutable once sent)
+//     conversations/{id}/messages/{id}  individual messages (content immutable, reactions map is not)
+//   albumReactions/{albumId}    global public emoji reactions, doc is a uid -> emoji map
 //
 // Deploy with: firebase deploy --only firestore:rules
 // (requires the Firebase CLI and firebase.json pointing at this file)
@@ -130,9 +131,25 @@ service cloud.firestore {
                            || request.resource.data.album is map
                          );
 
-        // Immutable once sent - no edit/delete in v1.
-        allow update, delete: if false;
+        // Text/album content is immutable once sent - the only allowed
+        // update is the reactions map (any participant can react).
+        allow update: if request.auth != null
+                      && request.auth.uid in conversation().participants
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']);
+        allow delete: if false;
       }
+    }
+
+    match /albumReactions/{albumId} {
+      // Global, public reaction counts on an album/track - everyone can
+      // read; each user may only ever touch their own single key in the
+      // uid -> emoji map, whether that's the first reaction (create) or
+      // changing/removing their reaction on an existing doc (update).
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.keys().hasOnly([request.auth.uid]);
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([request.auth.uid]);
+      allow delete: if false;
     }
   }
 }

@@ -408,8 +408,9 @@ export const ProfilePage: React.FC = () => {
                   .map((id) => albumsById.get(id))
                   .filter((a): a is Album => Boolean(a));
                 const hasText = type !== 'albums' && Boolean(showcase.text?.trim());
-                const hasAlbums = type !== 'text' && showcaseAlbums.length > 0;
-                if (!hasText && !hasAlbums) return null;
+                const hasAlbums = type !== 'text' && type !== 'media' && showcaseAlbums.length > 0;
+                const hasImage = type === 'media' && Boolean(showcase.imageUrl);
+                if (!hasText && !hasAlbums && !hasImage) return null;
 
                 return (
                   <section
@@ -430,6 +431,11 @@ export const ProfilePage: React.FC = () => {
                       >
                         {showcase.text}
                       </p>
+                    )}
+                    {hasImage && (
+                      <div className="max-h-[32rem] overflow-hidden border-2 border-black">
+                        <img src={showcase.imageUrl} alt={showcase.title} className="w-full object-cover" />
+                      </div>
                     )}
                     {hasAlbums && (
                       <div className="flex gap-4 overflow-x-auto pb-1">

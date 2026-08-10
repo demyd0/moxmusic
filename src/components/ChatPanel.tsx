@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '@/contexts/ChatContext';
-import { subscribeToMessages, sendMessage, markConversationRead } from '@/services/chatService';
+import { subscribeToMessages, sendMessage, markConversationRead, toggleMessageReaction } from '@/services/chatService';
 import { subscribeUserCollections } from '@/services/collectionService';
-import type { ChatMessage } from '@/types/chat';
+import type { ChatMessage, SharedAlbumRef } from '@/types/chat';
 import type { Album } from '@/types/album';
+import { getPreferredService } from '@/lib/streamingServices';
 import { ChatAlbumPicker } from './ChatAlbumPicker';
-import { X, ArrowLeft, Send, Disc3, MessageCircle, ImagePlus } from 'lucide-react';
+import { ReactionBar } from './ReactionBar';
+import { X, ArrowLeft, Send, Disc3, MessageCircle, ImagePlus, Music2, SmilePlus } from 'lucide-react';
 
 /** Slide-in DM panel - mounted once at the app root (App.tsx) via
  *  ChatProvider so it survives page navigation instead of remounting. */
@@ -17,12 +19,13 @@ export const ChatPanel: React.FC = () => {
   const [draft, setDraft] = useState('');
   const [showAlbumPicker, setShowAlbumPicker] = useState(false);
   const [likedAlbums, setLikedAlbums] = useState<Album[]>([]);
+  const [openReactionPickerId, setOpenReactionPickerId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!currentUserId) return;
     const unsub = subscribeUserCollections(currentUserId, (state) => {
-      setLikedAlbums(state.likedAlbums.filter((a) => a.kind !== 'track'));
+      setLikedAlbums(state.likedAlbums);
     });
     return () => unsub();
   }, [currentUserId]);
@@ -64,13 +67,32 @@ export const ChatPanel: React.FC = () => {
     setShowAlbumPicker(false);
     if (!activeConversationId) return;
     await sendMessage(activeConversationId, currentUserId, {
-      album: { id: album.id, title: album.title, artist: album.artist, coverUrl: album.coverUrl },
+      album: {
+        id: album.id,
+        title: album.title,
+        artist: album.artist,
+        coverUrl: album.coverUrl,
+        kind: album.kind,
+        albumTitle: album.albumTitle,
+      },
     });
   };
 
-  const goToAlbum = (albumId: string) => {
+  const goToAlbum = (ref: SharedAlbumRef) => {
+    if (ref.kind === 'track') {
+      // Tracks have no internal album page to resolve to - same
+      // search-fallback pattern as CollectionAlbumCard.
+      window.open(getPreferredService().buildSearchUrl(ref.artist, ref.title, false), '_blank', 'noopener,noreferrer');
+      return;
+    }
     close();
-    navigate(`/album/${albumId}`);
+    navigate(`/album/${ref.id}`);
+  };
+
+  const handleReact = async (messageId: string, currentReaction: string | undefined, emoji: string) => {
+    if (!activeConversationId) return;
+    setOpenReactionPickerId(null);
+    await toggleMessageReaction(activeConversationId, messageId, currentUserId, emoji, currentReaction);
   };
 
   return (
@@ -160,17 +182,31 @@ export const ChatPanel: React.FC = () => {
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
               {messages.map((m) => {
                 const mine = m.senderId === currentUserId;
+                const myReaction = m.reactions?.[currentUserId];
                 return (
-                  <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] border-2 border-black px-3 py-2 ${mine ? 'bg-black text-white' : 'bg-white text-black'}`}>
+                  <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                    <div
+                      onDoubleClick={() => handleReact(m.id, myReaction, '❤️')}
+                      className={`max-w-[75%] border-2 border-black px-3 py-2 cursor-pointer select-none ${mine ? 'bg-black text-white' : 'bg-white text-black'}`}
+                    >
                       {m.album && (
                         <button
                           type="button"
-                          onClick={() => goToAlbum(m.album!.id)}
-                          className={`mb-1.5 flex w-full items-center gap-2 border-2 p-1.5 text-left transition-opacity hover:opacity-80 ${
+                          onClick={() => goToAlbum(m.album!)}
+                          className={`relative mb-1.5 flex w-full items-center gap-2 border-2 p-1.5 text-left transition-opacity hover:opacity-80 ${
                             mine ? 'border-white/30' : 'border-black/20'
                           }`}
                         >
+                          {m.album.kind === 'track' && (
+                            <span
+                              className={`absolute right-1 top-1 flex items-center gap-0.5 border px-1 py-0.5 font-mono text-[8px] font-bold uppercase ${
+                                mine ? 'border-white/40 text-white/80' : 'border-black/30 text-black/70'
+                              }`}
+                            >
+                              <Music2 className="h-2 w-2" />
+                              TRACK
+                            </span>
+                          )}
                           {m.album.coverUrl ? (
                             <img src={m.album.coverUrl} alt="" className="h-9 w-9 shrink-0 object-cover" />
                           ) : (
@@ -183,6 +219,30 @@ export const ChatPanel: React.FC = () => {
                         </button>
                       )}
                       {m.text && <p className="whitespace-pre-wrap break-words font-mono text-xs">{m.text}</p>}
+                    </div>
+                    <div className="mt-1 flex items-center gap-1">
+                      <ReactionBar
+                        reactions={m.reactions || {}}
+                        currentUserId={currentUserId}
+                        onReact={(emoji) => handleReact(m.id, myReaction, emoji)}
+                        compact
+                      />
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setOpenReactionPickerId(openReactionPickerId === m.id ? null : m.id)}
+                          className="flex h-5 w-5 items-center justify-center text-neutral-400 hover:text-black transition-colors"
+                        >
+                          <SmilePlus className="h-3.5 w-3.5" />
+                        </button>
+                        {openReactionPickerId === m.id && (
+                          <div
+                            className={`absolute bottom-full z-10 mb-1 border-2 border-black bg-white p-1 hard-shadow-sm ${mine ? 'right-0' : 'left-0'}`}
+                          >
+                            <ReactionBar reactions={{}} currentUserId={currentUserId} onReact={(emoji) => handleReact(m.id, myReaction, emoji)} />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

@@ -7,6 +7,12 @@ export interface SharedAlbumRef {
   title: string;
   artist: string;
   coverUrl?: string;
+  /** 'track' for an individually-shared song rather than a whole album -
+   *  mirrors Album.kind so the same "no real album page, search instead"
+   *  handling applies when the recipient clicks it. */
+  kind?: 'album' | 'track';
+  /** Only set when kind === 'track'. */
+  albumTitle?: string;
 }
 
 export interface ChatParticipantInfo {
@@ -14,12 +20,18 @@ export interface ChatParticipantInfo {
   photoURL?: string;
 }
 
+/** Fixed, curated reaction set - same reasoning as everywhere else this
+ *  app takes user "input" via a preset list rather than free text. */
+export const REACTION_EMOJIS = ['❤️', '🔥', '😂', '😮', '👍', '💀'];
+
 export interface ChatMessage {
   id: string;
   senderId: string;
   text?: string;
   album?: SharedAlbumRef;
   createdAt: number;
+  /** uid -> the single emoji they reacted with. */
+  reactions?: Record<string, string>;
 }
 
 export interface Conversation {
