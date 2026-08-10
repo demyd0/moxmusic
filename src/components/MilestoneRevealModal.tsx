@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import type { Milestone } from '@/lib/milestones';
-import { avatarFrameWrapperClassName } from '@/lib/avatarFrames';
-import { Sparkles, ArrowRight, X } from 'lucide-react';
+import { AVATAR_FRAMES, avatarFrameWrapperClassName } from '@/lib/avatarFrames';
+import { BACKGROUND_EFFECTS } from '@/lib/profileValidation';
+import { Sparkles, Palette, ArrowRight, X } from 'lucide-react';
+
+function rewardLabel(reward: Milestone['reward']): string {
+  if (reward.type === 'avatarFrame') {
+    return `${AVATAR_FRAMES.find((f) => f.value === reward.value)?.label || reward.value} AVATAR FRAME`;
+  }
+  return `${BACKGROUND_EFFECTS.find((e) => e.value === reward.value)?.label || reward.value} BACKGROUND EFFECT`;
+}
 
 interface MilestoneRevealModalProps {
   milestones: Milestone[];
@@ -33,9 +41,13 @@ export const MilestoneRevealModal: React.FC<MilestoneRevealModalProps> = ({ mile
         </div>
 
         <div className="flex justify-center mb-6">
-          <div className={`h-28 w-28 rounded-full ${avatarFrameWrapperClassName(milestone.frame)}`}>
+          <div className={`h-28 w-28 rounded-full ${milestone.reward.type === 'avatarFrame' ? avatarFrameWrapperClassName(milestone.reward.value) : ''}`}>
             <div className="h-full w-full rounded-full bg-black flex items-center justify-center">
-              <Sparkles className="h-10 w-10 text-white" />
+              {milestone.reward.type === 'avatarFrame' ? (
+                <Sparkles className="h-10 w-10 text-white" />
+              ) : (
+                <Palette className="h-10 w-10 text-white" />
+              )}
             </div>
           </div>
         </div>
@@ -43,7 +55,7 @@ export const MilestoneRevealModal: React.FC<MilestoneRevealModalProps> = ({ mile
         <h2 className="font-header text-2xl font-extrabold uppercase text-black mb-2">{milestone.title}</h2>
         <p className="font-mono text-xs text-neutral-500 mb-1">{milestone.description}</p>
         <p className="font-mono text-[11px] font-bold uppercase tracking-wider mb-6" style={{ color: '#000' }}>
-          UNLOCKED THE {milestone.frame.toUpperCase()} AVATAR FRAME
+          UNLOCKED THE {rewardLabel(milestone.reward)}
         </p>
 
         <button

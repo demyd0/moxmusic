@@ -458,6 +458,24 @@ button:active, .btn-brutalist:active {
 .avatar-frame-silver { border-color: #c0c0c0 !important; box-shadow: 0 0 10px rgba(192, 192, 192, 0.6); }
 .avatar-frame-gold { border-color: #d4af37 !important; box-shadow: 0 0 14px rgba(212, 175, 55, 0.7); }
 
+@keyframes frame-diamond-shimmer {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 2px #fff; }
+  50% { box-shadow: 0 0 22px rgba(180, 220, 255, 0.95), 0 0 6px #fff; }
+}
+.avatar-frame-diamond {
+  border-color: #e8f4ff !important;
+  animation: frame-diamond-shimmer 2.2s ease-in-out infinite;
+}
+
+@keyframes frame-fire-flicker {
+  0%, 100% { box-shadow: 0 0 10px #ff6b1a, 0 0 20px rgba(255, 107, 26, 0.4); border-color: #ff6b1a !important; }
+  33% { box-shadow: 0 0 14px #ff9900, 0 0 26px rgba(255, 153, 0, 0.5); border-color: #ff9900 !important; }
+  66% { box-shadow: 0 0 8px #ff3d00, 0 0 18px rgba(255, 61, 0, 0.45); border-color: #ff3d00 !important; }
+}
+.avatar-frame-fire {
+  animation: frame-fire-flicker 1.1s ease-in-out infinite;
+}
+
 @keyframes frame-pulse-glow {
   0%, 100% { box-shadow: 0 0 8px #39ff88; }
   50% { box-shadow: 0 0 20px #39ff88; }

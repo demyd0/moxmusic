@@ -1,66 +1,147 @@
-import type { AvatarFrame } from '@/types/profile';
+import type { AvatarFrame, BackgroundEffectType } from '@/types/profile';
 
 export interface UserStats {
   likedCount: number;
   followerCount: number;
   followingCount: number;
+  showcaseCount: number;
+  bioLength: number;
 }
+
+export type MilestoneReward =
+  | { type: 'avatarFrame'; value: Exclude<AvatarFrame, 'none'> }
+  | { type: 'backgroundEffect'; value: Exclude<BackgroundEffectType, 'none' | 'snow' | 'stars' | 'smoke'> };
 
 export interface Milestone {
   id: string;
   title: string;
   description: string;
-  frame: Exclude<AvatarFrame, 'none'>;
-  check: (stats: UserStats) => boolean;
+  reward: MilestoneReward;
+  statKey: keyof UserStats;
+  target: number;
 }
 
 /** Fixed list, checked entirely client-side against the viewer's own
  *  stats - see the AvatarFrame doc comment for why that's an acceptable
- *  trust boundary here (cosmetic only, no access control implications). */
+ *  trust boundary here (cosmetic only, no access control implications).
+ *  statKey/target (rather than an opaque check function) lets the
+ *  achievements panel show a real progress bar for free. */
 export const MILESTONES: Milestone[] = [
   {
     id: 'first-like',
     title: 'FIRST STEPS',
-    description: 'Liked your first album or track.',
-    frame: 'bronze',
-    check: (s) => s.likedCount >= 1,
+    description: 'Like your first album or track.',
+    reward: { type: 'avatarFrame', value: 'bronze' },
+    statKey: 'likedCount',
+    target: 1,
   },
   {
     id: 'collector',
     title: 'COLLECTOR',
-    description: 'Liked 10 albums or tracks.',
-    frame: 'silver',
-    check: (s) => s.likedCount >= 10,
+    description: 'Like 10 albums or tracks.',
+    reward: { type: 'avatarFrame', value: 'silver' },
+    statKey: 'likedCount',
+    target: 10,
   },
   {
     id: 'curator',
     title: 'CURATOR',
-    description: 'Liked 50 albums or tracks.',
-    frame: 'gold',
-    check: (s) => s.likedCount >= 50,
+    description: 'Like 50 albums or tracks.',
+    reward: { type: 'avatarFrame', value: 'gold' },
+    statKey: 'likedCount',
+    target: 50,
+  },
+  {
+    id: 'archivist',
+    title: 'ARCHIVIST',
+    description: 'Like 150 albums or tracks.',
+    reward: { type: 'avatarFrame', value: 'diamond' },
+    statKey: 'likedCount',
+    target: 150,
   },
   {
     id: 'connected',
     title: 'CONNECTED',
-    description: 'Followed 5 other listeners.',
-    frame: 'neon',
-    check: (s) => s.followingCount >= 5,
+    description: 'Follow 5 other listeners.',
+    reward: { type: 'avatarFrame', value: 'neon' },
+    statKey: 'followingCount',
+    target: 5,
+  },
+  {
+    id: 'social-butterfly',
+    title: 'SOCIAL BUTTERFLY',
+    description: 'Follow 25 other listeners.',
+    reward: { type: 'backgroundEffect', value: 'bubbles' },
+    statKey: 'followingCount',
+    target: 25,
   },
   {
     id: 'popular',
     title: 'POPULAR',
-    description: 'Gained 5 followers.',
-    frame: 'rainbow',
-    check: (s) => s.followerCount >= 5,
+    description: 'Gain 5 followers.',
+    reward: { type: 'avatarFrame', value: 'rainbow' },
+    statKey: 'followerCount',
+    target: 5,
+  },
+  {
+    id: 'tastemaker',
+    title: 'TASTEMAKER',
+    description: 'Gain 25 followers.',
+    reward: { type: 'avatarFrame', value: 'fire' },
+    statKey: 'followerCount',
+    target: 25,
+  },
+  {
+    id: 'storyteller',
+    title: 'STORYTELLER',
+    description: 'Write a bio of at least 40 characters.',
+    reward: { type: 'backgroundEffect', value: 'fireflies' },
+    statKey: 'bioLength',
+    target: 40,
+  },
+  {
+    id: 'curators-eye',
+    title: "CURATOR'S EYE",
+    description: 'Create your first showcase.',
+    reward: { type: 'backgroundEffect', value: 'confetti' },
+    statKey: 'showcaseCount',
+    target: 1,
   },
 ];
 
+function isMilestoneUnlocked(m: Milestone, stats: UserStats): boolean {
+  return stats[m.statKey] >= m.target;
+}
+
 export function getUnlockedMilestones(stats: UserStats): Milestone[] {
-  return MILESTONES.filter((m) => m.check(stats));
+  return MILESTONES.filter((m) => isMilestoneUnlocked(m, stats));
 }
 
 export function getUnlockedFrames(stats: UserStats): AvatarFrame[] {
-  return ['none', ...getUnlockedMilestones(stats).map((m) => m.frame)];
+  return [
+    'none',
+    ...getUnlockedMilestones(stats)
+      .filter((m): m is Milestone & { reward: { type: 'avatarFrame'; value: Exclude<AvatarFrame, 'none'> } } => m.reward.type === 'avatarFrame')
+      .map((m) => m.reward.value),
+  ];
+}
+
+export function getUnlockedBackgroundEffects(stats: UserStats): BackgroundEffectType[] {
+  return [
+    'none',
+    'snow',
+    'stars',
+    'smoke',
+    ...getUnlockedMilestones(stats)
+      .filter((m): m is Milestone & { reward: { type: 'backgroundEffect'; value: Exclude<BackgroundEffectType, 'none' | 'snow' | 'stars' | 'smoke'> } } => m.reward.type === 'backgroundEffect')
+      .map((m) => m.reward.value),
+  ];
+}
+
+/** For an achievements panel progress bar: how close is the viewer to
+ *  earning this milestone right now. */
+export function getMilestoneProgress(m: Milestone, stats: UserStats): { current: number; target: number } {
+  return { current: Math.min(stats[m.statKey], m.target), target: m.target };
 }
 
 const SEEN_KEY_PREFIX = 'mox-seen-milestones-';

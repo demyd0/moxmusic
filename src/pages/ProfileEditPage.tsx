@@ -9,8 +9,16 @@ import { getProfileCustomization, saveProfileCustomization } from '@/services/pr
 import { getFollowerCount, getFollowingCount } from '@/services/followService';
 import { backgroundToCss, isValidHexColor, isValidBackgroundImageUrl, BACKGROUND_EFFECTS } from '@/lib/profileValidation';
 import { AVATAR_FRAMES, avatarFrameWrapperClassName } from '@/lib/avatarFrames';
-import { getUnlockedFrames, getNewlyUnlocked, markMilestonesSeen, type Milestone } from '@/lib/milestones';
+import {
+  getUnlockedFrames,
+  getUnlockedBackgroundEffects,
+  getNewlyUnlocked,
+  markMilestonesSeen,
+  type Milestone,
+  type UserStats,
+} from '@/lib/milestones';
 import { MilestoneRevealModal } from '@/components/MilestoneRevealModal';
+import { AchievementsPanel } from '@/components/AchievementsPanel';
 import {
   DEFAULT_PROFILE_CUSTOMIZATION,
   DEFAULT_TEXT_STYLE,
@@ -133,25 +141,41 @@ export const ProfileEditPage: React.FC = () => {
     };
   }, []);
 
+  const stats: UserStats = {
+    likedCount: totalLikedCount,
+    followerCount: followerCount || 0,
+    followingCount: followingCount || 0,
+    showcaseCount: customization.showcases.length,
+    bioLength: customization.bio.length,
+  };
+
   // Check for newly-earned milestones once we actually have real stats -
   // fires once per page visit so it can't spam the reveal modal.
   useEffect(() => {
     if (!userId || !likedCollectionsReady || followerCount === null || followingCount === null) return;
     if (hasCheckedMilestonesRef.current) return;
     hasCheckedMilestonesRef.current = true;
-    setNewlyUnlocked(getNewlyUnlocked({ likedCount: totalLikedCount, followerCount, followingCount }, userId));
-  }, [userId, likedCollectionsReady, followerCount, followingCount, totalLikedCount]);
+    setNewlyUnlocked(
+      getNewlyUnlocked(
+        {
+          likedCount: totalLikedCount,
+          followerCount,
+          followingCount,
+          showcaseCount: customization.showcases.length,
+          bioLength: customization.bio.length,
+        },
+        userId
+      )
+    );
+  }, [userId, likedCollectionsReady, followerCount, followingCount, totalLikedCount, customization.showcases.length, customization.bio.length]);
 
   const dismissMilestoneReveal = () => {
     if (userId) markMilestonesSeen(userId, newlyUnlocked.map((m) => m.id));
     setNewlyUnlocked([]);
   };
 
-  const unlockedFrames = getUnlockedFrames({
-    likedCount: totalLikedCount,
-    followerCount: followerCount || 0,
-    followingCount: followingCount || 0,
-  });
+  const unlockedFrames = getUnlockedFrames(stats);
+  const unlockedBackgroundEffects = getUnlockedBackgroundEffects(stats);
 
   const setBackgroundType = (type: ProfileBackgroundType) => {
     if (type === 'color') {
@@ -349,6 +373,8 @@ export const ProfileEditPage: React.FC = () => {
           <div className="grid lg:grid-cols-[1fr_320px] gap-6">
             {/* Left: editor controls */}
             <div className="space-y-6">
+              <AchievementsPanel stats={stats} />
+
               {/* Avatar */}
               <section className="border-2 border-black bg-white p-6 hard-shadow">
                 <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">AVATAR</h2>
@@ -399,7 +425,7 @@ export const ProfileEditPage: React.FC = () => {
                           type="button"
                           disabled={!isUnlocked}
                           onClick={() => setCustomization((c) => ({ ...c, avatarFrame: f.value }))}
-                          title={isUnlocked ? f.label : 'LOCKED — KEEP LISTENING TO UNLOCK'}
+                          title={isUnlocked ? f.label : 'LOCKED — SEE ACHIEVEMENTS ABOVE'}
                           className={`inline-flex items-center gap-1.5 border-2 border-black px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
                             isSelected
                               ? 'bg-black text-white'
@@ -497,20 +523,29 @@ export const ProfileEditPage: React.FC = () => {
                     PARTICLE EFFECT
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {BACKGROUND_EFFECTS.map((eff) => (
-                      <button
-                        key={eff.value}
-                        type="button"
-                        onClick={() => setBackgroundEffect(eff.value)}
-                        className={`border-2 border-black px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
-                          (customization.background.effect || 'none') === eff.value
-                            ? 'bg-black text-white'
-                            : 'bg-white text-black hover:bg-neutral-100'
-                        }`}
-                      >
-                        {eff.label}
-                      </button>
-                    ))}
+                    {BACKGROUND_EFFECTS.map((eff) => {
+                      const isUnlocked = unlockedBackgroundEffects.includes(eff.value);
+                      const isSelected = (customization.background.effect || 'none') === eff.value;
+                      return (
+                        <button
+                          key={eff.value}
+                          type="button"
+                          disabled={!isUnlocked}
+                          onClick={() => setBackgroundEffect(eff.value)}
+                          title={isUnlocked ? eff.label : 'LOCKED — EARNED VIA ACHIEVEMENTS BELOW'}
+                          className={`inline-flex items-center gap-1.5 border-2 border-black px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                            isSelected
+                              ? 'bg-black text-white'
+                              : isUnlocked
+                                ? 'bg-white text-black hover:bg-neutral-100'
+                                : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {!isUnlocked && <Lock className="h-3 w-3" />}
+                          <span>{eff.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </section>

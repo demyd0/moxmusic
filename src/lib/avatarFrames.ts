@@ -1,14 +1,16 @@
 import type { AvatarFrame } from '@/types/profile';
 
-export const AVATAR_FRAME_VALUES: AvatarFrame[] = ['none', 'bronze', 'silver', 'gold', 'neon', 'rainbow'];
+export const AVATAR_FRAME_VALUES: AvatarFrame[] = ['none', 'bronze', 'silver', 'gold', 'diamond', 'neon', 'rainbow', 'fire'];
 
 export const AVATAR_FRAMES: { value: AvatarFrame; label: string }[] = [
   { value: 'none', label: 'NONE' },
   { value: 'bronze', label: 'BRONZE' },
   { value: 'silver', label: 'SILVER' },
   { value: 'gold', label: 'GOLD' },
+  { value: 'diamond', label: 'DIAMOND' },
   { value: 'neon', label: 'NEON' },
   { value: 'rainbow', label: 'RAINBOW' },
+  { value: 'fire', label: 'FIRE' },
 ];
 
 export function sanitizeAvatarFrame(value: unknown): AvatarFrame {
