@@ -408,22 +408,39 @@ button:active, .btn-brutalist:active {
    without needing to beat it on specificity. */
 /* header.bg-white (not just .winamp header) so this beats the generic
    .bg-white "card sheen" rule below on specificity - both set
-   background-image, and the more specific selector has to win here. */
+   background-image, and the more specific selector has to win here.
+   Pulled much closer to the page's near-black palette (was a notably
+   lighter steel-blue band that read as a mismatched, plainer element
+   sitting on top of the rest of the theme's dark/detailed cards - the
+   header needs the same moody-dark-plus-green-accent language, not its
+   own brighter one). */
 .winamp header.bg-white {
   position: relative;
-  background-image: linear-gradient(180deg, #4a5a8a 0%, #29335a 55%, #171d38 100%);
-  border-bottom-color: #0a0e1a;
+  background-image: linear-gradient(180deg, #232c4a 0%, #141a30 50%, #0a0e1a 100%);
+  border-bottom-color: #245a24;
 }
 .winamp header::before {
+  /* thin bright bevel edge at the very top, not a whole glowing band */
   content: '';
   position: absolute;
   inset: 0 0 auto 0;
-  height: 3px;
-  background-image: repeating-linear-gradient(90deg, #8fa3c9 0px, #8fa3c9 1px, transparent 1px, transparent 3px);
-  opacity: 0.45;
+  height: 1px;
+  background-image: linear-gradient(90deg, transparent, rgba(143, 163, 201, 0.8) 15%, rgba(143, 163, 201, 0.8) 85%, transparent);
+}
+.winamp header::after {
+  /* LCD-green underglow groove - ties the header into the same accent
+     used everywhere else in this theme (active buttons, avatar frames,
+     the recommendations panel's icon badge, etc). */
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  background-image: linear-gradient(90deg, transparent, #245a24 12%, #4dff4d 50%, #245a24 88%, transparent);
+  opacity: 0.6;
+  box-shadow: 0 0 8px rgba(77, 255, 77, 0.5);
 }
 .winamp header .text-black { color: #dbe6ff; }
-.winamp header .hover\:bg-neutral-100:hover { background-color: rgba(255, 255, 255, 0.08); }
+.winamp header .hover\:bg-neutral-100:hover { background-color: rgba(77, 255, 77, 0.1); }
 
 /* Every panel/card gets a subtle glossy highlight instead of a flat
    fill - same trick real skin PNGs use (a soft light gradient over a

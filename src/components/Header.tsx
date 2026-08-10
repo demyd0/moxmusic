@@ -243,6 +243,17 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
+        {/* Decorative status LEDs - pure Winamp-skin flavor, only shown in
+            that theme so the header has the same small-detail density as
+            the rest of the skin (recommendations panel's icon badge etc). */}
+        {theme === 'winamp' && (
+          <div className="hidden sm:flex items-center gap-1.5 ml-3 shrink-0" aria-hidden="true">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#4dff4d', boxShadow: '0 0 4px #4dff4d' }} />
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#ffb300', boxShadow: '0 0 4px #ffb300' }} />
+            <span className="h-1.5 w-1.5 rounded-full bg-neutral-700" />
+          </div>
+        )}
+
         {/* Center Navigation Segmented Control */}
         <nav className="flex items-center border-2 border-black bg-white hard-shadow-sm p-0.5 font-mono text-xs font-bold uppercase">
           <button
