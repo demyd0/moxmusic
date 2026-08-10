@@ -394,6 +394,62 @@ button:active, .btn-brutalist:active {
 .winamp .border-red-600 { border-color: #f87171; }
 .winamp .text-red-600 { color: #f87171; }
 .winamp .text-red-700 { color: #fca5a5; }
+
+/* ----------------------------------------------------------------
+   Winamp mode, part 2: actual skin texture, not just a recolor.
+   Reuses the exact chrome language from ScreensaverWindow.tsx (metal
+   gradients, outset/inset bevels, LCD glow) across the whole site -
+   pure CSS additions layered on top of the overrides above, no
+   markup changes needed anywhere.
+   ---------------------------------------------------------------- */
+
+/* The site header becomes a genuine gradient titlebar. background-image
+   paints over the background-color from the .bg-white override above
+   without needing to beat it on specificity. */
+/* header.bg-white (not just .winamp header) so this beats the generic
+   .bg-white "card sheen" rule below on specificity - both set
+   background-image, and the more specific selector has to win here. */
+.winamp header.bg-white {
+  position: relative;
+  background-image: linear-gradient(180deg, #4a5a8a 0%, #29335a 55%, #171d38 100%);
+  border-bottom-color: #0a0e1a;
+}
+.winamp header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background-image: repeating-linear-gradient(90deg, #8fa3c9 0px, #8fa3c9 1px, transparent 1px, transparent 3px);
+  opacity: 0.45;
+}
+.winamp header .text-black { color: #dbe6ff; }
+.winamp header .hover\:bg-neutral-100:hover { background-color: rgba(255, 255, 255, 0.08); }
+
+/* Every panel/card gets a subtle glossy highlight instead of a flat
+   fill - same trick real skin PNGs use (a soft light gradient over a
+   dark base) to read as "metal" rather than "painted". */
+.winamp .bg-white,
+.winamp .bg-white\/95,
+.winamp .bg-neutral-50 {
+  background-image: linear-gradient(165deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 45%);
+}
+
+/* Buttons get a raised metal bevel; the already-established "selected"
+   state (bg-black, recolored to the pressed-LCD look above) reads as
+   pushed in instead of raised - exactly how a real Winamp button
+   toggles between its two skin frames. */
+.winamp button {
+  border-style: outset;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.2));
+}
+.winamp button.bg-black,
+.winamp button:active {
+  border-style: inset;
+}
+.winamp input[type="text"],
+.winamp textarea {
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0) 30%);
+}
 .winamp .text-emerald-600 { color: #4dff4d; }
 
 /* Avatar frames - cosmetic rewards for activity milestones, see
