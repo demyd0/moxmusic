@@ -49,7 +49,7 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
     const drawLowRes = (divisor: number, fill: (x: number, y: number) => [number, number, number]) => {
       const w = Math.max(1, Math.floor(width / divisor));
       const h = Math.max(1, Math.floor(height / divisor));
-      const img = ctx.createImageData(w, h);
+      const img = ctx!.createImageData(w, h);
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
           const [r, g, b] = fill(x, y);
@@ -63,8 +63,8 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
       lowResCanvas.width = w;
       lowResCanvas.height = h;
       lowResCtx.putImageData(img, 0, 0);
-      ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(lowResCanvas, 0, 0, w, h, 0, 0, width, height);
+      ctx!.imageSmoothingEnabled = true;
+      ctx!.drawImage(lowResCanvas, 0, 0, w, h, 0, 0, width, height);
     };
 
     // ---- per-preset state, rebuilt whenever the preset changes ----
@@ -112,8 +112,8 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
     const KALEIDOSCOPE_SEGMENTS = 8;
 
     function drawStarfield() {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, width, height);
+      ctx!.fillStyle = '#000';
+      ctx!.fillRect(0, 0, width, height);
       const cx = width / 2;
       const cy = height / 2;
       for (const s of stars) {
@@ -129,13 +129,13 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
         if (px < 0 || px > width || py < 0 || py > height) continue;
         const r = (1 - s.z) * 2.5;
         const [cr, cg, cb] = hslToRgb(s.hue / 360, 0.6, 0.75);
-        ctx.globalAlpha = 1 - s.z;
-        ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
-        ctx.beginPath();
-        ctx.arc(px, py, Math.max(r, 0.5), 0, Math.PI * 2);
-        ctx.fill();
+        ctx!.globalAlpha = 1 - s.z;
+        ctx!.fillStyle = `rgb(${cr},${cg},${cb})`;
+        ctx!.beginPath();
+        ctx!.arc(px, py, Math.max(r, 0.5), 0, Math.PI * 2);
+        ctx!.fill();
       }
-      ctx.globalAlpha = 1;
+      ctx!.globalAlpha = 1;
     }
 
     function drawPlasma() {
@@ -152,8 +152,8 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
 
     function drawPipes() {
       if (t < 0.05) {
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, width, height);
+        ctx!.fillStyle = '#000';
+        ctx!.fillRect(0, 0, width, height);
         pipeState.segments = [{ x: width / 2, y: height / 2 }];
       }
       const last = pipeState.segments[pipeState.segments.length - 1];
@@ -171,25 +171,25 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
       let nx = last.x + pipeState.dir.x * step;
       let ny = last.y + pipeState.dir.y * step;
       if (nx < 0 || nx > width || ny < 0 || ny > height) {
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, width, height);
+        ctx!.fillStyle = '#000';
+        ctx!.fillRect(0, 0, width, height);
         pipeState.segments = [{ x: width / 2, y: height / 2 }];
         nx = width / 2;
         ny = height / 2;
       }
-      ctx.strokeStyle = pipeState.color;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(last.x, last.y);
-      ctx.lineTo(nx, ny);
-      ctx.stroke();
+      ctx!.strokeStyle = pipeState.color;
+      ctx!.lineWidth = 4;
+      ctx!.beginPath();
+      ctx!.moveTo(last.x, last.y);
+      ctx!.lineTo(nx, ny);
+      ctx!.stroke();
       pipeState.segments.push({ x: nx, y: ny });
       if (pipeState.segments.length > 4000) pipeState.segments.shift();
     }
 
     function drawMystify() {
-      ctx.fillStyle = 'rgba(0,0,0,0.08)';
-      ctx.fillRect(0, 0, width, height);
+      ctx!.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx!.fillRect(0, 0, width, height);
       for (const shape of mystifyShapes) {
         shape.hue = (shape.hue + 0.3) % 360;
         for (const p of shape.points) {
@@ -201,18 +201,18 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
           p.y = Math.min(Math.max(p.y, 0), height);
         }
         const [r, g, b] = hslToRgb(shape.hue / 360, 0.8, 0.6);
-        ctx.strokeStyle = `rgb(${r},${g},${b})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        shape.points.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-        ctx.closePath();
-        ctx.stroke();
+        ctx!.strokeStyle = `rgb(${r},${g},${b})`;
+        ctx!.lineWidth = 1.5;
+        ctx!.beginPath();
+        shape.points.forEach((p, i) => (i === 0 ? ctx!.moveTo(p.x, p.y) : ctx!.lineTo(p.x, p.y)));
+        ctx!.closePath();
+        ctx!.stroke();
       }
     }
 
     function drawBars() {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, width, height);
+      ctx!.fillStyle = '#000';
+      ctx!.fillRect(0, 0, width, height);
       const barWidth = width / bars.length;
       bars.forEach((bar, i) => {
         if (Math.random() < 0.08) bar.target = Math.random() * height * 0.8;
@@ -221,15 +221,15 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
         const [r, g, b] = hslToRgb(hue / 360, 0.7, 0.55);
         const x = i * barWidth + 1;
         const barH = bar.height;
-        const grad = ctx.createLinearGradient(0, height - barH, 0, height);
+        const grad = ctx!.createLinearGradient(0, height - barH, 0, height);
         grad.addColorStop(0, `rgb(${r},${g},${b})`);
         grad.addColorStop(1, `rgba(${r},${g},${b},0.4)`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(x, height - barH, barWidth - 2, barH);
+        ctx!.fillStyle = grad;
+        ctx!.fillRect(x, height - barH, barWidth - 2, barH);
         // faint reflection
-        ctx.globalAlpha = 0.15;
-        ctx.fillRect(x, height, barWidth - 2, barH * 0.25);
-        ctx.globalAlpha = 1;
+        ctx!.globalAlpha = 0.15;
+        ctx!.fillRect(x, height, barWidth - 2, barH * 0.25);
+        ctx!.globalAlpha = 1;
       });
     }
 
@@ -238,26 +238,26 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
       const columns = Math.max(1, Math.floor(width / fontSize));
       while (matrixDrops.length < columns) matrixDrops.push(Math.random() * -40);
 
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
-      ctx.fillRect(0, 0, width, height);
-      ctx.font = `${fontSize}px monospace`;
-      ctx.textBaseline = 'top';
+      ctx!.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx!.fillRect(0, 0, width, height);
+      ctx!.font = `${fontSize}px monospace`;
+      ctx!.textBaseline = 'top';
       for (let i = 0; i < columns; i++) {
         const char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
         const x = i * fontSize;
         const y = matrixDrops[i] * fontSize;
-        ctx.fillStyle = '#c8ffc8';
-        ctx.fillText(char, x, y);
-        ctx.fillStyle = '#00c832';
-        ctx.fillText(MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)], x, y - fontSize);
+        ctx!.fillStyle = '#c8ffc8';
+        ctx!.fillText(char, x, y);
+        ctx!.fillStyle = '#00c832';
+        ctx!.fillText(MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)], x, y - fontSize);
         if (y > height && Math.random() > 0.975) matrixDrops[i] = 0;
         matrixDrops[i]++;
       }
     }
 
     function drawFireworks() {
-      ctx.fillStyle = 'rgba(0,0,0,0.18)';
-      ctx.fillRect(0, 0, width, height);
+      ctx!.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx!.fillRect(0, 0, width, height);
 
       if (Math.random() < 0.035) {
         rockets.push({
@@ -276,10 +276,10 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
         r.y += r.vy;
         r.vy += 0.05;
         const [rr, gg, bb] = hslToRgb(r.hue / 360, 0.9, 0.6);
-        ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, 2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx!.fillStyle = `rgb(${rr},${gg},${bb})`;
+        ctx!.beginPath();
+        ctx!.arc(r.x, r.y, 2, 0, Math.PI * 2);
+        ctx!.fill();
         if (r.vy >= -0.5) {
           r.exploded = true;
           const count = 40 + Math.floor(Math.random() * 30);
@@ -307,13 +307,13 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
         s.vy *= 0.98;
         s.life -= 0.015;
         const [rr, gg, bb] = hslToRgb(((s.hue % 360) + 360) % 360 / 360, 0.9, 0.6);
-        ctx.globalAlpha = Math.max(s.life, 0);
-        ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, 1.8, 0, Math.PI * 2);
-        ctx.fill();
+        ctx!.globalAlpha = Math.max(s.life, 0);
+        ctx!.fillStyle = `rgb(${rr},${gg},${bb})`;
+        ctx!.beginPath();
+        ctx!.arc(s.x, s.y, 1.8, 0, Math.PI * 2);
+        ctx!.fill();
       }
-      ctx.globalAlpha = 1;
+      ctx!.globalAlpha = 1;
       sparks = sparks.filter((s) => s.life > 0);
     }
 
@@ -358,8 +358,8 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
     }
 
     function drawKaleidoscope() {
-      ctx.fillStyle = 'rgba(0,0,0,0.06)';
-      ctx.fillRect(0, 0, width, height);
+      ctx!.fillStyle = 'rgba(0,0,0,0.06)';
+      ctx!.fillRect(0, 0, width, height);
       const cx = width / 2;
       const cy = height / 2;
       for (const p of kPoints) {
@@ -368,19 +368,19 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
         const localX = Math.cos(p.angle) * p.radius;
         const localY = Math.sin(p.angle * p.wobble) * p.radius;
         const [r, g, b] = hslToRgb(p.hue / 360, 0.85, 0.6);
-        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx!.fillStyle = `rgb(${r},${g},${b})`;
         for (let s = 0; s < KALEIDOSCOPE_SEGMENTS; s++) {
           const segAngle = (Math.PI * 2 * s) / KALEIDOSCOPE_SEGMENTS;
           const cos = Math.cos(segAngle);
           const sin = Math.sin(segAngle);
           const rx = localX * cos - localY * sin;
           const ry = localX * sin + localY * cos;
-          ctx.beginPath();
-          ctx.arc(cx + rx, cy + ry, 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(cx - rx, cy - ry, 4, 0, Math.PI * 2);
-          ctx.fill();
+          ctx!.beginPath();
+          ctx!.arc(cx + rx, cy + ry, 4, 0, Math.PI * 2);
+          ctx!.fill();
+          ctx!.beginPath();
+          ctx!.arc(cx - rx, cy - ry, 4, 0, Math.PI * 2);
+          ctx!.fill();
         }
       }
     }
@@ -422,8 +422,8 @@ export const ScreensaverCanvas: React.FC<{ preset: ScreensaverPreset }> = ({ pre
       raf = requestAnimationFrame(tick);
     }
 
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, width, height);
+    ctx!.fillStyle = '#000';
+    ctx!.fillRect(0, 0, width, height);
     tick();
 
     return () => {
