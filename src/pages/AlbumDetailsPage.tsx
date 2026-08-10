@@ -10,6 +10,7 @@ import { buildGeniusSearchUrl } from '@/lib/genius';
 import { getPreferredService, type StreamingService } from '@/lib/streamingServices';
 import { StreamingServiceButton } from '@/components/StreamingServiceButton';
 import { AlbumReactionWidget } from '@/components/AlbumReactionWidget';
+import { useAudioEngine } from '@/contexts/AudioEngineContext';
 import {
   subscribeUserCollections,
   toggleLikeAlbum,
@@ -50,6 +51,7 @@ export const AlbumDetailsPage: React.FC = () => {
   const [bandcamp, setBandcamp] = useState<BandcampLookupResponse | null>(null);
   const [isBandcampLoading, setIsBandcampLoading] = useState(true);
   const [preferredService, setPreferredServiceState] = useState<StreamingService>(getPreferredService);
+  const { volume, setActiveElement } = useAudioEngine();
 
   // 30-second iTunes preview playback - one shared <audio> element, one track at a time
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -58,8 +60,14 @@ export const AlbumDetailsPage: React.FC = () => {
   useEffect(() => {
     return () => {
       audioRef.current?.pause();
+      setActiveElement(null);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
 
   const handleTogglePreview = (track: Track) => {
     if (!track.previewUrl) return;
@@ -69,13 +77,16 @@ export const AlbumDetailsPage: React.FC = () => {
     if (playingTrackNumber === track.trackNumber) {
       audio.pause();
       setPlayingTrackNumber(null);
+      setActiveElement(null);
       return;
     }
 
     audio.src = track.previewUrl;
     audio.currentTime = 0;
+    audio.volume = volume;
     audio.play().catch(() => setPlayingTrackNumber(null));
     setPlayingTrackNumber(track.trackNumber);
+    setActiveElement(audio);
   };
 
   // 1. Initialize user & subscribe to collections
@@ -485,7 +496,7 @@ export const AlbumDetailsPage: React.FC = () => {
               {/* Hidden shared audio element driving the 30s preview player */}
               <audio
                 ref={audioRef}
-                onEnded={() => setPlayingTrackNumber(null)}
+                onEnded={() => { setPlayingTrackNumber(null); setActiveElement(null); }}
                 className="hidden"
               />
             </div>

@@ -17,6 +17,7 @@ import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 import { WinampUnlockOverlay } from '@/components/WinampUnlockOverlay';
 import { useTheme, isWinampThemeUnlocked, unlockWinampTheme } from '@/hooks/useTheme';
 import { useChat } from '@/contexts/ChatContext';
+import { useAudioEngine } from '@/contexts/AudioEngineContext';
 import {
   Search,
   Heart,
@@ -36,7 +37,10 @@ import {
   Palette,
   Radio,
   MessageCircle,
-  Users
+  Users,
+  Volume2,
+  Volume1,
+  VolumeX
 } from 'lucide-react';
 
 const LOGO_UNLOCK_CLICKS = 5;
@@ -58,6 +62,8 @@ export const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { openList, unreadCount } = useChat();
+  const { volume, setVolume } = useAudioEngine();
+  const [isVolumeOpen, setIsVolumeOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
@@ -329,6 +335,45 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right User Profile Dropdown Pill */}
         <div className="flex items-center gap-2 relative shrink-0">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsVolumeOpen((v) => !v)}
+              title="Site volume"
+              className="flex h-10 w-10 items-center justify-center border-2 border-black bg-white text-black hover:bg-neutral-100 transition-all hard-shadow"
+            >
+              {volume === 0 ? (
+                <VolumeX className="h-4 w-4" />
+              ) : volume < 0.5 ? (
+                <Volume1 className="h-4 w-4" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
+            </button>
+            {isVolumeOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsVolumeOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-44 border-2 border-black bg-white p-3 hard-shadow-lg z-50">
+                  <div className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                    SITE VOLUME
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={Math.round(volume * 100)}
+                      onChange={(e) => setVolume(Number(e.target.value) / 100)}
+                      className="w-full accent-black"
+                    />
+                    <span className="w-8 shrink-0 text-right font-mono text-[11px] font-bold text-black">
+                      {Math.round(volume * 100)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           {currentUser && (
             <button
               type="button"

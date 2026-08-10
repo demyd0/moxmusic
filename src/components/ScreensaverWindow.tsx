@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ScreensaverCanvas } from './ScreensaverCanvas';
-import { SCREENSAVER_PRESETS, type ScreensaverPreset } from '@/lib/screensaverPresets';
+import { SCREENSAVER_PRESET_NAMES, DEFAULT_SCREENSAVER_PRESET, getRandomPresetName } from '@/lib/screensaverPresets';
+import { Shuffle } from 'lucide-react';
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 260;
@@ -16,7 +17,7 @@ export const ScreensaverWindow: React.FC<{ onClose: () => void }> = ({ onClose }
     w: 520,
     h: 400,
   }));
-  const [preset, setPreset] = useState<ScreensaverPreset>('starfield');
+  const [preset, setPreset] = useState<string>(DEFAULT_SCREENSAVER_PRESET);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
 
@@ -127,35 +128,47 @@ export const ScreensaverWindow: React.FC<{ onClose: () => void }> = ({ onClose }
         </button>
       </div>
 
-      {/* Preset picker - LCD-green "pressed" style for the active one */}
+      {/* Preset picker - a real Milkdrop preset pack, ~100 entries, so a
+          dropdown + shuffle button instead of a button-per-preset row. */}
       <div
-        className="flex flex-wrap gap-1 p-1.5"
+        className="flex items-center gap-1.5 p-1.5"
         style={{
           background: 'linear-gradient(180deg, #c4c4c4, #9c9c9c)',
           borderBottom: '1px solid #000',
           borderTop: '1px solid #ececec',
         }}
       >
-        {SCREENSAVER_PRESETS.map((p) => {
-          const active = preset === p.value;
-          return (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => setPreset(p.value)}
-              className="text-[9px] font-bold uppercase tracking-wide"
-              style={{
-                padding: '3px 7px',
-                color: active ? '#4dff4d' : '#111',
-                background: active ? 'linear-gradient(180deg, #0c2a0c, #041604)' : 'linear-gradient(180deg, #e0e0e0, #b0b0b0)',
-                border: active ? '1px inset #333' : '1px outset #e6e6e6',
-                textShadow: active ? '0 0 4px #4dff4d' : 'none',
-              }}
-            >
-              {p.label}
-            </button>
-          );
-        })}
+        <select
+          value={preset}
+          onChange={(e) => setPreset(e.target.value)}
+          className="min-w-0 flex-1 truncate text-[10px] font-bold uppercase tracking-wide"
+          style={{
+            padding: '3px 5px',
+            color: '#111',
+            background: 'linear-gradient(180deg, #f0f0f0, #d0d0d0)',
+            border: '1px inset #888',
+          }}
+        >
+          {SCREENSAVER_PRESET_NAMES.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setPreset((p) => getRandomPresetName(p))}
+          title="Random preset"
+          className="flex shrink-0 items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-wide"
+          style={{
+            padding: '4px 7px',
+            color: '#111',
+            background: 'linear-gradient(180deg, #e0e0e0, #b0b0b0)',
+            border: '1px outset #e6e6e6',
+          }}
+        >
+          <Shuffle className="h-3 w-3" />
+        </button>
       </div>
 
       {/* Canvas body - inset bevel frame around the black display */}

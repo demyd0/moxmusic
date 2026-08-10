@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Monitor } from 'lucide-react';
-import { ScreensaverWindow } from './ScreensaverWindow';
+
+// Butterchurn + its ~100-preset pack are heavy (~200kb gzipped) and only
+// ever needed by this rarely-opened easter egg - code-split so every other
+// page load doesn't pay for it.
+const ScreensaverWindow = lazy(() => import('./ScreensaverWindow').then((m) => ({ default: m.ScreensaverWindow })));
 
 export const Footer: React.FC = () => {
   const [showScreensaver, setShowScreensaver] = useState(false);
 
   return (
     <footer className="mt-20 border-t-2 border-black bg-white py-8">
-      {showScreensaver && <ScreensaverWindow onClose={() => setShowScreensaver(false)} />}
+      {showScreensaver && (
+        <Suspense fallback={null}>
+          <ScreensaverWindow onClose={() => setShowScreensaver(false)} />
+        </Suspense>
+      )}
       <div className="mx-auto flex max-w-6xl flex-col sm:flex-row items-center justify-between gap-4 px-6 font-mono text-xs text-neutral-600 uppercase tracking-wider">
         <div>
           Data sources:{' '}

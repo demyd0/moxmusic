@@ -10,26 +10,29 @@ import { ProfilePage } from '@/pages/ProfilePage';
 import { PeoplePage } from '@/pages/PeoplePage';
 import { useCursorSpotlight } from '@/hooks/useCursorSpotlight';
 import { ChatProvider } from '@/contexts/ChatContext';
+import { AudioEngineProvider } from '@/contexts/AudioEngineContext';
 import { ChatPanel } from '@/components/ChatPanel';
 
 export function App() {
   useCursorSpotlight();
   return (
     <Router>
-      <ChatProvider>
-        <Routes>
-          <Route path="/" element={<HelloPage />} />
-          <Route path="/album/:id" element={<AlbumDetailsPage />} />
-          <Route path="/artist/:id" element={<ArtistDiscographyPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/share/:username" element={<SharedCollectionPage />} />
-          <Route path="/import" element={<ImportPage />} />
-          <Route path="/profile/edit" element={<ProfileEditPage />} />
-          <Route path="/profile/:username" element={<ProfilePage />} />
-          <Route path="/people" element={<PeoplePage />} />
-        </Routes>
-        <ChatPanel />
-      </ChatProvider>
+      <AudioEngineProvider>
+        <ChatProvider>
+          <Routes>
+            <Route path="/" element={<HelloPage />} />
+            <Route path="/album/:id" element={<AlbumDetailsPage />} />
+            <Route path="/artist/:id" element={<ArtistDiscographyPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/share/:username" element={<SharedCollectionPage />} />
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="/profile/edit" element={<ProfileEditPage />} />
+            <Route path="/profile/:username" element={<ProfilePage />} />
+            <Route path="/people" element={<PeoplePage />} />
+          </Routes>
+          <ChatPanel />
+        </ChatProvider>
+      </AudioEngineProvider>
     </Router>
   );
 }
