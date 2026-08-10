@@ -6,8 +6,9 @@ import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { fetchAlbumWithTracklist } from '@/services/musicSearch';
 import { fetchBandcampLinks, type BandcampLookupResponse } from '@/services/bandcamp';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
-import { buildYoutubeMusicSearchUrl } from '@/lib/youtubeMusic';
 import { buildGeniusSearchUrl } from '@/lib/genius';
+import { getPreferredService, type StreamingService } from '@/lib/streamingServices';
+import { StreamingServiceButton } from '@/components/StreamingServiceButton';
 import {
   subscribeUserCollections,
   toggleLikeAlbum,
@@ -47,6 +48,7 @@ export const AlbumDetailsPage: React.FC = () => {
   });
   const [bandcamp, setBandcamp] = useState<BandcampLookupResponse | null>(null);
   const [isBandcampLoading, setIsBandcampLoading] = useState(true);
+  const [preferredService, setPreferredServiceState] = useState<StreamingService>(getPreferredService);
 
   // 30-second iTunes preview playback - one shared <audio> element, one track at a time
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -295,15 +297,12 @@ export const AlbumDetailsPage: React.FC = () => {
 
                     {/* Row 2: listen/lyrics elsewhere - equal-width regardless of label length */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <a
-                        href={buildYoutubeMusicSearchUrl(album.artist, album.title, true)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-red-600 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hard-shadow-sm hover:bg-red-700"
-                      >
-                        <ExternalLink className="h-4 w-4 shrink-0" />
-                        <span>YOUTUBE MUSIC</span>
-                      </a>
+                      <StreamingServiceButton
+                        artist={album.artist}
+                        title={album.title}
+                        isAlbum={true}
+                        onServiceChange={setPreferredServiceState}
+                      />
 
                       {isBandcampLoading ? (
                         <span className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-white px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm">
@@ -423,11 +422,13 @@ export const AlbumDetailsPage: React.FC = () => {
                                     </button>
                                   )}
                                   <a
-                                    href={buildYoutubeMusicSearchUrl(album.artist, track.title, false)}
+                                    href={preferredService.buildSearchUrl(album.artist, track.title, false)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    title="Open this track in YouTube Music"
-                                    className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-red-600 hover:text-white hover:border-red-600 transition-all"
+                                    title={`Open this track on ${preferredService.label}`}
+                                    className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:text-white transition-all"
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = preferredService.color; e.currentTarget.style.borderColor = preferredService.color; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.borderColor = ''; }}
                                   >
                                     <ExternalLink className="h-3.5 w-3.5" />
                                   </a>
@@ -455,7 +456,7 @@ export const AlbumDetailsPage: React.FC = () => {
                 )}
                 {tracks.some((t) => t.previewUrl) && (
                   <p className="mt-4 font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
-                    30-second previews courtesy of iTunes. Full tracks open in YouTube Music.
+                    30-second previews courtesy of iTunes. Full tracks open in {preferredService.label}.
                   </p>
                 )}
               </section>

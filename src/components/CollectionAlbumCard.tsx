@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { Album } from '@/types/album';
-import { buildYoutubeMusicSearchUrl } from '@/lib/youtubeMusic';
+import { getPreferredService } from '@/lib/streamingServices';
 import { Disc3, Heart, Headphones, Trash2, Music2 } from 'lucide-react';
 
 interface CollectionAlbumCardProps {
@@ -41,9 +41,10 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
   const handleCardClick = () => {
     if (isTrack) {
       // Imported tracks have no internal album page to resolve to (no
-      // matching iTunes/MusicBrainz id) - send the click to a YouTube
-      // Music search instead of a dead /album/import-xxxx route.
-      window.open(buildYoutubeMusicSearchUrl(album.artist, album.title, false), '_blank', 'noopener,noreferrer');
+      // matching iTunes/MusicBrainz id) - send the click to a search on
+      // whichever service the user prefers, instead of a dead
+      // /album/import-xxxx route.
+      window.open(getPreferredService().buildSearchUrl(album.artist, album.title, false), '_blank', 'noopener,noreferrer');
       return;
     }
     navigate(`/album/${album.id}`);
