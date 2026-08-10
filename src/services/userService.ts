@@ -159,10 +159,42 @@ export async function ensurePublicProfile(profile: UserProfile): Promise<void> {
     const publicDocRef = doc(db, 'publicProfiles', profile.uid);
     const snap = await getDoc(publicDocRef);
     if (!snap.exists()) {
-      await setDoc(publicDocRef, { username: profile.username, photoURL: profile.photoURL || '' });
+      await setDoc(publicDocRef, { username: profile.username, photoURL: profile.photoURL || '', createdAt: Date.now() });
     }
   } catch (e) {
     console.warn('Failed to backfill public profile mirror:', e);
+  }
+}
+
+export interface PublicProfileSummary {
+  uid: string;
+  username: string;
+  photoURL?: string;
+  createdAt: number;
+}
+
+/**
+ * Every public profile, for a "find people" directory - publicProfiles is
+ * already publicly readable (allow read: if true covers list queries too,
+ * not just single-doc gets), so no new Firestore rule is needed. Sorted
+ * client-side (not via orderBy) so profiles created before the createdAt
+ * field existed still show up instead of being silently excluded.
+ */
+export async function getAllPublicProfiles(maxCount = 100): Promise<PublicProfileSummary[]> {
+  try {
+    const snap = await getDocs(collection(db, 'publicProfiles'));
+    return snap.docs
+      .map((d) => {
+        const data = d.data();
+        if (!data.username) return null;
+        return { uid: d.id, username: data.username, photoURL: data.photoURL, createdAt: data.createdAt || 0 } as PublicProfileSummary;
+      })
+      .filter((p): p is PublicProfileSummary => Boolean(p))
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, maxCount);
+  } catch (e) {
+    console.warn('Failed to fetch public profiles:', e);
+    return [];
   }
 }
 
