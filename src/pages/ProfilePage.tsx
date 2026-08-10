@@ -6,6 +6,7 @@ import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { FollowListModal } from '@/components/FollowListModal';
 import { BackgroundEffectCanvas } from '@/components/BackgroundEffectCanvas';
+import { ProfileTrackPlayer } from '@/components/ProfileTrackPlayer';
 import { fetchSharedLikedCollection } from '@/services/collectionService';
 import { getPublicUserProfile, resolveUsernameToUid, incrementProfileView } from '@/services/userService';
 import { getProfileCustomization } from '@/services/profileService';
@@ -312,6 +313,12 @@ export const ProfilePage: React.FC = () => {
                             {latestAlbum.title} — {latestAlbum.artist}
                           </span>
                         </button>
+                      )}
+
+                      {customization.profileTrack && (
+                        <div className="mt-2 max-w-xs">
+                          <ProfileTrackPlayer track={customization.profileTrack} accentColor={accent} />
+                        </div>
                       )}
 
                       <div className="flex items-center gap-3 mt-2">

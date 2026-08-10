@@ -55,6 +55,14 @@ export interface ProfileShowcase {
  *  vanity reward, not an access-controlled asset. */
 export type AvatarFrame = 'none' | 'bronze' | 'silver' | 'gold' | 'diamond' | 'neon' | 'rainbow' | 'fire';
 
+/** "value" is a YouTube video id for type 'youtube', or a Firebase Storage
+ *  download URL for type 'upload'. Plays on the owner's public profile. */
+export interface ProfileTrack {
+  type: 'youtube' | 'upload';
+  value: string;
+  title?: string;
+}
+
 export interface ProfileCustomization {
   background: ProfileBackground;
   accentColor: string;
@@ -62,6 +70,7 @@ export interface ProfileCustomization {
   bioStyle: TextStyle;
   showcases: ProfileShowcase[];
   avatarFrame?: AvatarFrame;
+  profileTrack?: ProfileTrack | null;
 }
 
 export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomization = {
@@ -71,7 +80,10 @@ export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomization = {
   bioStyle: DEFAULT_TEXT_STYLE,
   showcases: [],
   avatarFrame: 'none',
+  profileTrack: null,
 };
+
+export const MAX_PROFILE_TRACK_TITLE_LENGTH = 60;
 
 // Sanity limits so one profile can't bloat its Firestore doc or turn
 // into an infinite-scroll wall for visitors.

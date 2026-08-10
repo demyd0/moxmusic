@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type {
   ProfileBackground,
   ProfileCustomization,
+  ProfileTrack,
   ShowcaseType,
   TextStyle,
   TextFont,
@@ -12,6 +13,7 @@ import {
   DEFAULT_TEXT_STYLE,
   MAX_ALBUMS_PER_SHOWCASE,
   MAX_BIO_LENGTH,
+  MAX_PROFILE_TRACK_TITLE_LENGTH,
   MAX_SHOWCASES,
   MAX_SHOWCASE_TEXT_LENGTH,
 } from '@/types/profile';
@@ -55,6 +57,28 @@ export function isValidBackgroundImageUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+const YOUTUBE_VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
+
+/**
+ * 'youtube': value must be a real 11-char video id (already extracted/
+ * validated client-side before save, re-checked here defensively).
+ * 'upload': value must be an https:// URL - in practice always our own
+ * Firebase Storage download URL, but re-validated the same way as any
+ * other user-supplied URL in this file.
+ */
+export function sanitizeProfileTrack(input: ProfileTrack | null | undefined): ProfileTrack | null {
+  if (!input || !input.value) return null;
+  const title = input.title ? input.title.slice(0, MAX_PROFILE_TRACK_TITLE_LENGTH) : undefined;
+
+  if (input.type === 'youtube' && YOUTUBE_VIDEO_ID_RE.test(input.value)) {
+    return { type: 'youtube', value: input.value, title };
+  }
+  if (input.type === 'upload' && isValidBackgroundImageUrl(input.value)) {
+    return { type: 'upload', value: input.value, title };
+  }
+  return null;
 }
 
 export function isValidBackground(bg: ProfileBackground): boolean {
@@ -191,6 +215,7 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
     }));
 
   const avatarFrame = sanitizeAvatarFrame(input.avatarFrame);
+  const profileTrack = sanitizeProfileTrack(input.profileTrack);
 
-  return { background, accentColor, bio, bioStyle, showcases, avatarFrame };
+  return { background, accentColor, bio, bioStyle, showcases, avatarFrame, profileTrack };
 }

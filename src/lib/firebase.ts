@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import { 
   getAuth, 
   signInWithPopup, 
@@ -26,6 +27,7 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 // Safe Persistence Setup to prevent IndexedDB "Database is closing/hidden" crashes
 setPersistence(auth, browserLocalPersistence).catch(() => {
