@@ -9,8 +9,9 @@ interface ChatAlbumPickerProps {
 }
 
 /** Small popover for attaching one of the sender's own liked albums to a
- *  chat message - same "pick from your liked albums" pattern already used
- *  for showcases in ProfileEditPage.tsx. */
+ *  chat message - covers overlap like records in a shop bin (see the
+ *  .vinyl-stack/.vinyl-cover rules in index.css); hovering one lifts it
+ *  into full view while the covers in front of it slide out of the way. */
 export const ChatAlbumPicker: React.FC<ChatAlbumPickerProps> = ({ albums, onPick, onClose }) => {
   return (
     <div className="absolute bottom-full left-0 right-0 mb-2 border-2 border-black bg-white hard-shadow-sm max-h-64 overflow-hidden flex flex-col z-10">
@@ -25,20 +26,20 @@ export const ChatAlbumPicker: React.FC<ChatAlbumPickerProps> = ({ albums, onPick
           LIKE SOME ALBUMS FIRST TO SHARE THEM.
         </p>
       ) : (
-        <div className="grid grid-cols-4 gap-2 p-2 overflow-y-auto">
+        <div className="vinyl-stack overflow-x-auto overflow-y-hidden px-4 pt-8 pb-5">
           {albums.map((album) => (
             <button
               key={album.id}
               type="button"
               onClick={() => onPick(album)}
               title={`${album.title} — ${album.artist}`}
-              className="relative aspect-square border-2 border-black/20 overflow-hidden hover:border-black transition-all"
+              className="vinyl-cover h-20 w-20 border-2 border-black bg-white overflow-hidden"
             >
               {album.coverUrl ? (
                 <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
               ) : (
                 <div className="h-full w-full bg-neutral-100 flex items-center justify-center">
-                  <Disc3 className="h-5 w-5 text-neutral-400" />
+                  <Disc3 className="h-6 w-6 text-neutral-400" />
                 </div>
               )}
             </button>

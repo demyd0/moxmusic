@@ -582,6 +582,34 @@ button:active, .btn-brutalist:active {
   animation: winamp-label-flash 1.15s ease-out forwards;
 }
 
+/* Chat album picker - overlapping covers you flip through like records in
+   a shop bin. Later covers sit in DOM order after earlier ones, so they
+   naturally paint on top and cover most of the previous one; hovering an
+   earlier cover lifts it above everything, and the general sibling
+   selector pushes every cover AFTER it (the ones physically covering it)
+   down and out of the way so it can show in full. */
+.vinyl-stack {
+  display: flex;
+  align-items: flex-end;
+}
+.vinyl-cover {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: -34px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.vinyl-cover:first-child {
+  margin-left: 0;
+}
+.vinyl-cover:hover {
+  transform: translateY(-16px) scale(1.1);
+  z-index: 50;
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.4);
+}
+.vinyl-cover:hover ~ .vinyl-cover {
+  transform: translateY(14px);
+}
+
 @keyframes winamp-label-flash {
   0% { opacity: 0; letter-spacing: 0.6em; }
   25% { opacity: 1; letter-spacing: 0.3em; }
