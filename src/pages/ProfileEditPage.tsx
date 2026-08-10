@@ -20,7 +20,6 @@ import {
 import { MilestoneRevealModal } from '@/components/MilestoneRevealModal';
 import { AchievementsPanel } from '@/components/AchievementsPanel';
 import { extractYoutubeVideoId } from '@/lib/youtubeEmbed';
-import { uploadProfileTrack, clearProfileTrack, isAllowedAudioFile, MAX_PROFILE_TRACK_BYTES } from '@/services/profileTrackService';
 import {
   DEFAULT_PROFILE_CUSTOMIZATION,
   DEFAULT_TEXT_STYLE,
@@ -31,7 +30,6 @@ import {
   MAX_SHOWCASE_TEXT_LENGTH,
   type ProfileCustomization,
   type ProfileBackgroundType,
-  type ProfileTrack,
   type ShowcaseType,
   type TextStyle,
   type BackgroundEffectType,
@@ -56,8 +54,6 @@ import {
   LayoutGrid,
   Rows3,
   Lock,
-  Video,
-  Upload as UploadIcon,
   Music,
 } from 'lucide-react';
 
@@ -94,10 +90,8 @@ export const ProfileEditPage: React.FC = () => {
   const [avatarUrlDraft, setAvatarUrlDraft] = useState('');
   const [avatarUrlError, setAvatarUrlError] = useState(false);
 
-  const [trackMode, setTrackMode] = useState<'youtube' | 'upload'>('youtube');
   const [youtubeUrlDraft, setYoutubeUrlDraft] = useState('');
   const [youtubeUrlError, setYoutubeUrlError] = useState(false);
-  const [isUploadingTrack, setIsUploadingTrack] = useState(false);
   const [trackError, setTrackError] = useState<string | null>(null);
 
   const [totalLikedCount, setTotalLikedCount] = useState(0);
@@ -133,10 +127,7 @@ export const ProfileEditPage: React.FC = () => {
       } else if (custom.background.type === 'image') {
         setImageUrlDraft(custom.background.value);
       }
-      if (custom.profileTrack?.type === 'upload') {
-        setTrackMode('upload');
-      } else if (custom.profileTrack?.type === 'youtube') {
-        setTrackMode('youtube');
+      if (custom.profileTrack?.type === 'youtube') {
         setYoutubeUrlDraft(`https://www.youtube.com/watch?v=${custom.profileTrack.value}`);
       }
 
@@ -245,36 +236,11 @@ export const ProfileEditPage: React.FC = () => {
     }
   };
 
-  const handleTrackFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !userId) return;
-
-    if (!isAllowedAudioFile(file)) {
-      setTrackError(`UNSUPPORTED FILE — MUST BE AUDIO UNDER ${Math.round(MAX_PROFILE_TRACK_BYTES / (1024 * 1024))}MB`);
-      return;
-    }
-
-    setTrackError(null);
-    setIsUploadingTrack(true);
-    try {
-      const downloadUrl = await uploadProfileTrack(userId, file);
-      const track: ProfileTrack = { type: 'upload', value: downloadUrl, title: file.name };
-      setCustomization((c) => ({ ...c, profileTrack: track }));
-    } catch (err) {
-      console.error('Profile track upload failed:', err);
-      setTrackError('UPLOAD FAILED — TRY AGAIN');
-    } finally {
-      setIsUploadingTrack(false);
-    }
-  };
-
   const clearProfileTrackField = () => {
     setCustomization((c) => ({ ...c, profileTrack: null }));
     setYoutubeUrlDraft('');
     setYoutubeUrlError(false);
     setTrackError(null);
-    if (userId) clearProfileTrack(userId).catch(() => {});
   };
 
   const addShowcase = (type: ShowcaseType) => {
@@ -619,67 +585,28 @@ export const ProfileEditPage: React.FC = () => {
               <section className="border-2 border-black bg-white p-6 hard-shadow">
                 <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">PROFILE TRACK</h2>
                 <p className="font-mono text-[11px] text-neutral-500 uppercase tracking-wider mb-4">
-                  PLAYS A SONG ON YOUR PUBLIC PROFILE — PASTE A YOUTUBE LINK OR UPLOAD YOUR OWN FILE.
+                  PLAYS A SONG ON YOUR PUBLIC PROFILE — PASTE A YOUTUBE LINK.
+                  {/* File upload needs Firebase Storage, which needs the paid Blaze
+                      plan (Google requires a refundable prepayment just to activate
+                      it) - parked for now, YouTube-link is the free path. */}
                 </p>
 
-                <div className="flex items-center border-2 border-black hard-shadow-sm mb-4 w-fit">
-                  <button
-                    type="button"
-                    onClick={() => setTrackMode('youtube')}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
-                      trackMode === 'youtube' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                <div>
+                  <input
+                    type="text"
+                    value={youtubeUrlDraft}
+                    onChange={(e) => applyYoutubeTrackUrl(e.target.value)}
+                    placeholder="HTTPS://YOUTUBE.COM/WATCH?V=... OR MUSIC.YOUTUBE.COM LINK"
+                    className={`w-full border-2 bg-white px-3.5 py-2.5 font-mono text-sm text-black placeholder-neutral-400 focus:outline-none ${
+                      youtubeUrlError ? 'border-red-600' : 'border-black focus:bg-neutral-50'
                     }`}
-                  >
-                    <Video className="h-3.5 w-3.5" />
-                    <span>YOUTUBE LINK</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTrackMode('upload')}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 border-l-2 border-black font-mono text-xs font-bold uppercase tracking-wider transition-all ${
-                      trackMode === 'upload' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
-                    }`}
-                  >
-                    <UploadIcon className="h-3.5 w-3.5" />
-                    <span>UPLOAD FILE</span>
-                  </button>
+                  />
+                  {youtubeUrlError && (
+                    <p className="mt-1.5 font-mono text-[11px] text-red-600 uppercase tracking-wider">
+                      DOESN'T LOOK LIKE A VALID YOUTUBE LINK
+                    </p>
+                  )}
                 </div>
-
-                {trackMode === 'youtube' ? (
-                  <div>
-                    <input
-                      type="text"
-                      value={youtubeUrlDraft}
-                      onChange={(e) => applyYoutubeTrackUrl(e.target.value)}
-                      placeholder="HTTPS://YOUTUBE.COM/WATCH?V=... OR MUSIC.YOUTUBE.COM LINK"
-                      className={`w-full border-2 bg-white px-3.5 py-2.5 font-mono text-sm text-black placeholder-neutral-400 focus:outline-none ${
-                        youtubeUrlError ? 'border-red-600' : 'border-black focus:bg-neutral-50'
-                      }`}
-                    />
-                    {youtubeUrlError && (
-                      <p className="mt-1.5 font-mono text-[11px] text-red-600 uppercase tracking-wider">
-                        DOESN'T LOOK LIKE A VALID YOUTUBE LINK
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <label className="flex items-center justify-center gap-2 border-2 border-dashed border-black px-4 py-6 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-50 transition-all cursor-pointer">
-                      {isUploadingTrack ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>UPLOADING...</span>
-                        </>
-                      ) : (
-                        <>
-                          <UploadIcon className="h-4 w-4" />
-                          <span>CHOOSE AUDIO FILE (MAX {Math.round(MAX_PROFILE_TRACK_BYTES / (1024 * 1024))}MB)</span>
-                        </>
-                      )}
-                      <input type="file" accept="audio/*" className="hidden" disabled={isUploadingTrack} onChange={handleTrackFileChange} />
-                    </label>
-                  </div>
-                )}
 
                 {trackError && (
                   <p className="mt-1.5 font-mono text-[11px] text-red-600 uppercase tracking-wider">{trackError}</p>
