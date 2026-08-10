@@ -27,7 +27,7 @@ export const ScreensaverCanvas: React.FC<{ preset: string }> = ({ preset }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const visualizerRef = useRef<ButterchurnVisualizer | null>(null);
-  const { getVisualizerSource } = useAudioEngine();
+  const { getAudioContext, connectVisualizerAudio } = useAudioEngine();
   const [unsupported, setUnsupported] = useState(false);
 
   useEffect(() => {
@@ -35,8 +35,7 @@ export const ScreensaverCanvas: React.FC<{ preset: string }> = ({ preset }) => {
     const container = containerRef.current;
     if (!canvas || !container) return;
 
-    const source = getVisualizerSource();
-    const audioContext = source?.audioContext || new AudioContext();
+    const audioContext = getAudioContext();
     const pixelRatio = window.devicePixelRatio || 1;
 
     // Butterchurn tracks its own internal render-target size but never
@@ -62,7 +61,14 @@ export const ScreensaverCanvas: React.FC<{ preset: string }> = ({ preset }) => {
       return;
     }
     visualizerRef.current = visualizer;
-    if (source) visualizer.connectAudio(source.node);
+
+    // Rendering starts immediately with idle motion; audio reactivity (if
+    // possible - see connectVisualizerAudio's doc) attaches a moment later
+    // without blocking the first frame or risking muting current playback.
+    let cancelled = false;
+    connectVisualizerAudio().then((node) => {
+      if (!cancelled && node) visualizer.connectAudio(node);
+    });
 
     const resizeObserver = new ResizeObserver(() => {
       const w = Math.max(1, container.clientWidth);
@@ -81,6 +87,7 @@ export const ScreensaverCanvas: React.FC<{ preset: string }> = ({ preset }) => {
     tick();
 
     return () => {
+      cancelled = true;
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
       visualizerRef.current = null;

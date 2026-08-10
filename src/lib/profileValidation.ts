@@ -70,13 +70,16 @@ const YOUTUBE_VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
  */
 export function sanitizeProfileTrack(input: ProfileTrack | null | undefined): ProfileTrack | null {
   if (!input || !input.value) return null;
-  const title = input.title ? input.title.slice(0, MAX_PROFILE_TRACK_TITLE_LENGTH) : undefined;
+  // Firestore rejects `undefined` anywhere in a document, even nested -
+  // omit the key entirely rather than setting it to undefined when there's
+  // no title, or the whole customization write throws.
+  const titleField = input.title ? { title: input.title.slice(0, MAX_PROFILE_TRACK_TITLE_LENGTH) } : {};
 
   if (input.type === 'youtube' && YOUTUBE_VIDEO_ID_RE.test(input.value)) {
-    return { type: 'youtube', value: input.value, title };
+    return { type: 'youtube', value: input.value, ...titleField };
   }
   if (input.type === 'upload' && isValidBackgroundImageUrl(input.value)) {
-    return { type: 'upload', value: input.value, title };
+    return { type: 'upload', value: input.value, ...titleField };
   }
   return null;
 }
@@ -204,16 +207,22 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
 
   const showcases = (input.showcases || [])
     .slice(0, MAX_SHOWCASES)
-    .map((s) => ({
-      id: s.id,
-      title: (s.title || 'SHOWCASE').slice(0, 40),
-      type: SHOWCASE_TYPES.includes(s.type as ShowcaseType) ? (s.type as ShowcaseType) : 'albums',
-      albumIds: (s.albumIds || []).slice(0, MAX_ALBUMS_PER_SHOWCASE),
-      text: (s.text || '').slice(0, MAX_SHOWCASE_TEXT_LENGTH),
-      textStyle: sanitizeTextStyle(s.textStyle),
-      titleStyle: sanitizeTextStyle(s.titleStyle),
-      imageUrl: s.imageUrl && isValidBackgroundImageUrl(s.imageUrl) ? s.imageUrl : undefined,
-    }));
+    .map((s) => {
+      // Same "omit rather than undefined" rule as sanitizeProfileTrack -
+      // Firestore rejects an explicit undefined field even nested inside
+      // an array element.
+      const imageUrlField = s.imageUrl && isValidBackgroundImageUrl(s.imageUrl) ? { imageUrl: s.imageUrl } : {};
+      return {
+        id: s.id,
+        title: (s.title || 'SHOWCASE').slice(0, 40),
+        type: SHOWCASE_TYPES.includes(s.type as ShowcaseType) ? (s.type as ShowcaseType) : 'albums',
+        albumIds: (s.albumIds || []).slice(0, MAX_ALBUMS_PER_SHOWCASE),
+        text: (s.text || '').slice(0, MAX_SHOWCASE_TEXT_LENGTH),
+        textStyle: sanitizeTextStyle(s.textStyle),
+        titleStyle: sanitizeTextStyle(s.titleStyle),
+        ...imageUrlField,
+      };
+    });
 
   const avatarFrame = sanitizeAvatarFrame(input.avatarFrame);
   const profileTrack = sanitizeProfileTrack(input.profileTrack);

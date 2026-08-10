@@ -25,12 +25,19 @@ interface AudioEngineContextValue {
    *  Milkdrop screensaver to tap into for audio-reactive visuals; not
    *  required for volume control. */
   setActiveElement: (el: HTMLAudioElement | null) => void;
-  /** Lazily builds (once) a shared AudioContext + wraps the currently
-   *  active element into it, returning an AudioNode the screensaver can
-   *  feed into Butterchurn's connectAudio(). Each HTMLMediaElement can only
-   *  ever be wrapped by createMediaElementSource once in its lifetime, so
-   *  wrapped nodes are cached and reused here rather than in the caller. */
-  getVisualizerSource: () => { audioContext: AudioContext; node: AudioNode } | null;
+  /** Synchronously returns the shared AudioContext (lazily creating it) -
+   *  Butterchurn needs an AudioContext instance up front to render at all,
+   *  before we know whether wrapping the active element is even possible. */
+  getAudioContext: () => AudioContext;
+  /** Resumes the shared context and wraps the currently active element into
+   *  it, returning an AudioNode the screensaver can feed into Butterchurn's
+   *  connectAudio(). Each HTMLMediaElement can only ever be wrapped by
+   *  createMediaElementSource once in its lifetime, so wrapped nodes are
+   *  cached and reused here. Wrapping an element reroutes its audio output
+   *  through the graph, so this only does it once the context is confirmed
+   *  'running' - otherwise it returns null rather than risk muting
+   *  whatever's currently playing. */
+  connectVisualizerAudio: () => Promise<AudioNode | null>;
 }
 
 const AudioEngineContext = createContext<AudioEngineContextValue | null>(null);
@@ -53,32 +60,43 @@ export const AudioEngineProvider: React.FC<{ children: React.ReactNode }> = ({ c
     activeElementRef.current = el;
   }, []);
 
-  const getVisualizerSource = useCallback(() => {
-    const el = activeElementRef.current;
-    if (!el) return null;
-
+  const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new AudioContext();
     }
-    const audioContext = audioContextRef.current;
-    if (audioContext.state === 'suspended') {
-      void audioContext.resume();
-    }
-
-    let node = sourceNodesRef.current.get(el);
-    if (!node) {
-      // Wrapping an element into the graph intercepts its output - it must
-      // be reconnected to destination or the element goes silent.
-      node = audioContext.createMediaElementSource(el);
-      node.connect(audioContext.destination);
-      sourceNodesRef.current.set(el, node);
-    }
-    return { audioContext, node };
+    return audioContextRef.current;
   }, []);
 
+  const connectVisualizerAudio = useCallback(async () => {
+    const el = activeElementRef.current;
+    if (!el) return null;
+
+    const audioContext = getAudioContext();
+
+    const existing = sourceNodesRef.current.get(el);
+    if (existing) return existing;
+
+    if (audioContext.state === 'suspended') {
+      try {
+        await audioContext.resume();
+      } catch {
+        // ignore - handled by the running-state check below
+      }
+    }
+    // createMediaElementSource permanently reroutes the element's output
+    // through this graph - only do that once we know the graph will
+    // actually process audio, or the element would go silent for good.
+    if (audioContext.state !== 'running') return null;
+
+    const node = audioContext.createMediaElementSource(el);
+    node.connect(audioContext.destination);
+    sourceNodesRef.current.set(el, node);
+    return node;
+  }, [getAudioContext]);
+
   const value = useMemo<AudioEngineContextValue>(
-    () => ({ volume, setVolume, setActiveElement, getVisualizerSource }),
-    [volume, setVolume, setActiveElement, getVisualizerSource]
+    () => ({ volume, setVolume, setActiveElement, getAudioContext, connectVisualizerAudio }),
+    [volume, setVolume, setActiveElement, getAudioContext, connectVisualizerAudio]
   );
 
   return <AudioEngineContext.Provider value={value}>{children}</AudioEngineContext.Provider>;
