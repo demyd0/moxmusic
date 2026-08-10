@@ -7,7 +7,7 @@ import { AlbumCard } from '@/components/AlbumCard';
 import { CollectionAlbumCard } from '@/components/CollectionAlbumCard';
 import { ManualAlbumModal } from '@/components/ManualAlbumModal';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
-import { searchAlbums, fetchRecommendations } from '@/services/musicSearch';
+import { searchAlbums, fetchRecommendations, fetchGenreRecommendations } from '@/services/musicSearch';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { getUserProfile } from '@/services/userService';
 import {
@@ -33,8 +33,12 @@ import {
   Check,
   ArrowUpDown,
   Music2,
-  Disc
+  Disc,
+  Filter,
+  X
 } from 'lucide-react';
+
+const GENRE_QUICK_PICKS = ['AMBIENT', 'INDIE ROCK', 'ELECTRONIC', 'HIP-HOP', 'JAZZ', 'METAL', 'FOLK', 'PUNK'];
 
 export const HelloPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -89,6 +93,8 @@ export const HelloPage: React.FC = () => {
     isFallback: false,
   });
   const [isRecsLoading, setIsRecsLoading] = useState(true);
+  const [genreFilter, setGenreFilter] = useState('');
+  const [genreInput, setGenreInput] = useState('');
 
   // Firestore User Collections State
   const [userId, setUserId] = useState<string>('');
@@ -150,16 +156,16 @@ export const HelloPage: React.FC = () => {
     };
   }, []);
 
-  // 2. Fetch Recommendations on initial load or when liked collection updates
+  // 2. Fetch Recommendations on initial load, when liked collection updates,
+  // or when the genre filter changes.
   useEffect(() => {
     let isMounted = true;
     async function loadRecs() {
       setIsRecsLoading(true);
       try {
-        const recData = await fetchRecommendations(
-          userCollections.likedAlbums,
-          userCollections.toListenAlbums
-        );
+        const recData = genreFilter
+          ? await fetchGenreRecommendations(genreFilter, userCollections.likedAlbums, userCollections.toListenAlbums)
+          : await fetchRecommendations(userCollections.likedAlbums, userCollections.toListenAlbums);
         if (isMounted) {
           setRecommendations(recData);
         }
@@ -175,17 +181,16 @@ export const HelloPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [userCollections.likedAlbums, userCollections.toListenAlbums]);
+  }, [userCollections.likedAlbums, userCollections.toListenAlbums, genreFilter]);
 
-  // Force Refresh Recommendations
+  // Force Refresh Recommendations - genre mode always shuffles its
+  // candidate pool, so no separate forceRefresh flag is needed there.
   const handleRefreshRecs = async () => {
     setIsRecsLoading(true);
     try {
-      const recData = await fetchRecommendations(
-        userCollections.likedAlbums,
-        userCollections.toListenAlbums,
-        true // forceRefresh
-      );
+      const recData = genreFilter
+        ? await fetchGenreRecommendations(genreFilter, userCollections.likedAlbums, userCollections.toListenAlbums)
+        : await fetchRecommendations(userCollections.likedAlbums, userCollections.toListenAlbums, true);
       setRecommendations(recData);
     } catch (err) {
       console.error('Error refreshing recommendations:', err);
@@ -438,10 +443,12 @@ export const HelloPage: React.FC = () => {
                 /* DEFAULT SCREEN: SMART RECOMMENDATIONS OR ITUNES TOP CHARTS FALLBACK */
                 <section className="mt-4 border-2 border-black bg-white p-4 sm:p-6 hard-shadow">
                   {/* Recommendations Header */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-2 border-black pb-4 mb-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-2 border-black pb-4 mb-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center border-2 border-black bg-black text-white shrink-0">
-                        {recommendations.isFallback ? (
+                        {genreFilter ? (
+                          <Filter className="h-5 w-5 text-amber-400" />
+                        ) : recommendations.isFallback ? (
                           <TrendingUp className="h-5 w-5 text-emerald-400" />
                         ) : (
                           <Sparkles className="h-5 w-5 text-amber-400" />
@@ -449,12 +456,18 @@ export const HelloPage: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="font-header text-xl sm:text-2xl font-extrabold uppercase text-black">
-                          {recommendations.isFallback ? 'TOP CHARTS RECOMMENDATIONS' : 'RECOMMENDED FOR YOU'}
+                          {genreFilter
+                            ? `${genreFilter.toUpperCase()} RECOMMENDATIONS`
+                            : recommendations.isFallback
+                              ? 'TOP CHARTS RECOMMENDATIONS'
+                              : 'RECOMMENDED FOR YOU'}
                         </h3>
                         <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
-                          {recommendations.isFallback
-                            ? 'TRENDING TOP ALBUMS ON ITUNES CHARTS'
-                            : 'SMART PROFILE RECOMMENDATIONS POWERED BY LAST.FM'}
+                          {genreFilter
+                            ? `TOP ${genreFilter.toUpperCase()} ARTISTS ON LAST.FM`
+                            : recommendations.isFallback
+                              ? 'TRENDING TOP ALBUMS ON ITUNES CHARTS'
+                              : 'SMART PROFILE RECOMMENDATIONS POWERED BY LAST.FM'}
                         </p>
                       </div>
                     </div>
@@ -467,6 +480,67 @@ export const HelloPage: React.FC = () => {
                       <RefreshCw className={`h-3.5 w-3.5 ${isRecsLoading ? 'animate-spin' : ''}`} />
                       <span>REFRESH</span>
                     </button>
+                  </div>
+
+                  {/* Genre filter: type a genre or pick a quick chip to
+                      target recommendations at a specific mood/genre
+                      instead of "more like what you already like". */}
+                  <div className="mb-6 flex flex-col gap-2.5">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        setGenreFilter(genreInput.trim());
+                      }}
+                      className="flex items-stretch gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={genreInput}
+                        onChange={(e) => setGenreInput(e.target.value)}
+                        placeholder="TYPE A GENRE (E.G. 'AMBIENT', 'VAPORWAVE')..."
+                        className="flex-1 border-2 border-black bg-white px-3.5 py-2 font-mono text-xs text-black placeholder-neutral-400 focus:bg-neutral-50 focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 border-2 border-black bg-black px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white hover:bg-neutral-800 transition-all shrink-0"
+                      >
+                        <Filter className="h-3.5 w-3.5" />
+                        <span>APPLY</span>
+                      </button>
+                      {genreFilter && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGenreFilter('');
+                            setGenreInput('');
+                          }}
+                          title="Clear genre filter"
+                          className="inline-flex items-center justify-center border-2 border-black bg-white px-3 py-2 text-black hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shrink-0"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </form>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {GENRE_QUICK_PICKS.map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => {
+                            setGenreInput(g);
+                            setGenreFilter(g);
+                          }}
+                          className={`border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
+                            genreFilter.toUpperCase() === g
+                              ? 'border-black bg-black text-white'
+                              : 'border-black/20 text-neutral-500 hover:border-black/50 hover:text-black'
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {isRecsLoading ? (
@@ -491,7 +565,9 @@ export const HelloPage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="py-12 text-center font-mono text-xs text-neutral-500 uppercase tracking-wider">
-                      NO RECOMMENDATIONS FOUND AT THIS MOMENT.
+                      {genreFilter
+                        ? `NO ARTISTS TAGGED "${genreFilter.toUpperCase()}" ON LAST.FM. TRY A DIFFERENT SPELLING.`
+                        : 'NO RECOMMENDATIONS FOUND AT THIS MOMENT.'}
                     </div>
                   )}
                 </section>

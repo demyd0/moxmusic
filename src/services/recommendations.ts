@@ -82,6 +82,88 @@ async function fetchLastFmSimilar(artistName: string): Promise<{ name: string; m
 }
 
 /**
+ * Fetch top artists tagged with a given genre via Last.fm's tag.gettopartists,
+ * proxied through the same Vercel function pattern as fetchLastFmSimilar (the
+ * API key never reaches the browser).
+ */
+async function fetchLastFmTagTopArtists(tag: string): Promise<string[]> {
+  try {
+    const proxyUrl = `/api/genre-artists?tag=${encodeURIComponent(tag.trim())}`;
+    const proxyRes = await fetch(proxyUrl);
+    if (!proxyRes.ok) return [];
+
+    const data = await proxyRes.json();
+    if (!Array.isArray(data?.artists)) return [];
+
+    return data.artists.map((a: { name: string }) => a.name).filter(Boolean);
+  } catch (error) {
+    console.error(`fetchLastFmTagTopArtists failed for "${tag}":`, error);
+    return [];
+  }
+}
+
+function shuffle<T>(list: T[]): T[] {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Genre/tag-targeted recommendations - e.g. "ambient" - independent of the
+ * user's liked-artist similarity graph, for when they want to explore a
+ * specific mood/genre rather than more of what they already like.
+ */
+export async function getGenreRecommendations(
+  genre: string,
+  likedAlbums: Album[] = [],
+  toListenAlbums: Album[] = []
+): Promise<{ artistName: string; albums: Album[]; isFallback: boolean }> {
+  const trimmed = genre.trim();
+  if (!trimmed) return { artistName: trimmed, albums: [], isFallback: false };
+
+  const likedArtistSet = new Set(likedAlbums.map((a) => a.artist.trim().toLowerCase()).filter(Boolean));
+  const toListenArtistSet = new Set(toListenAlbums.map((a) => a.artist.trim().toLowerCase()).filter(Boolean));
+  const seenAlbumKeys = new Set<string>(
+    [...likedAlbums, ...toListenAlbums].map(
+      (a) => `${a.artist.toLowerCase().trim()}_${a.title.toLowerCase().trim()}`
+    )
+  );
+
+  const tagArtists = await fetchLastFmTagTopArtists(trimmed);
+  const candidateArtists = shuffle(
+    tagArtists.filter((name) => {
+      const lower = name.toLowerCase();
+      return !likedArtistSet.has(lower) && !toListenArtistSet.has(lower);
+    })
+  ).slice(0, 16);
+
+  if (candidateArtists.length === 0) {
+    return { artistName: trimmed, albums: [], isFallback: false };
+  }
+
+  const albumFetchResults = await Promise.allSettled(candidateArtists.map((name) => fetchTopAlbumsForArtist(name)));
+
+  const albums: Album[] = [];
+  for (const res of albumFetchResults) {
+    if (res.status === 'fulfilled') {
+      for (const album of res.value) {
+        const key = `${album.artist.toLowerCase().trim()}_${album.title.toLowerCase().trim()}`;
+        if (!seenAlbumKeys.has(key)) {
+          seenAlbumKeys.add(key);
+          albums.push(album);
+        }
+      }
+    }
+    if (albums.length >= 16) break;
+  }
+
+  return { artistName: trimmed, albums, isFallback: false };
+}
+
+/**
  * Fetch 1-2 top albums for a candidate artist from iTunes API
  */
 async function fetchTopAlbumsForArtist(artistName: string): Promise<Album[]> {
@@ -219,7 +301,15 @@ export async function getSmartRecommendations(
     return b.avgMatch - a.avgMatch; // Rank by average match score second
   });
 
-  const topCandidates = candidateArray.slice(0, 15);
+  // On a plain load, the best-ranked candidates give the strongest first
+  // impression. On an explicit refresh, that top-15 is 100% deterministic
+  // for a given liked collection (same Last.fm data in, same ranking out),
+  // which is why refreshing looked like it did nothing - so instead pull a
+  // shuffled slice from a wider qualified pool, still ranked-relevant, just
+  // not the exact same 15 every time.
+  const topCandidates = forceRefresh
+    ? shuffle(candidateArray.slice(0, 30)).slice(0, 15)
+    : candidateArray.slice(0, 15);
 
   // Step 5: Fetch 1-2 albums per candidate artist via iTunes lookup in parallel
   const albumFetchResults = await Promise.allSettled(

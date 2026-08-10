@@ -1,5 +1,5 @@
 import type { Album, SearchOptions, Track } from '@/types/album';
-import { getSmartRecommendations } from '@/services/recommendations';
+import { getSmartRecommendations, getGenreRecommendations } from '@/services/recommendations';
 
 // Rate Limiter state for MusicBrainz (strict 1 req/sec max)
 let lastMbCallTimestamp = 0;
@@ -487,4 +487,16 @@ export async function fetchRecommendations(
   forceRefresh = false
 ): Promise<{ artistName: string; albums: Album[]; isFallback: boolean }> {
   return getSmartRecommendations(likedAlbums, toListenAlbums, forceRefresh);
+}
+
+/**
+ * Genre/tag-targeted recommendations wrapper - see getGenreRecommendations
+ * in recommendations.ts.
+ */
+export async function fetchGenreRecommendations(
+  genre: string,
+  likedAlbums: Album[] = [],
+  toListenAlbums: Album[] = []
+): Promise<{ artistName: string; albums: Album[]; isFallback: boolean }> {
+  return getGenreRecommendations(genre, likedAlbums, toListenAlbums);
 }
