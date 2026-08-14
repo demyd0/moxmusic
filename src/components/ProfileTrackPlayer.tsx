@@ -1,21 +1,47 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { ProfileTrack } from '@/types/profile';
-import { buildYoutubeEmbedUrl } from '@/lib/youtubeEmbed';
 import { useAudioEngine } from '@/contexts/AudioEngineContext';
-import { Music } from 'lucide-react';
+import { Music, Play, Pause } from 'lucide-react';
 
 interface ProfileTrackPlayerProps {
   track: ProfileTrack;
   accentColor: string;
 }
 
+let ytApiPromise: Promise<void> | null = null;
+
+/** Loads the YouTube IFrame Player API script once (shared across every
+ *  mounted ProfileTrackPlayer) and resolves once window.YT is ready. */
+function loadYoutubeIframeApi(): Promise<void> {
+  if (window.YT?.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise((resolve) => {
+    const previous = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previous?.();
+      resolve();
+    };
+    const script = document.createElement('script');
+    script.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(script);
+  });
+  return ytApiPromise;
+}
+
 /** Starts playing as soon as the profile loads, like the visitor already
  *  hit play - browsers may still block autoplay-with-sound without a prior
- *  gesture, in which case the native <audio>/YouTube controls fall back to
- *  a normal paused state the visitor can tap. */
+ *  gesture, in which case the play/pause button lets the visitor start it
+ *  manually. The YouTube variant renders no visible video: it drives the
+ *  IFrame Player API against an off-screen 1px iframe and exposes only a
+ *  play/pause button + the site's volume slider, since nobody wants a tiny
+ *  video window cluttering a profile page. */
 export const ProfileTrackPlayer: React.FC<ProfileTrackPlayerProps> = ({ track, accentColor }) => {
   const { volume, setActiveElement } = useAudioEngine();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const youtubeContainerRef = useRef<HTMLDivElement>(null);
+  const youtubePlayerRef = useRef<YTPlayer | null>(null);
+  const [isYoutubePlaying, setIsYoutubePlaying] = useState(false);
+  const [isYoutubeReady, setIsYoutubeReady] = useState(false);
 
   useEffect(() => {
     if (track.type !== 'upload') return;
@@ -37,6 +63,53 @@ export const ProfileTrackPlayer: React.FC<ProfileTrackPlayerProps> = ({ track, a
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track.type, track.value]);
 
+  useEffect(() => {
+    if (track.type !== 'youtube') return;
+    let cancelled = false;
+    setIsYoutubeReady(false);
+    loadYoutubeIframeApi().then(() => {
+      if (cancelled || !youtubeContainerRef.current || !window.YT) return;
+      const player = window.YT.Player;
+      youtubePlayerRef.current = new player(youtubeContainerRef.current, {
+        videoId: track.value,
+        width: 1,
+        height: 1,
+        playerVars: { autoplay: 1, controls: 0, disablekb: 1, playsinline: 1 },
+        events: {
+          onReady: (e) => {
+            if (cancelled) return;
+            e.target.setVolume(Math.round(volume * 100));
+            e.target.playVideo();
+            setIsYoutubeReady(true);
+          },
+          onStateChange: (e) => {
+            if (cancelled || !window.YT) return;
+            setIsYoutubePlaying(e.data === window.YT.PlayerState.PLAYING);
+          },
+        },
+      });
+    });
+    return () => {
+      cancelled = true;
+      youtubePlayerRef.current?.destroy();
+      youtubePlayerRef.current = null;
+      setIsYoutubeReady(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track.type, track.value]);
+
+  useEffect(() => {
+    if (track.type !== 'youtube' || !isYoutubeReady) return;
+    youtubePlayerRef.current?.setVolume(Math.round(volume * 100));
+  }, [volume, track.type, isYoutubeReady]);
+
+  const toggleYoutubePlayback = () => {
+    const player = youtubePlayerRef.current;
+    if (!player) return;
+    if (isYoutubePlaying) player.pauseVideo();
+    else player.playVideo();
+  };
+
   if (track.type === 'upload') {
     return (
       <div className="flex items-center gap-2.5 border-2 bg-white/95 backdrop-blur-sm px-3.5 py-2.5 hard-shadow-sm" style={{ borderColor: accentColor }}>
@@ -55,15 +128,23 @@ export const ProfileTrackPlayer: React.FC<ProfileTrackPlayerProps> = ({ track, a
   }
 
   return (
-    <div className="border-2 overflow-hidden hard-shadow-sm" style={{ borderColor: accentColor }}>
-      <iframe
-        width="100%"
-        height="80"
-        src={`${buildYoutubeEmbedUrl(track.value)}?autoplay=1`}
-        title="Profile track"
-        allow="autoplay; encrypted-media"
-        className="block"
-      />
+    <div className="relative flex items-center gap-2.5 border-2 bg-white/95 backdrop-blur-sm px-3.5 py-2.5 hard-shadow-sm" style={{ borderColor: accentColor }}>
+      <button
+        type="button"
+        onClick={toggleYoutubePlayback}
+        disabled={!isYoutubeReady}
+        title={isYoutubePlaying ? 'Pause' : 'Play'}
+        className="flex h-7 w-7 shrink-0 items-center justify-center border-2 transition-opacity disabled:opacity-40"
+        style={{ borderColor: accentColor, color: accentColor }}
+      >
+        {isYoutubePlaying ? <Pause className="h-3.5 w-3.5 fill-current" /> : <Play className="h-3.5 w-3.5 fill-current" />}
+      </button>
+      <span className="min-w-0 truncate font-mono text-xs font-bold uppercase tracking-wider" style={{ color: accentColor }}>
+        {track.title || 'PROFILE TRACK'}
+      </span>
+      {/* Off-screen - the IFrame API replaces this div with a 1x1 iframe,
+          audio-only, no video chrome shown to visitors. */}
+      <div ref={youtubeContainerRef} className="absolute h-px w-px overflow-hidden opacity-0" aria-hidden="true" />
     </div>
   );
 };

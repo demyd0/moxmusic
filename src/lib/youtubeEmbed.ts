@@ -36,7 +36,3 @@ export function extractYoutubeVideoId(input: string): string | null {
 
   return null;
 }
-
-export function buildYoutubeEmbedUrl(videoId: string): string {
-  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`;
-}
