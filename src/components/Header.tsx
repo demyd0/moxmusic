@@ -329,7 +329,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 border-l-2 border-black bg-white text-black hover:bg-neutral-100 transition-all"
             title="Import your library"
           >
-            <Upload className="h-3.5 w-3.5" />
+            <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">IMPORT</span>
           </button>
         </nav>
@@ -532,7 +532,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={handleExportData}
                     className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-black border border-black bg-white hover:bg-neutral-100 transition-all mb-2 hard-shadow-sm"
                   >
-                    <Download className="h-4 w-4" />
+                    <Upload className="h-4 w-4" />
                     <span>EXPORT MY DATA</span>
                   </button>
 
