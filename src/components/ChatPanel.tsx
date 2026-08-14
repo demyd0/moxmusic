@@ -6,6 +6,7 @@ import { subscribeUserCollections } from '@/services/collectionService';
 import type { ChatMessage, SharedAlbumRef } from '@/types/chat';
 import type { Album } from '@/types/album';
 import { getPreferredService } from '@/lib/streamingServices';
+import { omitUndefined } from '@/lib/utils';
 import { ChatAlbumPicker } from './ChatAlbumPicker';
 import { ReactionBar } from './ReactionBar';
 import { X, ArrowLeft, Send, Disc3, MessageCircle, ImagePlus, Music2, SmilePlus } from 'lucide-react';
@@ -66,15 +67,19 @@ export const ChatPanel: React.FC = () => {
   const handlePickAlbum = async (album: Album) => {
     setShowAlbumPicker(false);
     if (!activeConversationId) return;
+    // Firestore rejects an explicit `undefined` anywhere in a document -
+    // kind/albumTitle/coverUrl are only sometimes present (e.g. kind is
+    // unset for a full album, only set for an individually-shared track),
+    // so omit rather than pass them through as undefined.
     await sendMessage(activeConversationId, currentUserId, {
-      album: {
+      album: omitUndefined({
         id: album.id,
         title: album.title,
         artist: album.artist,
         coverUrl: album.coverUrl,
         kind: album.kind,
         albumTitle: album.albumTitle,
-      },
+      }) as SharedAlbumRef,
     });
   };
 
