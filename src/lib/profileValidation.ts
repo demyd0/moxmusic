@@ -4,6 +4,8 @@ import type {
   ProfileCustomization,
   ProfileTrack,
   ShowcaseType,
+  MediaFit,
+  MediaSize,
   TextStyle,
   TextFont,
   TextEffect,
@@ -11,6 +13,8 @@ import type {
 } from '@/types/profile';
 import {
   DEFAULT_TEXT_STYLE,
+  DEFAULT_MEDIA_FIT,
+  DEFAULT_MEDIA_SIZE,
   MAX_ALBUMS_PER_SHOWCASE,
   MAX_BIO_LENGTH,
   MAX_PROFILE_TRACK_TITLE_LENGTH,
@@ -20,6 +24,33 @@ import {
 import { sanitizeAvatarFrame } from './avatarFrames';
 
 const SHOWCASE_TYPES: ShowcaseType[] = ['albums', 'text', 'mixed', 'media'];
+
+export const MEDIA_FITS: { value: MediaFit; label: string }[] = [
+  { value: 'cover', label: 'FILL (CROP)' },
+  { value: 'contain', label: 'FIT (NO CROP)' },
+];
+
+export const MEDIA_SIZES: { value: MediaSize; label: string; maxHeightRem: number }[] = [
+  { value: 'small', label: 'SMALL', maxHeightRem: 12 },
+  { value: 'medium', label: 'MEDIUM', maxHeightRem: 20 },
+  { value: 'large', label: 'LARGE', maxHeightRem: 32 },
+  { value: 'full', label: 'FULL', maxHeightRem: 48 },
+];
+
+const MEDIA_FIT_VALUES: MediaFit[] = MEDIA_FITS.map((f) => f.value);
+const MEDIA_SIZE_VALUES: MediaSize[] = MEDIA_SIZES.map((s) => s.value);
+
+export function sanitizeMediaFit(value: unknown): MediaFit {
+  return MEDIA_FIT_VALUES.includes(value as MediaFit) ? (value as MediaFit) : DEFAULT_MEDIA_FIT;
+}
+
+export function sanitizeMediaSize(value: unknown): MediaSize {
+  return MEDIA_SIZE_VALUES.includes(value as MediaSize) ? (value as MediaSize) : DEFAULT_MEDIA_SIZE;
+}
+
+export function mediaSizeMaxHeightRem(size: MediaSize | undefined): number {
+  return MEDIA_SIZES.find((s) => s.value === (size || DEFAULT_MEDIA_SIZE))?.maxHeightRem ?? 32;
+}
 
 export const BACKGROUND_EFFECTS: { value: BackgroundEffectType; label: string }[] = [
   { value: 'none', label: 'NONE' },
@@ -220,6 +251,8 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
         text: (s.text || '').slice(0, MAX_SHOWCASE_TEXT_LENGTH),
         textStyle: sanitizeTextStyle(s.textStyle),
         titleStyle: sanitizeTextStyle(s.titleStyle),
+        mediaFit: sanitizeMediaFit(s.mediaFit),
+        mediaSize: sanitizeMediaSize(s.mediaSize),
         ...imageUrlField,
       };
     });

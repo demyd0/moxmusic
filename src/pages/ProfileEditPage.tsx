@@ -7,7 +7,15 @@ import { getUserProfile, updateAvatarUrl } from '@/services/userService';
 import { subscribeUserCollections } from '@/services/collectionService';
 import { getProfileCustomization, saveProfileCustomization } from '@/services/profileService';
 import { getFollowerCount, getFollowingCount } from '@/services/followService';
-import { backgroundToCss, isValidHexColor, isValidBackgroundImageUrl, BACKGROUND_EFFECTS } from '@/lib/profileValidation';
+import {
+  backgroundToCss,
+  isValidHexColor,
+  isValidBackgroundImageUrl,
+  BACKGROUND_EFFECTS,
+  MEDIA_FITS,
+  MEDIA_SIZES,
+  mediaSizeMaxHeightRem,
+} from '@/lib/profileValidation';
 import { AVATAR_FRAMES, avatarFrameWrapperClassName } from '@/lib/avatarFrames';
 import {
   getUnlockedFrames,
@@ -28,11 +36,15 @@ import {
   MAX_BIO_LENGTH,
   MAX_SHOWCASES,
   MAX_SHOWCASE_TEXT_LENGTH,
+  DEFAULT_MEDIA_FIT,
+  DEFAULT_MEDIA_SIZE,
   type ProfileCustomization,
   type ProfileBackgroundType,
   type ShowcaseType,
   type TextStyle,
   type BackgroundEffectType,
+  type MediaFit,
+  type MediaSize,
 } from '@/types/profile';
 import type { Album } from '@/types/album';
 import { StyledTextField } from '@/components/StyledTextField';
@@ -277,6 +289,20 @@ export const ProfileEditPage: React.FC = () => {
     setCustomization((c) => ({
       ...c,
       showcases: c.showcases.map((s) => (s.id === id ? { ...s, imageUrl } : s)),
+    }));
+  };
+
+  const setShowcaseMediaFit = (id: string, mediaFit: MediaFit) => {
+    setCustomization((c) => ({
+      ...c,
+      showcases: c.showcases.map((s) => (s.id === id ? { ...s, mediaFit } : s)),
+    }));
+  };
+
+  const setShowcaseMediaSize = (id: string, mediaSize: MediaSize) => {
+    setCustomization((c) => ({
+      ...c,
+      showcases: c.showcases.map((s) => (s.id === id ? { ...s, mediaSize } : s)),
     }));
   };
 
@@ -801,9 +827,62 @@ export const ProfileEditPage: React.FC = () => {
                                 MUST BE AN HTTPS:// URL
                               </p>
                             )}
+
+                            <div className="mt-2.5 flex flex-wrap gap-3">
+                              <div>
+                                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-400">FIT</p>
+                                <div className="flex gap-1.5">
+                                  {MEDIA_FITS.map((f) => (
+                                    <button
+                                      key={f.value}
+                                      type="button"
+                                      onClick={() => setShowcaseMediaFit(showcase.id, f.value)}
+                                      className={`border-2 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                        (showcase.mediaFit || DEFAULT_MEDIA_FIT) === f.value
+                                          ? 'border-black bg-black text-white'
+                                          : 'border-black/20 text-neutral-400 hover:border-black/50 hover:text-black'
+                                      }`}
+                                    >
+                                      {f.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-400">SIZE</p>
+                                <div className="flex gap-1.5">
+                                  {MEDIA_SIZES.map((sz) => (
+                                    <button
+                                      key={sz.value}
+                                      type="button"
+                                      onClick={() => setShowcaseMediaSize(showcase.id, sz.value)}
+                                      className={`border-2 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                        (showcase.mediaSize || DEFAULT_MEDIA_SIZE) === sz.value
+                                          ? 'border-black bg-black text-white'
+                                          : 'border-black/20 text-neutral-400 hover:border-black/50 hover:text-black'
+                                      }`}
+                                    >
+                                      {sz.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
                             {showcase.imageUrl && isValidBackgroundImageUrl(showcase.imageUrl) && (
-                              <div className="mt-2 max-h-48 overflow-hidden border-2 border-black">
-                                <img src={showcase.imageUrl} alt="" className="w-full object-cover" />
+                              <div
+                                className="mt-2.5 overflow-hidden border-2 border-black bg-neutral-100"
+                                style={{ maxHeight: `${mediaSizeMaxHeightRem(showcase.mediaSize)}rem` }}
+                              >
+                                <img
+                                  src={showcase.imageUrl}
+                                  alt=""
+                                  className="w-full"
+                                  style={{
+                                    objectFit: (showcase.mediaFit || DEFAULT_MEDIA_FIT) === 'contain' ? 'contain' : 'cover',
+                                    maxHeight: `${mediaSizeMaxHeightRem(showcase.mediaSize)}rem`,
+                                  }}
+                                />
                               </div>
                             )}
                           </div>

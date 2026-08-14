@@ -20,13 +20,13 @@ import {
   getFollowing,
   type FollowUser
 } from '@/services/followService';
-import { backgroundToCss, isValidHexColor, textStyleToCss } from '@/lib/profileValidation';
+import { backgroundToCss, isValidHexColor, textStyleToCss, mediaSizeMaxHeightRem } from '@/lib/profileValidation';
 import { computeTopGenres } from '@/lib/genreBadges';
 import { sortAlbums } from '@/lib/collectionSort';
 import { avatarFrameWrapperClassName } from '@/lib/avatarFrames';
 import { auth, signInWithGoogle } from '@/lib/firebase';
 import { useChat } from '@/contexts/ChatContext';
-import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, DEFAULT_TITLE_STYLE, type ProfileCustomization } from '@/types/profile';
+import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, DEFAULT_TITLE_STYLE, DEFAULT_MEDIA_FIT, type ProfileCustomization } from '@/types/profile';
 import type { Album } from '@/types/album';
 import { Heart, Disc3, Loader2, ArrowLeft, UserX, Settings, UserPlus, UserCheck, Music, Eye, MessageCircle } from 'lucide-react';
 
@@ -433,8 +433,19 @@ export const ProfilePage: React.FC = () => {
                       </p>
                     )}
                     {hasImage && (
-                      <div className="max-h-[32rem] overflow-hidden border-2 border-black">
-                        <img src={showcase.imageUrl} alt={showcase.title} className="w-full object-cover" />
+                      <div
+                        className="overflow-hidden border-2 border-black bg-neutral-100 flex items-center justify-center"
+                        style={{ maxHeight: `${mediaSizeMaxHeightRem(showcase.mediaSize)}rem` }}
+                      >
+                        <img
+                          src={showcase.imageUrl}
+                          alt={showcase.title}
+                          className="w-full"
+                          style={{
+                            objectFit: (showcase.mediaFit || DEFAULT_MEDIA_FIT) === 'contain' ? 'contain' : 'cover',
+                            maxHeight: `${mediaSizeMaxHeightRem(showcase.mediaSize)}rem`,
+                          }}
+                        />
                       </div>
                     )}
                     {hasAlbums && (

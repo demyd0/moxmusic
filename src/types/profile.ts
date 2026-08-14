@@ -18,6 +18,15 @@ export interface ProfileBackground {
 
 export type ShowcaseType = 'albums' | 'text' | 'mixed' | 'media';
 
+/** How a 'media' showcase's image/gif fills its box - COVER crops to fill
+ *  (can crop off the edges/subject), CONTAIN shows the whole image
+ *  letterboxed if the aspect ratio doesn't match. */
+export type MediaFit = 'cover' | 'contain';
+/** Max-height preset for a 'media' showcase - a fixed set of sizes rather
+ *  than a free-form pixel input, same reasoning as everywhere else this
+ *  app offers a curated list instead of raw numeric/CSS input. */
+export type MediaSize = 'small' | 'medium' | 'large' | 'full';
+
 /** Curated font/color/effect presets for bio & showcase text - deliberately
  *  NOT free-form CSS/HTML, so this can't become an XSS or layout-breaking
  *  vector the way a raw rich-text editor would. See sanitizeTextStyle(). */
@@ -51,7 +60,14 @@ export interface ProfileShowcase {
    *  validation as a profile background image - shown large, no album
    *  grid. */
   imageUrl?: string;
+  /** Missing on media showcases created before these fields existed -
+   *  treat as 'cover'/'large' so existing showcases render unchanged. */
+  mediaFit?: MediaFit;
+  mediaSize?: MediaSize;
 }
+
+export const DEFAULT_MEDIA_FIT: MediaFit = 'cover';
+export const DEFAULT_MEDIA_SIZE: MediaSize = 'large';
 
 /** Cosmetic ring around the avatar, earned by hitting an activity
  *  milestone (see src/lib/milestones.ts). Client-checked only - like the
