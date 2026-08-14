@@ -10,7 +10,9 @@ import { buildGeniusSearchUrl } from '@/lib/genius';
 import { getPreferredService, type StreamingService } from '@/lib/streamingServices';
 import { StreamingServiceButton } from '@/components/StreamingServiceButton';
 import { AlbumReactionWidget } from '@/components/AlbumReactionWidget';
+import { ShareTrackModal } from '@/components/ShareTrackModal';
 import { useAudioEngine } from '@/contexts/AudioEngineContext';
+import type { SharedAlbumRef } from '@/types/chat';
 import {
   subscribeUserCollections,
   toggleLikeAlbum,
@@ -30,6 +32,7 @@ import {
   Play,
   Pause,
   Ban,
+  Send,
 } from 'lucide-react';
 
 export const AlbumDetailsPage: React.FC = () => {
@@ -42,6 +45,7 @@ export const AlbumDetailsPage: React.FC = () => {
   const [userId, setUserId] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
+  const [shareTrack, setShareTrack] = useState<SharedAlbumRef | null>(null);
   const [userCollections, setUserCollections] = useState<UserCollectionsState>({
     likedIds: new Set(),
     toListenIds: new Set(),
@@ -198,6 +202,22 @@ export const AlbumDetailsPage: React.FC = () => {
 
     const isTrackLiked = userCollections.likedIds.has(track.id);
     await toggleLikeAlbum(userId, trackAsAlbum, isTrackLiked);
+  };
+
+  const handleShareTrack = (track: Track) => {
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
+    if (!album || !track.id) return;
+    setShareTrack({
+      id: track.id,
+      title: track.title,
+      artist: album.artist,
+      coverUrl: album.coverUrl,
+      kind: 'track',
+      albumTitle: album.title,
+    });
   };
 
   const formatDuration = (ms?: number) => {
@@ -441,6 +461,16 @@ export const AlbumDetailsPage: React.FC = () => {
                                       />
                                     </button>
                                   )}
+                                  {track.id && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleShareTrack(track)}
+                                      title="Send this track in a chat"
+                                      className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-neutral-100 transition-all"
+                                    >
+                                      <Send className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
                                   {track.previewUrl && (
                                     <button
                                       type="button"
@@ -522,6 +552,10 @@ export const AlbumDetailsPage: React.FC = () => {
         onClose={() => setIsAuthPromptOpen(false)}
         onSignIn={signInWithGoogle}
       />
+
+      {shareTrack && userId && (
+        <ShareTrackModal currentUserId={userId} track={shareTrack} onClose={() => setShareTrack(null)} />
+      )}
     </div>
   );
 };

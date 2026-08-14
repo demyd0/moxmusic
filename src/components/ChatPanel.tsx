@@ -110,14 +110,26 @@ export const ChatPanel: React.FC = () => {
       >
         <div className="flex items-center justify-between border-b-2 border-black px-4 py-3 shrink-0">
           {view === 'thread' ? (
-            <button
-              type="button"
-              onClick={openList}
-              className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-black hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>{otherInfo?.username ? `@${otherInfo.username}` : 'CHAT'}</span>
-            </button>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <button type="button" onClick={openList} className="shrink-0 text-black hover:opacity-70 transition-opacity">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              {otherInfo?.username ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    close();
+                    navigate(`/profile/${otherInfo.username}`);
+                  }}
+                  title="View profile"
+                  className="truncate font-mono text-xs font-bold uppercase tracking-wider text-black hover:underline"
+                >
+                  @{otherInfo.username}
+                </button>
+              ) : (
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-black">CHAT</span>
+              )}
+            </div>
           ) : (
             <span className="font-mono text-sm font-extrabold uppercase tracking-wider text-black">MESSAGES</span>
           )}

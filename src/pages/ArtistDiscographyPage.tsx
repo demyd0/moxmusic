@@ -13,6 +13,7 @@ import {
   toggleToListenAlbum,
   type UserCollectionsState
 } from '@/services/collectionService';
+import { subscribeFollowedArtists, followArtist, unfollowArtist } from '@/services/artistFollowService';
 import type { Album } from '@/types/album';
 import {
   ArrowLeft,
@@ -20,7 +21,9 @@ import {
   Disc3,
   Loader2,
   ExternalLink,
-  Ban
+  Ban,
+  UserPlus,
+  UserCheck
 } from 'lucide-react';
 
 export const ArtistDiscographyPage: React.FC = () => {
@@ -43,14 +46,17 @@ export const ArtistDiscographyPage: React.FC = () => {
   });
   const [bandcampArtist, setBandcampArtist] = useState<BandcampLinkResult | null>(null);
   const [isBandcampLoading, setIsBandcampLoading] = useState(true);
+  const [followedArtistIds, setFollowedArtistIds] = useState<Set<string>>(new Set());
 
   // Subscribe to user collections for Like / Listen states
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
+    let unsubArtists: (() => void) | undefined;
     async function initUser() {
       const uid = await getOrCreateUserId();
       setUserId(uid);
       unsubscribe = subscribeUserCollections(uid, (state) => setUserCollections(state));
+      unsubArtists = subscribeFollowedArtists(uid, (artists) => setFollowedArtistIds(new Set(artists.map((a) => a.artistId))));
     }
     initUser();
 
@@ -60,6 +66,7 @@ export const ArtistDiscographyPage: React.FC = () => {
 
     return () => {
       if (unsubscribe) unsubscribe();
+      if (unsubArtists) unsubArtists();
       unsubAuth();
     };
   }, []);
@@ -121,6 +128,22 @@ export const ArtistDiscographyPage: React.FC = () => {
     await toggleToListenAlbum(userId, album, isToListen);
   };
 
+  const artistId = id ? decodeURIComponent(id) : '';
+  const isFollowingArtist = followedArtistIds.has(artistId);
+
+  const handleToggleFollowArtist = async () => {
+    if (!isAuthenticated) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
+    if (!userId || !artistId) return;
+    if (isFollowingArtist) {
+      await unfollowArtist(userId, artistId);
+    } else {
+      await followArtist(userId, artistId, artistName);
+    }
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
       <div>
@@ -159,6 +182,17 @@ export const ArtistDiscographyPage: React.FC = () => {
               <span className="border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hard-shadow-sm">
                 {albums.length} ALBUMS
               </span>
+
+              <button
+                type="button"
+                onClick={handleToggleFollowArtist}
+                className={`inline-flex items-center gap-2 border-2 border-black px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-all hard-shadow-sm ${
+                  isFollowingArtist ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                }`}
+              >
+                {isFollowingArtist ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                <span>{isFollowingArtist ? 'FOLLOWING' : 'FOLLOW ARTIST'}</span>
+              </button>
 
               {isBandcampLoading ? (
                 <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-neutral-400 hard-shadow-sm">

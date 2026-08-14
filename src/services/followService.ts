@@ -101,3 +101,24 @@ export async function getFollowing(uid: string): Promise<FollowUser[]> {
     return [];
   }
 }
+
+/**
+ * People who follow you AND whom you follow back - the exact set the chat
+ * feature already restricts DMs to (see isMutualFollow in firestore.rules),
+ * so this is the "who can I send this to" list for share-to-chat pickers.
+ */
+export async function getMutualFollows(uid: string): Promise<FollowUser[]> {
+  if (!uid) return [];
+  try {
+    const [followingSnap, followersSnap] = await Promise.all([
+      getDocs(query(collection(db, 'follows'), where('followerUid', '==', uid))),
+      getDocs(query(collection(db, 'follows'), where('followingUid', '==', uid))),
+    ]);
+    const followerUids = new Set(followersSnap.docs.map((d) => d.data().followerUid));
+    const mutualUids = followingSnap.docs.map((d) => d.data().followingUid).filter((u) => followerUids.has(u));
+    return resolveFollowUsers(mutualUids);
+  } catch (error) {
+    console.warn('Failed to fetch mutual follows:', error);
+    return [];
+  }
+}

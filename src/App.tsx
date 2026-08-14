@@ -8,6 +8,7 @@ import { ImportPage } from '@/pages/ImportPage';
 import { ProfileEditPage } from '@/pages/ProfileEditPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { PeoplePage } from '@/pages/PeoplePage';
+import { FollowedArtistsPage } from '@/pages/FollowedArtistsPage';
 import { useCursorSpotlight } from '@/hooks/useCursorSpotlight';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { AudioEngineProvider } from '@/contexts/AudioEngineContext';
@@ -29,6 +30,7 @@ export function App() {
             <Route path="/profile/edit" element={<ProfileEditPage />} />
             <Route path="/profile/:username" element={<ProfilePage />} />
             <Route path="/people" element={<PeoplePage />} />
+            <Route path="/artists/following" element={<FollowedArtistsPage />} />
           </Routes>
           <ChatPanel />
         </ChatProvider>
