@@ -744,6 +744,7 @@ export const ProfileEditPage: React.FC = () => {
                               style={showcase.titleStyle || DEFAULT_TITLE_STYLE}
                               onStyleChange={(titleStyle) => setShowcaseTitleStyle(showcase.id, titleStyle)}
                               accentColor={customization.accentColor}
+                              placeholder="TITLE (OPTIONAL — LEAVE BLANK TO HIDE)"
                               multiline={false}
                               maxLength={40}
                             />

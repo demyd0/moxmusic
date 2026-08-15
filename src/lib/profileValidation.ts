@@ -245,7 +245,10 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
       const imageUrlField = s.imageUrl && isValidBackgroundImageUrl(s.imageUrl) ? { imageUrl: s.imageUrl } : {};
       return {
         id: s.id,
-        title: (s.title || 'SHOWCASE').slice(0, 40),
+        // Empty is allowed and intentional - lets a showcase render without
+        // a title bar on the public profile instead of forcing a filler
+        // "SHOWCASE" label.
+        title: (s.title || '').slice(0, 40),
         type: SHOWCASE_TYPES.includes(s.type as ShowcaseType) ? (s.type as ShowcaseType) : 'albums',
         albumIds: (s.albumIds || []).slice(0, MAX_ALBUMS_PER_SHOWCASE),
         text: (s.text || '').slice(0, MAX_SHOWCASE_TEXT_LENGTH),

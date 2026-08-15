@@ -418,12 +418,14 @@ export const ProfilePage: React.FC = () => {
                     className="border-2 bg-white/95 backdrop-blur-sm p-5 hard-shadow mb-6"
                     style={{ borderColor: accent }}
                   >
-                    <h3
-                      className="text-lg font-extrabold uppercase mb-4"
-                      style={textStyleToCss(showcase.titleStyle || DEFAULT_TITLE_STYLE, accent)}
-                    >
-                      {showcase.title}
-                    </h3>
+                    {showcase.title.trim() && (
+                      <h3
+                        className="text-lg font-extrabold uppercase mb-4"
+                        style={textStyleToCss(showcase.titleStyle || DEFAULT_TITLE_STYLE, accent)}
+                      >
+                        {showcase.title}
+                      </h3>
+                    )}
                     {hasText && (
                       <p
                         className={`text-sm whitespace-pre-wrap ${hasAlbums ? 'mb-4' : ''}`}
