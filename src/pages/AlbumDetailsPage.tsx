@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { fetchAlbumWithTracklist } from '@/services/musicSearch';
 import { fetchBandcampLinks, type BandcampLookupResponse } from '@/services/bandcamp';
+import { fetchAlbumInfo } from '@/services/artistInfoService';
 import { getOrCreateUserId, auth, signInWithGoogle } from '@/lib/firebase';
 import { buildGeniusSearchUrl } from '@/lib/genius';
 import { getPreferredService, type StreamingService } from '@/lib/streamingServices';
@@ -53,6 +54,7 @@ export const AlbumDetailsPage: React.FC = () => {
     toListenAlbums: [],
   });
   const [bandcamp, setBandcamp] = useState<BandcampLookupResponse | null>(null);
+  const [albumSummary, setAlbumSummary] = useState<string>('');
   const [isBandcampLoading, setIsBandcampLoading] = useState(true);
   const [preferredService, setPreferredServiceState] = useState<StreamingService>(getPreferredService);
   const { volume, setActiveElement } = useAudioEngine();
@@ -137,11 +139,18 @@ export const AlbumDetailsPage: React.FC = () => {
           setPlayingTrackNumber(null);
           setAlbum(resolvedAlbum);
           setTracks(tracklist);
+          setAlbumSummary('');
         }
 
         if (resolvedAlbum.artist !== 'Unknown Artist') {
-          const bandcampResult = await fetchBandcampLinks(resolvedAlbum.artist, resolvedAlbum.title);
-          if (isMounted) setBandcamp(bandcampResult);
+          const [bandcampResult, summary] = await Promise.all([
+            fetchBandcampLinks(resolvedAlbum.artist, resolvedAlbum.title),
+            fetchAlbumInfo(resolvedAlbum.artist, resolvedAlbum.title),
+          ]);
+          if (isMounted) {
+            setBandcamp(bandcampResult);
+            setAlbumSummary(summary);
+          }
         } else if (isMounted) {
           setBandcamp(null);
         }
@@ -299,6 +308,12 @@ export const AlbumDetailsPage: React.FC = () => {
                       <span className="inline-block border border-black bg-white px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-neutral-700 mb-4">
                         GENRE: {album.genre}
                       </span>
+                    )}
+
+                    {albumSummary && (
+                      <p className="font-mono text-sm leading-relaxed text-neutral-700 mb-4">
+                        {albumSummary}
+                      </p>
                     )}
 
                     {userId && (

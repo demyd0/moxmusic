@@ -14,6 +14,7 @@ import {
   type UserCollectionsState
 } from '@/services/collectionService';
 import { subscribeFollowedArtists, followArtist, unfollowArtist } from '@/services/artistFollowService';
+import { fetchArtistInfo, fetchArtistEvents, type ArtistInfo, type ArtistEvent } from '@/services/artistInfoService';
 import type { Album } from '@/types/album';
 import {
   ArrowLeft,
@@ -23,8 +24,17 @@ import {
   ExternalLink,
   Ban,
   UserPlus,
-  UserCheck
+  UserCheck,
+  Calendar,
+  MapPin,
+  Ticket
 } from 'lucide-react';
+
+function formatEventDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+}
 
 export const ArtistDiscographyPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +57,8 @@ export const ArtistDiscographyPage: React.FC = () => {
   const [bandcampArtist, setBandcampArtist] = useState<BandcampLinkResult | null>(null);
   const [isBandcampLoading, setIsBandcampLoading] = useState(true);
   const [followedArtistIds, setFollowedArtistIds] = useState<Set<string>>(new Set());
+  const [artistInfo, setArtistInfo] = useState<ArtistInfo | null>(null);
+  const [events, setEvents] = useState<ArtistEvent[]>([]);
 
   // Subscribe to user collections for Like / Listen states
   useEffect(() => {
@@ -79,6 +91,8 @@ export const ArtistDiscographyPage: React.FC = () => {
     async function loadDiscography() {
       setIsLoading(true);
       setIsBandcampLoading(true);
+      setArtistInfo(null);
+      setEvents([]);
       try {
         const decodedId = decodeURIComponent(id!);
         const res = await fetchArtistDiscography(decodedId, nameHint);
@@ -87,9 +101,15 @@ export const ArtistDiscographyPage: React.FC = () => {
           setAlbums(res.albums);
         }
 
-        const bandcamp = await fetchBandcampLinks(res.artistName);
+        const [bandcamp, info, upcomingEvents] = await Promise.all([
+          fetchBandcampLinks(res.artistName),
+          fetchArtistInfo(res.artistName),
+          fetchArtistEvents(res.artistName),
+        ]);
         if (isMounted) {
           setBandcampArtist(bandcamp.artist);
+          setArtistInfo(info);
+          setEvents(upcomingEvents);
         }
       } catch (err) {
         console.error('Discography load error:', err);
@@ -217,6 +237,54 @@ export const ArtistDiscographyPage: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Artist Bio */}
+          {artistInfo?.summary && (
+            <p className="font-mono text-sm leading-relaxed text-neutral-700 max-w-3xl mb-8 -mt-2">
+              {artistInfo.summary}
+            </p>
+          )}
+
+          {/* Upcoming Shows */}
+          {events.length > 0 && (
+            <div className="border-2 border-black bg-white hard-shadow mb-8">
+              <div className="flex items-center gap-2 border-b-2 border-black px-4 py-3">
+                <Calendar className="h-4 w-4" />
+                <h2 className="font-header text-sm font-extrabold uppercase tracking-wider text-black">
+                  UPCOMING SHOWS
+                </h2>
+              </div>
+              <div className="divide-y-2 divide-black">
+                {events.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                      <span className="font-mono text-xs font-bold uppercase tracking-wider text-black whitespace-nowrap">
+                        {formatEventDate(event.date)}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 font-mono text-xs text-neutral-600">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        {[event.venueName, event.city, event.region || event.country].filter(Boolean).join(', ')}
+                      </span>
+                    </div>
+                    {event.ticketUrl && (
+                      <a
+                        href={event.ticketUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 self-start sm:self-auto border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all"
+                      >
+                        <Ticket className="h-3.5 w-3.5" />
+                        <span>TICKETS</span>
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 4-Column Discography Album Grid */}
           {isLoading ? (
