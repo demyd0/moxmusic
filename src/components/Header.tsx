@@ -44,7 +44,8 @@ import {
   VolumeX,
   Mic2,
   Bell,
-  UserPlus
+  UserPlus,
+  Sparkles
 } from 'lucide-react';
 
 const LOGO_UNLOCK_CLICKS = 5;
@@ -601,6 +602,18 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <Mic2 className="h-4 w-4" />
                     <span>FOLLOWED ARTISTS</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      navigate('/recap');
+                    }}
+                    className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-black border border-black bg-white hover:bg-black hover:text-white transition-all mb-2 hard-shadow-sm"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>YOUR RECAP</span>
                   </button>
 
                   <button
