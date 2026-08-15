@@ -20,12 +20,14 @@ const PARTICLE_COUNT: Record<Exclude<BackgroundEffectType, 'none'>, number> = {
   confetti: 50,
   fireflies: 24,
   bubbles: 28,
+  sparks: 30,
+  petals: 26,
 };
 
 /** Effects that render real colors and should NOT use 'difference'
  *  blending (which is only there to keep monochrome effects visible
  *  against any background color). */
-const NORMAL_BLEND_EFFECTS = new Set<BackgroundEffectType>(['confetti', 'fireflies', 'bubbles']);
+const NORMAL_BLEND_EFFECTS = new Set<BackgroundEffectType>(['confetti', 'fireflies', 'bubbles', 'sparks', 'petals']);
 
 function makeParticle(kind: BackgroundEffectType, w: number, h: number): Particle {
   if (kind === 'stars') {
@@ -52,6 +54,21 @@ function makeParticle(kind: BackgroundEffectType, w: number, h: number): Particl
   }
   if (kind === 'bubbles') {
     return { x: Math.random() * w, y: h + Math.random() * 100, r: Math.random() * 9 + 4, speed: Math.random() * 0.55 + 0.25, drift: 0, opacity: Math.random() * 0.5 + 0.3 };
+  }
+  if (kind === 'sparks') {
+    return { x: Math.random() * w, y: h + Math.random() * 60, r: Math.random() * 1.8 + 0.8, speed: Math.random() * 0.9 + 0.5, drift: (Math.random() - 0.5) * 0.6, opacity: Math.random() * 0.5 + 0.5, hue: Math.random() * 30 + 10 };
+  }
+  if (kind === 'petals') {
+    return {
+      x: Math.random() * w,
+      y: -20 - Math.random() * h,
+      r: Math.random() * 3.5 + 3,
+      speed: Math.random() * 0.7 + 0.4,
+      drift: (Math.random() - 0.5) * 0.5,
+      opacity: Math.random() * 0.35 + 0.55,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.05,
+    };
   }
   return { x: Math.random() * w, y: Math.random() * h, r: Math.random() * 2.5 + 1, speed: Math.random() * 0.8 + 0.4, drift: (Math.random() - 0.5) * 0.5, opacity: Math.random() * 0.5 + 0.4 };
 }
@@ -163,6 +180,40 @@ export const BackgroundEffectCanvas: React.FC<{ effect: BackgroundEffectType }> 
           ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
           ctx!.fill();
           ctx!.shadowBlur = 0;
+        } else if (effect === 'sparks') {
+          p.y -= p.speed;
+          p.x += p.drift + Math.sin(t * 3 + p.y * 0.08) * 0.3;
+          if (p.y < -p.r) {
+            p.y = height + p.r;
+            p.x = Math.random() * width;
+          }
+          const flicker = 0.5 + 0.5 * Math.sin(t * 6 + p.x * 0.1);
+          const [r, g, b] = hslToRgb((p.hue ?? 20) / 360, 1, 0.55);
+          ctx!.globalAlpha = p.opacity * flicker;
+          ctx!.fillStyle = `rgb(${r},${g},${b})`;
+          ctx!.shadowColor = `rgb(${r},${g},${b})`;
+          ctx!.shadowBlur = 6;
+          ctx!.beginPath();
+          ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx!.fill();
+          ctx!.shadowBlur = 0;
+        } else if (effect === 'petals') {
+          p.y += p.speed;
+          p.x += p.drift + Math.sin(t + p.y * 0.03) * 0.6;
+          p.rotation = (p.rotation ?? 0) + (p.rotationSpeed ?? 0);
+          if (p.y > height + 10) {
+            p.y = -10;
+            p.x = Math.random() * width;
+          }
+          ctx!.save();
+          ctx!.translate(p.x, p.y);
+          ctx!.rotate(p.rotation);
+          ctx!.globalAlpha = p.opacity;
+          ctx!.fillStyle = '#ffb3d1';
+          ctx!.beginPath();
+          ctx!.ellipse(0, 0, p.r, p.r * 0.55, 0, 0, Math.PI * 2);
+          ctx!.fill();
+          ctx!.restore();
         } else if (effect === 'bubbles') {
           p.y -= p.speed;
           p.x += Math.sin(t + p.y * 0.05) * 0.4;

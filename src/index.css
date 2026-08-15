@@ -527,6 +527,43 @@ button:active, .btn-brutalist:active {
   animation: frame-rainbow-spin 3s linear infinite;
 }
 
+@keyframes frame-emerald-glow {
+  0%, 100% { box-shadow: 0 0 10px #10b981, 0 0 2px #6ee7b7; }
+  50% { box-shadow: 0 0 20px #10b981, 0 0 8px #6ee7b7; }
+}
+.avatar-frame-emerald {
+  border-color: #10b981 !important;
+  animation: frame-emerald-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes frame-platinum-shimmer {
+  0%, 100% { box-shadow: 0 0 10px rgba(180, 200, 220, 0.8), 0 0 2px #fff; border-color: #cfe0f0 !important; }
+  50% { box-shadow: 0 0 24px rgba(140, 180, 220, 1), 0 0 10px #fff; border-color: #eaf3ff !important; }
+}
+.avatar-frame-platinum {
+  animation: frame-platinum-shimmer 1.7s ease-in-out infinite;
+}
+
+@keyframes frame-cosmic-spin {
+  to { --frame-angle: 360deg; }
+}
+.avatar-frame-cosmic {
+  border-color: transparent !important;
+  position: relative;
+}
+.avatar-frame-cosmic::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  padding: 3px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--frame-angle), #1e0b4d, #6a1cb8, #b13ce0, #ff5fd8, #6a1cb8, #1e0b4d);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: frame-cosmic-spin 4s linear infinite;
+}
+
 /* Winamp theme unlock reveal - a diagonal steel-blue/LCD-green light band
    that sweeps across the whole viewport once. The theme class is already
    swapped before this mounts (see WinampUnlockOverlay.tsx), so the sweep

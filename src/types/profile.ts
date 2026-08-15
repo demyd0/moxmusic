@@ -5,7 +5,16 @@ export type ProfileBackgroundType = 'color' | 'gradient' | 'image';
  *  free-form canvas/JS input from the user, just a choice of animation.
  *  'none'/'snow'/'stars'/'smoke' are free; the rest are earned via
  *  activity milestones (see src/lib/milestones.ts). */
-export type BackgroundEffectType = 'none' | 'snow' | 'stars' | 'smoke' | 'confetti' | 'fireflies' | 'bubbles';
+export type BackgroundEffectType =
+  | 'none'
+  | 'snow'
+  | 'stars'
+  | 'smoke'
+  | 'confetti'
+  | 'fireflies'
+  | 'bubbles'
+  | 'sparks'
+  | 'petals';
 
 export interface ProfileBackground {
   type: ProfileBackgroundType;
@@ -73,7 +82,18 @@ export const DEFAULT_MEDIA_SIZE: MediaSize = 'large';
  *  milestone (see src/lib/milestones.ts). Client-checked only - like the
  *  rest of this app there's no server-side enforcement, so this is a
  *  vanity reward, not an access-controlled asset. */
-export type AvatarFrame = 'none' | 'bronze' | 'silver' | 'gold' | 'diamond' | 'neon' | 'rainbow' | 'fire';
+export type AvatarFrame =
+  | 'none'
+  | 'bronze'
+  | 'silver'
+  | 'gold'
+  | 'diamond'
+  | 'neon'
+  | 'rainbow'
+  | 'fire'
+  | 'emerald'
+  | 'platinum'
+  | 'cosmic';
 
 /** "value" is a YouTube video id for type 'youtube', or a Firebase Storage
  *  download URL for type 'upload'. Plays on the owner's public profile. */

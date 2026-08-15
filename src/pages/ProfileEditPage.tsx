@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { auth } from '@/lib/firebase';
-import { getUserProfile, updateAvatarUrl } from '@/services/userService';
+import { getUserProfile, getPublicUserProfile, updateAvatarUrl } from '@/services/userService';
 import { subscribeUserCollections } from '@/services/collectionService';
 import { getProfileCustomization, saveProfileCustomization } from '@/services/profileService';
 import { getFollowerCount, getFollowingCount } from '@/services/followService';
+import { subscribeFollowedArtists } from '@/services/artistFollowService';
 import {
   backgroundToCss,
   isValidHexColor,
@@ -108,14 +109,18 @@ export const ProfileEditPage: React.FC = () => {
   const [trackError, setTrackError] = useState<string | null>(null);
 
   const [totalLikedCount, setTotalLikedCount] = useState(0);
+  const [toListenCount, setToListenCount] = useState(0);
   const [likedCollectionsReady, setLikedCollectionsReady] = useState(false);
   const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [followingCount, setFollowingCount] = useState<number | null>(null);
+  const [followedArtistsCount, setFollowedArtistsCount] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
   const [newlyUnlocked, setNewlyUnlocked] = useState<Milestone[]>([]);
   const hasCheckedMilestonesRef = useRef(false);
 
   useEffect(() => {
     let unsubCollections: (() => void) | undefined;
+    let unsubArtists: (() => void) | undefined;
 
     const unsubAuth = auth.onAuthStateChanged(async (user) => {
       if (!user || user.isAnonymous) {
@@ -147,18 +152,27 @@ export const ProfileEditPage: React.FC = () => {
       unsubCollections = subscribeUserCollections(user.uid, (state) => {
         setLikedAlbums(state.likedAlbums.filter((a) => a.kind !== 'track'));
         setTotalLikedCount(state.likedAlbums.length);
+        setToListenCount(state.toListenAlbums.length);
         setLikedCollectionsReady(true);
       });
 
-      const [followers, following] = await Promise.all([getFollowerCount(user.uid), getFollowingCount(user.uid)]);
+      unsubArtists = subscribeFollowedArtists(user.uid, (artists) => setFollowedArtistsCount(artists.length));
+
+      const [followers, following, publicProfile] = await Promise.all([
+        getFollowerCount(user.uid),
+        getFollowingCount(user.uid),
+        getPublicUserProfile(user.uid),
+      ]);
       setFollowerCount(followers);
       setFollowingCount(following);
+      setViewCount(publicProfile?.viewCount || 0);
 
       setIsLoading(false);
     });
 
     return () => {
       if (unsubCollections) unsubCollections();
+      if (unsubArtists) unsubArtists();
       unsubAuth();
     };
   }, []);
@@ -169,6 +183,9 @@ export const ProfileEditPage: React.FC = () => {
     followingCount: followingCount || 0,
     showcaseCount: customization.showcases.length,
     bioLength: customization.bio.length,
+    followedArtistsCount,
+    toListenCount,
+    viewCount,
   };
 
   // Check for newly-earned milestones once we actually have real stats -
@@ -185,11 +202,25 @@ export const ProfileEditPage: React.FC = () => {
           followingCount,
           showcaseCount: customization.showcases.length,
           bioLength: customization.bio.length,
+          followedArtistsCount,
+          toListenCount,
+          viewCount,
         },
         userId
       )
     );
-  }, [userId, likedCollectionsReady, followerCount, followingCount, totalLikedCount, customization.showcases.length, customization.bio.length]);
+  }, [
+    userId,
+    likedCollectionsReady,
+    followerCount,
+    followingCount,
+    totalLikedCount,
+    customization.showcases.length,
+    customization.bio.length,
+    followedArtistsCount,
+    toListenCount,
+    viewCount,
+  ]);
 
   const dismissMilestoneReveal = () => {
     if (userId) markMilestonesSeen(userId, newlyUnlocked.map((m) => m.id));
@@ -435,11 +466,16 @@ export const ProfileEditPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-            {/* Left: editor controls */}
-            <div className="space-y-6">
+          <div className="grid lg:grid-cols-[280px_1fr_320px] gap-6">
+            {/* Far left: achievements, kept apart from the editor stack so
+                it reads as its own thing rather than the first item in a
+                long scroll of edit sections. */}
+            <div className="lg:sticky lg:top-24 h-fit">
               <AchievementsPanel stats={stats} />
+            </div>
 
+            {/* Middle: editor controls */}
+            <div className="space-y-6">
               {/* Avatar */}
               <section className="border-2 border-black bg-white p-6 hard-shadow">
                 <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">AVATAR</h2>

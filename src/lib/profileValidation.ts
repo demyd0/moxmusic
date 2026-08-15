@@ -60,6 +60,8 @@ export const BACKGROUND_EFFECTS: { value: BackgroundEffectType; label: string }[
   { value: 'confetti', label: 'CONFETTI' },
   { value: 'fireflies', label: 'FIREFLIES' },
   { value: 'bubbles', label: 'BUBBLES' },
+  { value: 'sparks', label: 'SPARKS' },
+  { value: 'petals', label: 'PETALS' },
 ];
 
 const BACKGROUND_EFFECT_VALUES: BackgroundEffectType[] = BACKGROUND_EFFECTS.map((e) => e.value);

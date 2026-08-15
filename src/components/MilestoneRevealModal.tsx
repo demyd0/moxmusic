@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 import type { Milestone } from '@/lib/milestones';
 import { AVATAR_FRAMES, avatarFrameWrapperClassName } from '@/lib/avatarFrames';
 import { BACKGROUND_EFFECTS } from '@/lib/profileValidation';
+import { BADGE_ICONS, BADGE_TIER_STYLE } from '@/lib/badgeIcons';
 import { Sparkles, Palette, ArrowRight, X } from 'lucide-react';
 
 function rewardLabel(reward: Milestone['reward']): string {
   if (reward.type === 'avatarFrame') {
     return `${AVATAR_FRAMES.find((f) => f.value === reward.value)?.label || reward.value} AVATAR FRAME`;
   }
-  return `${BACKGROUND_EFFECTS.find((e) => e.value === reward.value)?.label || reward.value} BACKGROUND EFFECT`;
+  if (reward.type === 'backgroundEffect') {
+    return `${BACKGROUND_EFFECTS.find((e) => e.value === reward.value)?.label || reward.value} BACKGROUND EFFECT`;
+  }
+  return `${reward.tier === 4 ? 'LEGENDARY' : reward.tier === 3 ? 'RARE' : reward.tier === 2 ? 'UNCOMMON' : 'COMMON'} BADGE`;
 }
 
 interface MilestoneRevealModalProps {
@@ -42,13 +46,28 @@ export const MilestoneRevealModal: React.FC<MilestoneRevealModalProps> = ({ mile
 
         <div className="flex justify-center mb-6">
           <div className={`h-28 w-28 rounded-full ${milestone.reward.type === 'avatarFrame' ? avatarFrameWrapperClassName(milestone.reward.value) : ''}`}>
-            <div className="h-full w-full rounded-full bg-black flex items-center justify-center">
-              {milestone.reward.type === 'avatarFrame' ? (
-                <Sparkles className="h-10 w-10 text-white" />
-              ) : (
-                <Palette className="h-10 w-10 text-white" />
-              )}
-            </div>
+            {milestone.reward.type === 'badge' ? (
+              (() => {
+                const BadgeIcon = BADGE_ICONS[milestone.reward.icon];
+                const tierStyle = BADGE_TIER_STYLE[milestone.reward.tier];
+                return (
+                  <div
+                    className="h-full w-full rounded-full border-2 flex items-center justify-center"
+                    style={{ backgroundColor: tierStyle.bg, borderColor: tierStyle.border, boxShadow: tierStyle.glow }}
+                  >
+                    <BadgeIcon className="h-10 w-10" style={{ color: tierStyle.text }} />
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="h-full w-full rounded-full bg-black flex items-center justify-center">
+                {milestone.reward.type === 'avatarFrame' ? (
+                  <Sparkles className="h-10 w-10 text-white" />
+                ) : (
+                  <Palette className="h-10 w-10 text-white" />
+                )}
+              </div>
+            )}
           </div>
         </div>
 
