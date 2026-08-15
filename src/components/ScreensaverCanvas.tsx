@@ -18,6 +18,20 @@ function unwrapButterchurn(mod: any): typeof butterchurnModule.default {
 }
 const butterchurn = unwrapButterchurn(butterchurnModule);
 
+// Some of the fancier multi-author presets are shader-heavy enough that
+// rendering at full devicePixelRatio on a large window overwhelms weaker/
+// integrated GPUs - symptom is a partially-black canvas (only a corner of
+// the frame actually gets drawn), not a crash, so there's nothing to catch.
+// Capping the internal render-target size sidesteps it at a small cost to
+// crispness on big high-DPI screensaver windows.
+const MAX_RENDER_DIMENSION = 1600;
+
+function safePixelRatio(width: number, height: number): number {
+  const raw = window.devicePixelRatio || 1;
+  const cap = MAX_RENDER_DIMENSION / Math.max(width, height, 1);
+  return Math.max(0.5, Math.min(raw, cap));
+}
+
 /** Real Milkdrop visuals via Butterchurn (WebGL port of the actual engine)
  *  instead of the app's own hand-rolled canvas presets. Reacts to whatever
  *  audio is currently registered as "active" site-wide (see
@@ -36,7 +50,6 @@ export const ScreensaverCanvas: React.FC<{ preset: string }> = ({ preset }) => {
     if (!canvas || !container) return;
 
     const audioContext = getAudioContext();
-    const pixelRatio = window.devicePixelRatio || 1;
 
     // Butterchurn tracks its own internal render-target size but never
     // touches the actual <canvas> width/height attributes (the WebGL
@@ -44,6 +57,7 @@ export const ScreensaverCanvas: React.FC<{ preset: string }> = ({ preset }) => {
     // browser's default 300x150 stretched via CSS.
     const width = Math.max(1, container.clientWidth);
     const height = Math.max(1, container.clientHeight);
+    const pixelRatio = safePixelRatio(width, height);
     canvas.width = width * pixelRatio;
     canvas.height = height * pixelRatio;
 
@@ -73,9 +87,10 @@ export const ScreensaverCanvas: React.FC<{ preset: string }> = ({ preset }) => {
     const resizeObserver = new ResizeObserver(() => {
       const w = Math.max(1, container.clientWidth);
       const h = Math.max(1, container.clientHeight);
-      canvas.width = w * pixelRatio;
-      canvas.height = h * pixelRatio;
-      visualizer.setRendererSize(w, h);
+      const ratio = safePixelRatio(w, h);
+      canvas.width = w * ratio;
+      canvas.height = h * ratio;
+      visualizer.setRendererSize(w, h, { pixelRatio: ratio });
     });
     resizeObserver.observe(container);
 
