@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -35,7 +35,8 @@ import {
   Music2,
   Disc,
   Filter,
-  X
+  X,
+  History
 } from 'lucide-react';
 
 const GENRE_QUICK_PICKS = ['AMBIENT', 'INDIE ROCK', 'ELECTRONIC', 'HIP-HOP', 'JAZZ', 'METAL', 'FOLK', 'PUNK'];
@@ -307,6 +308,25 @@ export const HelloPage: React.FC = () => {
   const sortedLikedAlbums = sortAlbums(likedAlbumsFiltered, sortKey);
   const sortedToListenAlbums = sortAlbums(userCollections.toListenAlbums, sortKey);
 
+  // "On this day" - liked albums whose like-date falls on today's
+  // month/day in a past year. Purely a fun callback, so it just silently
+  // shows nothing when there's no match rather than an empty state.
+  const onThisDayMatches = useMemo(() => {
+    const today = new Date();
+    return userCollections.likedAlbums
+      .map((album) => {
+        if (!album.dateAdded) return null;
+        const liked = new Date(album.dateAdded);
+        if (Number.isNaN(liked.getTime())) return null;
+        if (liked.getMonth() !== today.getMonth() || liked.getDate() !== today.getDate()) return null;
+        const yearsAgo = today.getFullYear() - liked.getFullYear();
+        if (yearsAgo <= 0) return null;
+        return { album, yearsAgo };
+      })
+      .filter((m): m is { album: Album; yearsAgo: number } => m !== null)
+      .sort((a, b) => b.yearsAgo - a.yearsAgo);
+  }, [userCollections.likedAlbums]);
+
   return (
     <div className="relative min-h-screen flex flex-col justify-between text-[#0a0a0a]">
       <div>
@@ -343,6 +363,41 @@ export const HelloPage: React.FC = () => {
                   onOpenManualModal={() => setIsManualModalOpen(true)}
                 />
               </section>
+
+              {/* "ON THIS DAY" - liked albums whose like-date lands on
+                  today in a past year. Silently absent when there's no
+                  match, so it never reads as an empty placeholder. */}
+              {!isSearching && onThisDayMatches.length > 0 && (
+                <section className="mb-8 border-2 border-black bg-white p-6 hard-shadow">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="flex h-9 w-9 items-center justify-center border-2 border-black bg-black text-white">
+                      <History className="h-4.5 w-4.5" />
+                    </div>
+                    <div>
+                      <h3 className="font-header text-xl font-extrabold uppercase text-black">ON THIS DAY</h3>
+                      <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
+                        WHAT YOU LIKED, LOOKING BACK
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-5 overflow-x-auto pb-1">
+                    {onThisDayMatches.map(({ album, yearsAgo }) => (
+                      <div key={album.id} className="w-40 shrink-0">
+                        <div className="mb-1.5 inline-block border border-black bg-neutral-100 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-black">
+                          {yearsAgo} YEAR{yearsAgo === 1 ? '' : 'S'} AGO
+                        </div>
+                        <CollectionAlbumCard
+                          album={album}
+                          isLiked={userCollections.likedIds.has(album.id)}
+                          isToListen={userCollections.toListenIds.has(album.id)}
+                          onToggleLike={handleToggleLike}
+                          onToggleToListen={handleToggleToListen}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* LIVE AUTOCOMPLETE DROPDOWN RESULTS (When User Types) */}
               {isSearching ? (
