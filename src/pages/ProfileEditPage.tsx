@@ -18,9 +18,11 @@ import {
   mediaSizeMaxHeightRem,
 } from '@/lib/profileValidation';
 import { AVATAR_FRAMES, avatarFrameWrapperClassName } from '@/lib/avatarFrames';
+import { NAME_EFFECTS, nameEffectClassName } from '@/lib/nameEffects';
 import {
   getUnlockedFrames,
   getUnlockedBackgroundEffects,
+  getUnlockedNameEffects,
   getNewlyUnlocked,
   markMilestonesSeen,
   type Milestone,
@@ -229,6 +231,7 @@ export const ProfileEditPage: React.FC = () => {
 
   const unlockedFrames = getUnlockedFrames(stats);
   const unlockedBackgroundEffects = getUnlockedBackgroundEffects(stats);
+  const unlockedNameEffects = getUnlockedNameEffects(stats);
 
   const setBackgroundType = (type: ProfileBackgroundType) => {
     if (type === 'color') {
@@ -466,15 +469,15 @@ export const ProfileEditPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid lg:grid-cols-[280px_1fr_320px] gap-6">
-            {/* Far left: achievements, kept apart from the editor stack so
-                it reads as its own thing rather than the first item in a
-                long scroll of edit sections. */}
-            <div className="lg:sticky lg:top-24 h-fit">
-              <AchievementsPanel stats={stats} />
-            </div>
+          {/* Achievements: full-width and immediately visible (no cramped
+              sidebar, no nested scroll region) so it doesn't eat into the
+              room the editor/preview columns below get. */}
+          <div className="mb-6">
+            <AchievementsPanel stats={stats} />
+          </div>
 
-            {/* Middle: editor controls */}
+          <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+            {/* Left: editor controls */}
             <div className="space-y-6">
               {/* Avatar */}
               <section className="border-2 border-black bg-white p-6 hard-shadow">
@@ -541,6 +544,45 @@ export const ProfileEditPage: React.FC = () => {
                       );
                     })}
                   </div>
+                </div>
+              </section>
+
+              {/* Username Style */}
+              <section className="border-2 border-black bg-white p-6 hard-shadow">
+                <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">USERNAME STYLE</h2>
+                <div
+                  className={`mb-4 border-2 border-black bg-neutral-50 px-4 py-3 font-header text-2xl font-extrabold uppercase tracking-tight text-black truncate ${nameEffectClassName(customization.nameEffect)}`}
+                  style={{ ['--name-accent' as string]: isValidHexColor(customization.accentColor) ? customization.accentColor : '#000000' }}
+                >
+                  @{username || 'YOU'}
+                </div>
+                <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-neutral-500 mb-2.5">
+                  APPLIES TO YOUR PUBLIC PROFILE HANDLE — EARNED BY ACTIVITY MILESTONES
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {NAME_EFFECTS.map((eff) => {
+                    const isUnlocked = unlockedNameEffects.includes(eff.value);
+                    const isSelected = (customization.nameEffect || 'none') === eff.value;
+                    return (
+                      <button
+                        key={eff.value}
+                        type="button"
+                        disabled={!isUnlocked}
+                        onClick={() => setCustomization((c) => ({ ...c, nameEffect: eff.value }))}
+                        title={isUnlocked ? eff.label : 'LOCKED — SEE ACHIEVEMENTS ABOVE'}
+                        className={`inline-flex items-center gap-1.5 border-2 border-black px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                          isSelected
+                            ? 'bg-black text-white'
+                            : isUnlocked
+                              ? 'bg-white text-black hover:bg-neutral-100'
+                              : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
+                        }`}
+                      >
+                        {!isUnlocked && <Lock className="h-3 w-3" />}
+                        <span>{eff.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
 
@@ -993,7 +1035,10 @@ export const ProfileEditPage: React.FC = () => {
                           <UserCircle2 className="h-5 w-5 text-neutral-400" />
                         )}
                       </div>
-                      <div className="font-header text-lg font-extrabold uppercase text-black truncate">
+                      <div
+                        className={`font-header text-lg font-extrabold uppercase text-black truncate ${nameEffectClassName(customization.nameEffect)}`}
+                        style={{ ['--name-accent' as string]: isValidHexColor(customization.accentColor) ? customization.accentColor : '#000000' }}
+                      >
                         @{username || 'YOU'}
                       </div>
                     </div>

@@ -103,6 +103,14 @@ export interface ProfileTrack {
   title?: string;
 }
 
+/** Cosmetic styling applied to the username itself (the big @handle on the
+ *  public profile), earned via activity milestones (see src/lib/milestones.ts)
+ *  - same "fixed preset, client-checked only" reasoning as AvatarFrame. Kept
+ *  separate from TextEffect/TextStyle (used for bio/showcase text, which is
+ *  free and unlocked for everyone) so this stays an actual achievement
+ *  reward rather than something already available by default. */
+export type NameEffectType = 'none' | 'glow' | 'gradient' | 'holographic' | 'shadow3d';
+
 export interface ProfileCustomization {
   background: ProfileBackground;
   accentColor: string;
@@ -110,6 +118,7 @@ export interface ProfileCustomization {
   bioStyle: TextStyle;
   showcases: ProfileShowcase[];
   avatarFrame?: AvatarFrame;
+  nameEffect?: NameEffectType;
   profileTrack?: ProfileTrack | null;
 }
 
@@ -120,6 +129,7 @@ export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomization = {
   bioStyle: DEFAULT_TEXT_STYLE,
   showcases: [],
   avatarFrame: 'none',
+  nameEffect: 'none',
   profileTrack: null,
 };
 

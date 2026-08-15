@@ -22,6 +22,7 @@ import {
   MAX_SHOWCASE_TEXT_LENGTH,
 } from '@/types/profile';
 import { sanitizeAvatarFrame } from './avatarFrames';
+import { sanitizeNameEffect } from './nameEffects';
 
 const SHOWCASE_TYPES: ShowcaseType[] = ['albums', 'text', 'mixed', 'media'];
 
@@ -263,7 +264,8 @@ export function sanitizeCustomization(input: ProfileCustomization): ProfileCusto
     });
 
   const avatarFrame = sanitizeAvatarFrame(input.avatarFrame);
+  const nameEffect = sanitizeNameEffect(input.nameEffect);
   const profileTrack = sanitizeProfileTrack(input.profileTrack);
 
-  return { background, accentColor, bio, bioStyle, showcases, avatarFrame, profileTrack };
+  return { background, accentColor, bio, bioStyle, showcases, avatarFrame, nameEffect, profileTrack };
 }

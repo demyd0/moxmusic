@@ -1,4 +1,4 @@
-import type { AvatarFrame, BackgroundEffectType } from '@/types/profile';
+import type { AvatarFrame, BackgroundEffectType, NameEffectType } from '@/types/profile';
 
 export interface UserStats {
   likedCount: number;
@@ -44,12 +44,14 @@ export type BadgeIconKey =
 
 /** Badge rarity, purely cosmetic - drives the chip's color/glow in
  *  AchievementsPanel (higher tier = louder treatment). Independent of
- *  avatarFrame/backgroundEffect rewards, which stay their own curated
- *  pools since they're selectable elsewhere (avatar picker, background
- *  effect picker) and need to stay small/stable lists. */
+ *  avatarFrame/backgroundEffect/nameEffect rewards, which stay their own
+ *  curated pools since they're selectable elsewhere (avatar picker,
+ *  background effect picker, username style picker) and need to stay
+ *  small/stable lists. */
 export type MilestoneReward =
   | { type: 'avatarFrame'; value: Exclude<AvatarFrame, 'none'> }
   | { type: 'backgroundEffect'; value: Exclude<BackgroundEffectType, 'none' | 'snow' | 'stars' | 'smoke'> }
+  | { type: 'nameEffect'; value: Exclude<NameEffectType, 'none'> }
   | { type: 'badge'; icon: BadgeIconKey; tier: 1 | 2 | 3 | 4 };
 
 export interface Milestone {
@@ -67,12 +69,12 @@ export interface Milestone {
  *  statKey/target (rather than an opaque check function) lets the
  *  achievements panel show a real progress bar for free.
  *
- *  Each avatarFrame/backgroundEffect value is used as a reward EXACTLY
- *  once across this whole list, on purpose - they're small curated pools
- *  shared with the avatar/background pickers, so duplicate rewards would
- *  just mean two different achievements unlock the same option. Badge
- *  rewards have no such pool limit, so most of the tiers in between use
- *  those instead. */
+ *  Each avatarFrame/backgroundEffect/nameEffect value is used as a reward
+ *  EXACTLY once across this whole list, on purpose - they're small curated
+ *  pools shared with the avatar/background/username-style pickers, so
+ *  duplicate rewards would just mean two different achievements unlock the
+ *  same option. Badge rewards have no such pool limit, so most of the
+ *  tiers in between use those instead. */
 export const MILESTONES: Milestone[] = [
   // ---- likedCount ----
   {
@@ -169,7 +171,7 @@ export const MILESTONES: Milestone[] = [
     id: 'follower-10',
     title: 'RISING STAR',
     description: 'Gain 10 followers.',
-    reward: { type: 'badge', icon: 'star', tier: 2 },
+    reward: { type: 'nameEffect', value: 'glow' },
     statKey: 'followerCount',
     target: 10,
   },
@@ -227,7 +229,7 @@ export const MILESTONES: Milestone[] = [
     id: 'following-10',
     title: 'NETWORKER',
     description: 'Follow 10 other listeners.',
-    reward: { type: 'badge', icon: 'users', tier: 2 },
+    reward: { type: 'nameEffect', value: 'gradient' },
     statKey: 'followingCount',
     target: 10,
   },
@@ -369,7 +371,7 @@ export const MILESTONES: Milestone[] = [
     id: 'artists-10',
     title: 'SUPERFAN',
     description: 'Follow 10 artists.',
-    reward: { type: 'badge', icon: 'radio', tier: 2 },
+    reward: { type: 'nameEffect', value: 'holographic' },
     statKey: 'followedArtistsCount',
     target: 10,
   },
@@ -445,7 +447,7 @@ export const MILESTONES: Milestone[] = [
     id: 'views-150',
     title: 'TRENDING',
     description: 'Reach 150 profile views.',
-    reward: { type: 'badge', icon: 'zap', tier: 3 },
+    reward: { type: 'nameEffect', value: 'shadow3d' },
     statKey: 'viewCount',
     target: 150,
   },
@@ -484,6 +486,15 @@ export function getUnlockedBackgroundEffects(stats: UserStats): BackgroundEffect
     'smoke',
     ...getUnlockedMilestones(stats)
       .filter((m): m is Milestone & { reward: { type: 'backgroundEffect'; value: Exclude<BackgroundEffectType, 'none' | 'snow' | 'stars' | 'smoke'> } } => m.reward.type === 'backgroundEffect')
+      .map((m) => m.reward.value),
+  ];
+}
+
+export function getUnlockedNameEffects(stats: UserStats): NameEffectType[] {
+  return [
+    'none',
+    ...getUnlockedMilestones(stats)
+      .filter((m): m is Milestone & { reward: { type: 'nameEffect'; value: Exclude<NameEffectType, 'none'> } } => m.reward.type === 'nameEffect')
       .map((m) => m.reward.value),
   ];
 }

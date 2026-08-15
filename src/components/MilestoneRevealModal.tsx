@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import type { Milestone } from '@/lib/milestones';
 import { AVATAR_FRAMES, avatarFrameWrapperClassName } from '@/lib/avatarFrames';
 import { BACKGROUND_EFFECTS } from '@/lib/profileValidation';
+import { NAME_EFFECTS } from '@/lib/nameEffects';
 import { BADGE_ICONS, BADGE_TIER_STYLE } from '@/lib/badgeIcons';
-import { Sparkles, Palette, ArrowRight, X } from 'lucide-react';
+import { Sparkles, Palette, Type as TypeIcon, ArrowRight, X } from 'lucide-react';
 
 function rewardLabel(reward: Milestone['reward']): string {
   if (reward.type === 'avatarFrame') {
@@ -11,6 +12,9 @@ function rewardLabel(reward: Milestone['reward']): string {
   }
   if (reward.type === 'backgroundEffect') {
     return `${BACKGROUND_EFFECTS.find((e) => e.value === reward.value)?.label || reward.value} BACKGROUND EFFECT`;
+  }
+  if (reward.type === 'nameEffect') {
+    return `${NAME_EFFECTS.find((e) => e.value === reward.value)?.label || reward.value} NAME STYLE`;
   }
   return `${reward.tier === 4 ? 'LEGENDARY' : reward.tier === 3 ? 'RARE' : reward.tier === 2 ? 'UNCOMMON' : 'COMMON'} BADGE`;
 }
@@ -63,6 +67,8 @@ export const MilestoneRevealModal: React.FC<MilestoneRevealModalProps> = ({ mile
               <div className="h-full w-full rounded-full bg-black flex items-center justify-center">
                 {milestone.reward.type === 'avatarFrame' ? (
                   <Sparkles className="h-10 w-10 text-white" />
+                ) : milestone.reward.type === 'nameEffect' ? (
+                  <TypeIcon className="h-10 w-10 text-white" />
                 ) : (
                   <Palette className="h-10 w-10 text-white" />
                 )}

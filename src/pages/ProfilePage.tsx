@@ -24,6 +24,7 @@ import { backgroundToCss, isValidHexColor, textStyleToCss, mediaSizeMaxHeightRem
 import { computeTopGenres } from '@/lib/genreBadges';
 import { sortAlbums } from '@/lib/collectionSort';
 import { avatarFrameWrapperClassName } from '@/lib/avatarFrames';
+import { nameEffectClassName } from '@/lib/nameEffects';
 import { auth, signInWithGoogle } from '@/lib/firebase';
 import { useChat } from '@/contexts/ChatContext';
 import { DEFAULT_PROFILE_CUSTOMIZATION, DEFAULT_TEXT_STYLE, DEFAULT_TITLE_STYLE, DEFAULT_MEDIA_FIT, type ProfileCustomization } from '@/types/profile';
@@ -299,7 +300,10 @@ export const ProfilePage: React.FC = () => {
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <h1 className="font-header text-3xl sm:text-4xl font-extrabold text-black uppercase tracking-tight truncate">
+                      <h1
+                        className={`font-header text-3xl sm:text-4xl font-extrabold text-black uppercase tracking-tight truncate ${nameEffectClassName(customization.nameEffect)}`}
+                        style={{ ['--name-accent' as string]: accent }}
+                      >
                         {displayHandle}
                       </h1>
                       {customization.bio ? (
