@@ -18,6 +18,7 @@ import { WinampUnlockOverlay } from '@/components/WinampUnlockOverlay';
 import { useTheme, isWinampThemeUnlocked, unlockWinampTheme } from '@/hooks/useTheme';
 import { useChat } from '@/contexts/ChatContext';
 import { useAudioEngine } from '@/contexts/AudioEngineContext';
+import { subscribeNotifications, markAllNotificationsRead, type NotificationEvent } from '@/services/notificationService';
 import {
   Search,
   Heart,
@@ -41,7 +42,9 @@ import {
   Volume2,
   Volume1,
   VolumeX,
-  Mic2
+  Mic2,
+  Bell,
+  UserPlus
 } from 'lucide-react';
 
 const LOGO_UNLOCK_CLICKS = 5;
@@ -65,6 +68,8 @@ export const Header: React.FC<HeaderProps> = ({
   const { openList, unreadCount } = useChat();
   const { volume, setVolume } = useAudioEngine();
   const [isVolumeOpen, setIsVolumeOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
@@ -112,6 +117,38 @@ export const Header: React.FC<HeaderProps> = ({
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setNotifications([]);
+      return;
+    }
+    const unsub = subscribeNotifications(currentUser.uid, setNotifications);
+    return () => unsub();
+  }, [currentUser]);
+
+  const unreadNotifCount = notifications.filter((n) => !n.read).length;
+
+  const toggleNotifPanel = () => {
+    setIsNotifOpen((open) => {
+      const next = !open;
+      if (next && currentUser && unreadNotifCount > 0) {
+        void markAllNotificationsRead(currentUser.uid);
+      }
+      return next;
+    });
+  };
+
+  function formatRelativeTime(ms: number): string {
+    const diffSec = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (diffSec < 60) return 'JUST NOW';
+    const diffMin = Math.round(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}M AGO`;
+    const diffHr = Math.round(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}H AGO`;
+    const diffDay = Math.round(diffHr / 24);
+    return `${diffDay}D AGO`;
+  }
 
   const handleGoogleLogin = async () => {
     setAuthError(null);
@@ -375,6 +412,69 @@ export const Header: React.FC<HeaderProps> = ({
               </>
             )}
           </div>
+          {currentUser && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={toggleNotifPanel}
+                title="Activity"
+                className="relative flex h-10 w-10 items-center justify-center border-2 border-black bg-white text-black hover:bg-neutral-100 transition-all hard-shadow"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadNotifCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center border border-black bg-red-600 px-0.5 font-mono text-[9px] font-bold text-white">
+                    {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                  </span>
+                )}
+              </button>
+              {isNotifOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-72 max-h-96 overflow-y-auto border-2 border-black bg-white hard-shadow-lg z-50">
+                    <div className="sticky top-0 border-b-2 border-black bg-white px-3 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-black">
+                      ACTIVITY
+                    </div>
+                    {notifications.length === 0 ? (
+                      <p className="p-4 text-center font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
+                        NOTHING YET.
+                      </p>
+                    ) : (
+                      notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => {
+                            setIsNotifOpen(false);
+                            navigate(`/profile/${n.fromUsername}`);
+                          }}
+                          className={`flex w-full items-center gap-2.5 border-b border-black/10 px-3 py-2.5 text-left transition-all hover:bg-neutral-50 ${
+                            n.read ? '' : 'bg-neutral-50'
+                          }`}
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-black bg-black text-white overflow-hidden">
+                            {n.fromPhotoURL ? (
+                              <img src={n.fromPhotoURL} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <UserPlus className="h-3.5 w-3.5" />
+                            )}
+                          </div>
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-mono text-[11px] text-black">
+                              <strong>@{n.fromUsername}</strong> STARTED FOLLOWING YOU
+                            </span>
+                            <span className="block font-mono text-[10px] text-neutral-400">
+                              {formatRelativeTime(n.createdAt)}
+                            </span>
+                          </span>
+                          {!n.read && <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           {currentUser && (
             <button
               type="button"

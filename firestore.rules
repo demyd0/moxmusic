@@ -7,6 +7,7 @@ rules_version = '2';
 //     users/{uid}/liked/{id}    liked albums — publicly readable (powers /share/:uid), owner-writable
 //     users/{uid}/toListen/{id} to-listen queue — owner only, never shared publicly
 //     users/{uid}/followedArtists/{artistId}  followed artists — publicly readable, owner-writable
+//     users/{uid}/notifications/{id}  private activity inbox — owner-readable, created by whoever triggers the event
 //   publicProfiles/{uid}        public-safe mirror (username + photoURL only, no email)
 //   usernames/{name}            handle -> uid uniqueness registry
 //   follows/{followerUid_followingUid}  one doc per follow relationship
@@ -47,6 +48,19 @@ service cloud.firestore {
         // as a public "who they follow" detail rather than being private.
         allow read: if true;
         allow write: if isOwner(uid);
+      }
+
+      match /notifications/{notificationId} {
+        // Private inbox - only the owner reads it. Written by WHOEVER
+        // triggers the event (e.g. a new follower), not the owner, so
+        // create must allow any signed-in user - same shape as
+        // publicProfiles.viewCount being writable by a non-owner visitor.
+        // The only thing the owner can change afterward is the read flag.
+        allow read: if isOwner(uid);
+        allow create: if request.auth != null && request.resource.data.fromUid == request.auth.uid;
+        allow update: if isOwner(uid)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        allow delete: if false;
       }
     }
 

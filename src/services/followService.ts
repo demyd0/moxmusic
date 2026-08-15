@@ -1,6 +1,7 @@
 import { db } from '@/lib/firebase';
 import { collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { getPublicUserProfile } from '@/services/userService';
+import { notifyFollow } from '@/services/notificationService';
 
 export interface FollowUser {
   uid: string;
@@ -36,6 +37,7 @@ export async function followUser(followerUid: string, followingUid: string): Pro
     followingUid,
     createdAt: new Date().toISOString(),
   });
+  void notifyFollow(followerUid, followingUid);
 }
 
 export async function unfollowUser(followerUid: string, followingUid: string): Promise<void> {
