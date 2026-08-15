@@ -1,12 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ProfileTrack } from '@/types/profile';
 import { useAudioEngine } from '@/contexts/AudioEngineContext';
-import { loadYoutubeIframeApi } from '@/lib/youtubeIframeApi';
 import { Music, Play, Pause } from 'lucide-react';
 
 interface ProfileTrackPlayerProps {
   track: ProfileTrack;
   accentColor: string;
+}
+
+let ytApiPromise: Promise<void> | null = null;
+
+/** Loads the YouTube IFrame Player API script once (shared across every
+ *  mounted ProfileTrackPlayer) and resolves once window.YT is ready. */
+function loadYoutubeIframeApi(): Promise<void> {
+  if (window.YT?.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise((resolve) => {
+    const previous = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previous?.();
+      resolve();
+    };
+    const script = document.createElement('script');
+    script.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(script);
+  });
+  return ytApiPromise;
 }
 
 /** Starts playing as soon as the profile loads, like the visitor already

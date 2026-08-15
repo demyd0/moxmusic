@@ -1,14 +1,9 @@
 /** No official lightweight types ship for the raw `<script src="youtube.com/iframe_api">`
- *  global - loosely typed just enough to cover what ProfileTrackPlayer.tsx and
- *  PlayerContext.tsx use. */
+ *  global - loosely typed just enough to cover what ProfileTrackPlayer.tsx uses. */
 interface YTPlayer {
   playVideo(): void;
   pauseVideo(): void;
   setVolume(volume: number): void;
-  loadVideoById(videoId: string): void;
-  getDuration(): number;
-  getCurrentTime(): number;
-  seekTo(seconds: number, allowSeekAhead: boolean): void;
   destroy(): void;
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -11,7 +11,7 @@ import { getPreferredService, type StreamingService } from '@/lib/streamingServi
 import { StreamingServiceButton } from '@/components/StreamingServiceButton';
 import { AlbumReactionWidget } from '@/components/AlbumReactionWidget';
 import { ShareTrackModal } from '@/components/ShareTrackModal';
-import { usePlayer, type PlayerTrack } from '@/contexts/PlayerContext';
+import { useAudioEngine } from '@/contexts/AudioEngineContext';
 import type { SharedAlbumRef } from '@/types/chat';
 import {
   subscribeUserCollections,
@@ -55,7 +55,43 @@ export const AlbumDetailsPage: React.FC = () => {
   const [bandcamp, setBandcamp] = useState<BandcampLookupResponse | null>(null);
   const [isBandcampLoading, setIsBandcampLoading] = useState(true);
   const [preferredService, setPreferredServiceState] = useState<StreamingService>(getPreferredService);
-  const { playQueue, currentTrack: playingTrack, isPlaying: playerIsPlaying, togglePlayPause } = usePlayer();
+  const { volume, setActiveElement } = useAudioEngine();
+
+  // 30-second iTunes preview playback - one shared <audio> element, one track at a time
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingTrackNumber, setPlayingTrackNumber] = useState<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+      setActiveElement(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
+  const handleTogglePreview = (track: Track) => {
+    if (!track.previewUrl) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (playingTrackNumber === track.trackNumber) {
+      audio.pause();
+      setPlayingTrackNumber(null);
+      setActiveElement(null);
+      return;
+    }
+
+    audio.src = track.previewUrl;
+    audio.currentTime = 0;
+    audio.volume = volume;
+    audio.play().catch(() => setPlayingTrackNumber(null));
+    setPlayingTrackNumber(track.trackNumber);
+    setActiveElement(audio);
+  };
 
   // 1. Initialize user & subscribe to collections
   useEffect(() => {
@@ -97,6 +133,8 @@ export const AlbumDetailsPage: React.FC = () => {
         };
 
         if (isMounted) {
+          audioRef.current?.pause();
+          setPlayingTrackNumber(null);
           setAlbum(resolvedAlbum);
           setTracks(tracklist);
         }
@@ -164,26 +202,6 @@ export const AlbumDetailsPage: React.FC = () => {
 
     const isTrackLiked = userCollections.likedIds.has(track.id);
     await toggleLikeAlbum(userId, trackAsAlbum, isTrackLiked);
-  };
-
-  const toPlayerTrack = (t: Track): PlayerTrack => ({
-    id: t.id || `${album!.id}-${t.trackNumber}`,
-    title: t.title,
-    artist: album!.artist,
-    albumTitle: album!.title,
-    coverUrl: album!.coverUrl,
-    durationMs: t.durationMs,
-  });
-
-  const handlePlayTrack = (track: Track) => {
-    if (!album) return;
-    const trackKey = track.id || `${album.id}-${track.trackNumber}`;
-    if (playingTrack?.id === trackKey) {
-      togglePlayPause();
-      return;
-    }
-    const startIndex = tracks.findIndex((t) => t.trackNumber === track.trackNumber);
-    playQueue(tracks.map(toPlayerTrack), Math.max(0, startIndex));
   };
 
   const handleShareTrack = (track: Track) => {
@@ -410,33 +428,11 @@ export const AlbumDetailsPage: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-black/10">
                         {tracks.map((track) => {
-                          const trackKey = track.id || `${album.id}-${track.trackNumber}`;
-                          const isThisTrackActive = playingTrack?.id === trackKey;
-                          const isThisTrackPlaying = isThisTrackActive && playerIsPlaying;
+                          const isPlaying = playingTrackNumber === track.trackNumber;
                           return (
-                            <tr key={track.trackNumber} className={`font-medium transition-colors ${isThisTrackActive ? 'bg-neutral-100' : 'hover:bg-neutral-50'}`}>
-                              <td className="py-3 px-4 font-bold text-neutral-400">
-                                <button
-                                  type="button"
-                                  onClick={() => handlePlayTrack(track)}
-                                  title={isThisTrackPlaying ? 'Pause' : 'Play this track'}
-                                  className="flex h-6 w-6 items-center justify-center text-black hover:text-neutral-500 transition-colors"
-                                >
-                                  {isThisTrackPlaying ? (
-                                    <Pause className="h-3.5 w-3.5 fill-current" />
-                                  ) : isThisTrackActive ? (
-                                    <Play className="h-3.5 w-3.5 fill-current" />
-                                  ) : (
-                                    <span>{track.trackNumber}</span>
-                                  )}
-                                </button>
-                              </td>
-                              <td
-                                onClick={() => handlePlayTrack(track)}
-                                className="py-3 px-4 font-bold text-black cursor-pointer hover:underline"
-                              >
-                                {track.title}
-                              </td>
+                            <tr key={track.trackNumber} className="hover:bg-neutral-50 font-medium">
+                              <td className="py-3 px-4 font-bold text-neutral-400">{track.trackNumber}</td>
+                              <td className="py-3 px-4 text-black font-bold">{track.title}</td>
                               <td className="py-3 px-4 text-right text-neutral-600">{formatDuration(track.durationMs)}</td>
                               <td className="py-3 px-4">
                                 <div className="flex items-center justify-end gap-2">
@@ -475,6 +471,18 @@ export const AlbumDetailsPage: React.FC = () => {
                                       <Send className="h-3.5 w-3.5" />
                                     </button>
                                   )}
+                                  {track.previewUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTogglePreview(track)}
+                                      title={isPlaying ? 'Pause 30s preview' : 'Play 30s preview'}
+                                      className={`flex h-7 w-7 items-center justify-center border border-black transition-all ${
+                                        isPlaying ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                                      }`}
+                                    >
+                                      {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                                    </button>
+                                  )}
                                   <a
                                     href={preferredService.buildSearchUrl(album.artist, track.title, false)}
                                     target="_blank"
@@ -508,10 +516,19 @@ export const AlbumDetailsPage: React.FC = () => {
                     TRACKLIST NOT FOUND
                   </div>
                 )}
-                <p className="mt-4 font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
-                  CLICK A TRACK TO PLAY IT. FULL TRACKS OPEN IN {preferredService.label} VIA THE LINK ICON.
-                </p>
+                {tracks.some((t) => t.previewUrl) && (
+                  <p className="mt-4 font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
+                    30-second previews courtesy of iTunes. Full tracks open in {preferredService.label}.
+                  </p>
+                )}
               </section>
+
+              {/* Hidden shared audio element driving the 30s preview player */}
+              <audio
+                ref={audioRef}
+                onEnded={() => { setPlayingTrackNumber(null); setActiveElement(null); }}
+                className="hidden"
+              />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center border-2 border-black bg-white px-6 py-16 text-center hard-shadow">
