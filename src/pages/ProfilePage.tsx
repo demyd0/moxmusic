@@ -63,6 +63,7 @@ export const ProfilePage: React.FC = () => {
   const [listModal, setListModal] = useState<'followers' | 'following' | null>(null);
   const [listUsers, setListUsers] = useState<FollowUser[]>([]);
   const [isListLoading, setIsListLoading] = useState(false);
+  const [viewerLikedIds, setViewerLikedIds] = useState<Set<string> | null>(null);
 
   const isOwnProfile = Boolean(currentUserUid && resolvedUid && currentUserUid === resolvedUid);
 
@@ -163,6 +164,25 @@ export const ProfilePage: React.FC = () => {
       isMounted = false;
     };
   }, [currentUserUid, resolvedUid]);
+
+  // Taste compatibility: how many of THIS profile's liked albums the
+  // viewer has also liked. Only fetched for a signed-in visitor looking
+  // at someone else's profile - never needed on your own.
+  useEffect(() => {
+    if (!currentUserUid || !resolvedUid || currentUserUid === resolvedUid) {
+      setViewerLikedIds(null);
+      return;
+    }
+    let isMounted = true;
+    fetchSharedLikedCollection(currentUserUid).then((viewerAlbums) => {
+      if (isMounted) setViewerLikedIds(new Set(viewerAlbums.map((a) => a.id)));
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUserUid, resolvedUid]);
+
+  const sharedLikedCount = viewerLikedIds ? albums.filter((a) => viewerLikedIds.has(a.id)).length : 0;
 
   const handleToggleFollow = async () => {
     if (!currentUserUid) {
@@ -352,6 +372,18 @@ export const ProfilePage: React.FC = () => {
                           <span className="uppercase tracking-wider">VIEWS</span>
                         </span>
                       </div>
+
+                      {!isOwnProfile && sharedLikedCount > 0 && (
+                        <div
+                          className="mt-2.5 inline-flex items-center gap-1.5 border px-2.5 py-1 font-mono text-[11px]"
+                          style={{ borderColor: accent, color: accent }}
+                        >
+                          <Disc3 className="h-3.5 w-3.5" />
+                          <span>
+                            YOU HAVE <strong>{sharedLikedCount}</strong> ALBUM{sharedLikedCount === 1 ? '' : 'S'} IN COMMON
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
