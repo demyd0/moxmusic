@@ -16,7 +16,7 @@ import { GdprConsentModal } from '@/components/GdprConsentModal';
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 import { WinampUnlockOverlay } from '@/components/WinampUnlockOverlay';
 import { AeroUnlockOverlay } from '@/components/AeroUnlockOverlay';
-import { useTheme, isWinampThemeUnlocked, unlockWinampTheme, isAeroThemeUnlocked, unlockAeroTheme } from '@/hooks/useTheme';
+import { useTheme, isWinampThemeUnlocked, unlockWinampTheme, isAeroThemeUnlocked, unlockAeroTheme, type Theme } from '@/hooks/useTheme';
 import { useChat } from '@/contexts/ChatContext';
 import { useAudioEngine } from '@/contexts/AudioEngineContext';
 import { subscribeNotifications, markAllNotificationsRead, type NotificationEvent } from '@/services/notificationService';
@@ -289,6 +289,13 @@ export const Header: React.FC<HeaderProps> = ({
     setShowAeroUnlockOverlay(true);
   };
 
+  const themeOptions: { id: Theme; label: string; icon: typeof Sun }[] = [
+    { id: 'light', label: 'LIGHT', icon: Sun },
+    { id: 'dark', label: 'DARK', icon: Moon },
+    ...(winampUnlocked ? [{ id: 'winamp' as const, label: 'WINAMP', icon: Radio }] : []),
+    ...(aeroUnlocked ? [{ id: 'aero' as const, label: 'AERO', icon: Droplet }] : []),
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full border-b-2 border-black bg-white">
       {showWinampUnlockOverlay && (
@@ -556,58 +563,37 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className="text-[11px] text-neutral-500 truncate">{currentUser.email}</div>
                   </div>
 
-                  {/* Appearance: light/dark toggle */}
+                  {/* Appearance: light/dark toggle, plus any hidden themes
+                      the user has found. A 2-column grid rather than one
+                      flex row - a single row stopped fitting once a 3rd/4th
+                      option existed (labels started overlapping), and a
+                      grid keeps working no matter how many more get added. */}
                   <div className="mb-2.5">
                     <div className="px-1 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                       APPEARANCE
                     </div>
-                    <div className="flex items-stretch border border-black hard-shadow-sm">
-                      <button
-                        type="button"
-                        onClick={() => setTheme('light')}
-                        className={`flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-2 font-bold uppercase transition-all ${
-                          theme === 'light' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
-                        }`}
-                      >
-                        <Sun className="h-3.5 w-3.5" />
-                        <span>LIGHT</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTheme('dark')}
-                        className={`flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-2 border-l border-black font-bold uppercase transition-all ${
-                          theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
-                        }`}
-                      >
-                        <Moon className="h-3.5 w-3.5" />
-                        <span>DARK</span>
-                      </button>
-                      {winampUnlocked && (
-                        <button
-                          type="button"
-                          onClick={() => setTheme('winamp')}
-                          title="A hidden theme you found - nice."
-                          className={`flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-2 border-l border-black font-bold uppercase transition-all ${
-                            theme === 'winamp' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
-                          }`}
-                        >
-                          <Radio className="h-3.5 w-3.5" />
-                          <span>WINAMP</span>
-                        </button>
-                      )}
-                      {aeroUnlocked && (
-                        <button
-                          type="button"
-                          onClick={() => setTheme('aero')}
-                          title="A hidden theme you found - nice."
-                          className={`flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-2 border-l border-black font-bold uppercase transition-all ${
-                            theme === 'aero' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
-                          }`}
-                        >
-                          <Droplet className="h-3.5 w-3.5" />
-                          <span>AERO</span>
-                        </button>
-                      )}
+                    <div className="grid grid-cols-2 border border-black hard-shadow-sm overflow-hidden">
+                      {themeOptions.map(({ id, label, icon: Icon }, idx) => {
+                        const spanFull = themeOptions.length % 2 === 1 && idx === themeOptions.length - 1;
+                        const isRightCol = !spanFull && idx % 2 === 1;
+                        const isNewRow = idx >= 2;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setTheme(id)}
+                            title={id === 'winamp' || id === 'aero' ? 'A hidden theme you found - nice.' : undefined}
+                            className={`min-h-[36px] flex items-center justify-center gap-1.5 py-2 px-1 font-bold uppercase transition-all ${spanFull ? 'col-span-2' : ''} ${
+                              isRightCol ? 'border-l border-black' : ''
+                            } ${isNewRow ? 'border-t border-black' : ''} ${
+                              theme === id ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5 shrink-0" />
+                            <span>{label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 

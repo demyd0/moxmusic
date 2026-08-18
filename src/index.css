@@ -57,6 +57,13 @@
     --text-primary: #0b2942;
     --text-secondary: #2d6a8f;
     --text-muted: #5f93b3;
+
+    /* Deliberately as different as possible from the site's usual sharp
+       mono/display pairing - a bubbly rounded display font plus a rounded
+       body font, see index.html for the Google Fonts <link>. */
+    --font-sans: "Quicksand", var(--font-header);
+    --font-header: "Baloo 2", "Quicksand", sans-serif;
+    --font-mono: "Quicksand", sans-serif;
   }
 }
 
@@ -592,6 +599,59 @@ button:active, .btn-brutalist:active {
 .aero .text-red-600 { color: #d5424a; }
 .aero .text-red-700 { color: #b8323a; }
 .aero .text-emerald-600 { color: #1f9d63; }
+
+/* Tailwind's own .font-mono utility hardcodes its own monospace stack
+   rather than referencing --font-mono (no @theme mapping wires the two
+   together), so the --font-mono var override above only reaches inline
+   styles that read it directly (StyledTextField's font picker) - this
+   catches every element using the Tailwind utility class instead. Same
+   deal for .font-header, which IS var-based but only for h1-h6/.font-header
+   itself, not compound Tailwind arbitrary usages, so it's repeated here
+   for certainty. */
+.aero .font-mono { font-family: "Quicksand", sans-serif; }
+.aero .font-header { font-family: "Baloo 2", "Quicksand", sans-serif; }
+
+/* The site's usual voice is shouty tiny-caps monospace labels - about as
+   far from Frutiger Aero's soft, friendly, sentence-case UI text as this
+   codebase gets without touching markup. Turned off wholesale under this
+   theme rather than per-component. */
+.aero .uppercase { text-transform: none; }
+.aero .tracking-wider,
+.aero .tracking-tight,
+.aero .tracking-tighter,
+.aero .tracking-widest {
+  letter-spacing: normal;
+}
+
+/* A soft round cursor instead of the OS default - only on the root class,
+   not forced onto every descendant, so buttons/links keep their own
+   cursor:pointer as normal. */
+.aero {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='10' fill='%234fc3f7' fill-opacity='0.55' stroke='white' stroke-width='2'/%3E%3Ccircle cx='11' cy='11' r='2.5' fill='white' fill-opacity='0.9'/%3E%3C/svg%3E") 14 14, auto;
+}
+
+/* Playful jelly wobble on hover instead of a flat state change - buttons
+   already got their press-down scale above, this is the hover-in half. */
+@keyframes aero-jelly {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.05, 0.95); }
+  65% { transform: scale(0.97, 1.03); }
+  100% { transform: scale(1); }
+}
+.aero button:hover:not(:active) {
+  animation: aero-jelly 0.4s ease-out;
+}
+
+/* The 40px round header icons (logo, volume, notifications, messages -
+   all h-10 w-10 border-2, rounded to circles above) get a gentle synced
+   idle bob, like they're floating on water. */
+@keyframes aero-icon-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.aero .h-10.w-10.border-2 {
+  animation: aero-icon-bob 3.2s ease-in-out infinite;
+}
 
 /* ----------------------------------------------------------------
    Aero mode, part 2: actual skin texture, not just a recolor.
