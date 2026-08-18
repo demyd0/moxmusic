@@ -4,8 +4,8 @@ import { BackgroundEffectCanvas } from '@/components/BackgroundEffectCanvas';
 
 const MAX_PARALLAX_PX = 260;
 
-type AeroScene = 'hills' | 'ocean' | 'beam';
-const AERO_SCENES: AeroScene[] = ['hills', 'ocean', 'beam'];
+type AeroScene = 'hills' | 'ocean' | 'beam' | 'ribbon' | 'ripple';
+const AERO_SCENES: AeroScene[] = ['hills', 'ocean', 'beam', 'ribbon', 'ripple'];
 
 /** A leaping-dolphin-ish silhouette built from a handful of quadratic
  *  curves - deliberately abstract/simple rather than a detailed
@@ -48,6 +48,32 @@ function SceneBack({ scene, backY }: { scene: AeroScene; backY: number }) {
           backgroundImage:
             'radial-gradient(circle 460px at 50% 42%, rgba(255,255,255,0.95), rgba(255,255,255,0.35) 32%, transparent 68%),' +
             'linear-gradient(180deg, #2f6fc4 0%, #5fa2e6 30%, #9cd2f5 55%, #e4f5ff 82%, #ffffff 100%)',
+        }}
+      />
+    );
+  }
+
+  if (scene === 'ribbon') {
+    return (
+      <div
+        {...common}
+        style={{
+          ...common.style,
+          backgroundImage: 'linear-gradient(160deg, #08152e 0%, #123a66 40%, #2f6fae 75%, #5fa2e0 100%)',
+        }}
+      />
+    );
+  }
+
+  if (scene === 'ripple') {
+    return (
+      <div
+        {...common}
+        style={{
+          ...common.style,
+          backgroundImage:
+            'radial-gradient(ellipse 700px 220px at 30% 20%, rgba(255,255,255,0.6), transparent 70%),' +
+            'linear-gradient(180deg, #d3ecff 0%, #eaf6ff 45%, #ffffff 100%)',
         }}
       />
     );
@@ -109,6 +135,49 @@ function SceneMid({ scene, midY }: { scene: AeroScene; midY: number }) {
     );
   }
 
+  if (scene === 'ribbon') {
+    // A handful of thick flowing bezier "ribbons" at different widths/
+    // opacities - an original abstract swirl in the same spirit as the
+    // era's glossy blue ribbon wallpapers, not a copy of any specific one.
+    return (
+      <svg
+        className="absolute left-0 right-0"
+        style={{ bottom: -160, width: '100%', height: '70vh', transform: `translateY(${midY}px)` }}
+        viewBox="0 0 1440 700"
+        preserveAspectRatio="none"
+      >
+        <path d="M-50,520 C280,220 560,620 900,300 C1100,120 1300,260 1490,180" stroke="#1a4d8c" strokeWidth={90} fill="none" strokeLinecap="round" opacity={0.5} />
+        <path d="M-50,420 C300,600 520,180 860,460 C1080,610 1280,320 1490,420" stroke="#4fc3f7" strokeWidth={60} fill="none" strokeLinecap="round" opacity={0.55} />
+        <path d="M0,560 C320,340 600,600 940,340 C1140,190 1320,380 1490,280" stroke="#bfe4ff" strokeWidth={32} fill="none" strokeLinecap="round" opacity={0.75} />
+        <path d="M-50,340 C260,180 540,420 880,220 C1080,110 1280,220 1490,150" stroke="#ffffff" strokeWidth={14} fill="none" strokeLinecap="round" opacity={0.85} />
+      </svg>
+    );
+  }
+
+  if (scene === 'ripple') {
+    // A cascade of glass-bubble outlines climbing toward one larger bubble
+    // with concentric ripple rings inside it, like light refracting through
+    // still water.
+    return (
+      <svg
+        className="absolute left-0 right-0"
+        style={{ bottom: -120, width: '100%', height: '50vh', transform: `translateY(${midY}px)` }}
+        viewBox="0 0 1440 400"
+        preserveAspectRatio="none"
+      >
+        {[0, 1, 2, 3].map((i) => (
+          <circle key={i} cx={220 + i * 200} cy={260 - i * 46} r={34 + i * 20} fill="rgba(200,232,255,0.15)" stroke="#8fd3ff" strokeOpacity={0.55} strokeWidth={2.5} />
+        ))}
+        <g>
+          <circle cx={1080} cy={180} r={110} fill="rgba(200,232,255,0.12)" stroke="#8fd3ff" strokeOpacity={0.6} strokeWidth={3} />
+          {[16, 34, 54, 76, 98].map((r, i) => (
+            <circle key={r} cx={1080} cy={180} r={r} fill="none" stroke="#ffffff" strokeOpacity={0.55 - i * 0.09} strokeWidth={1.5} />
+          ))}
+        </g>
+      </svg>
+    );
+  }
+
   // hills (default)
   return (
     <svg
@@ -136,9 +205,10 @@ function SceneMid({ scene, midY }: { scene: AeroScene; midY: number }) {
 /**
  * Full-page scenic backdrop for the hidden Frutiger Aero theme - three
  * fixed layers (back/mid/front) that scroll at different speeds for a
- * sense of depth, the opposite of the site's base brutalism. One of three
- * original scenes (hills, ocean+dolphins, abstract light-beam) is picked
- * at random each time this mounts, i.e. once per real page load/refresh -
+ * sense of depth, the opposite of the site's base brutalism. One of five
+ * original scenes (hills, ocean+dolphins, abstract light-beam, ribbon
+ * swirl, glass-bubble ripple) is picked at random each time this mounts,
+ * i.e. once per real page load/refresh -
  * client-side route navigation within the SPA won't reroll it, since this
  * stays mounted across those. Mounted once at the App level (see App.tsx)
  * so it sits behind every route without each page needing to opt in;
