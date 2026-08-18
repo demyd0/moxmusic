@@ -664,15 +664,20 @@ button:active, .btn-brutalist:active {
   animation: aero-jelly 0.55s var(--aero-spring);
 }
 
-/* Glass cards/panels (any non-button hard-shadow surface: album cards,
-   section cards, dropdown panels) lift and tilt slightly toward the
-   viewer on hover, with the same spring settle easing on the way back. */
-.aero .hard-shadow:not(button),
-.aero .hard-shadow-sm:not(button) {
+/* Card-grid items lift and tilt slightly toward the viewer on hover, with
+   the same spring settle easing on the way back. Scoped to .group.hard-
+   shadow specifically (the exact marker CollectionAlbumCard etc already
+   use for their own hover-reveal overlay) rather than every hard-shadow
+   surface - :hover bubbles to ancestors, so the broader selector used to
+   also catch big page-level <section> panels (e.g. the homepage's
+   "recommended for you" block) any time you hovered ANYTHING inside them,
+   tilting the entire panel instead of a small card. */
+.aero .group.hard-shadow,
+.aero .group.hard-shadow-sm {
   transition: transform 0.45s var(--aero-spring), box-shadow 0.3s ease;
 }
-.aero .hard-shadow:not(button):hover,
-.aero .hard-shadow-sm:not(button):hover {
+.aero .group.hard-shadow:hover,
+.aero .group.hard-shadow-sm:hover {
   transform: translateY(-6px) scale(1.015) rotate(-0.4deg);
 }
 
