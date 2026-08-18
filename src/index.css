@@ -630,27 +630,96 @@ button:active, .btn-brutalist:active {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='10' fill='%234fc3f7' fill-opacity='0.55' stroke='white' stroke-width='2'/%3E%3Ccircle cx='11' cy='11' r='2.5' fill='white' fill-opacity='0.9'/%3E%3C/svg%3E") 14 14, auto;
 }
 
-/* Playful jelly wobble on hover instead of a flat state change - buttons
-   already got their press-down scale above, this is the hover-in half. */
+/* ============================================================
+   Aero mode: maximalist spring/jelly motion
+   ============================================================
+   The single defining feel of this theme - nearly everything interactive
+   settles into place with an overshooting spring instead of a flat state
+   change. One shared bezier so every hover/press/pop reads as the same
+   physical material (squishy glass) rather than a grab-bag of easings. */
+.aero {
+  --aero-spring: cubic-bezier(0.34, 1.76, 0.64, 1);
+}
+
+/* Buttons: a real multi-bounce settle (two decaying oscillations) instead
+   of a single squash, on every hover-in. */
 @keyframes aero-jelly {
   0% { transform: scale(1); }
-  35% { transform: scale(1.05, 0.95); }
-  65% { transform: scale(0.97, 1.03); }
+  22% { transform: scale(1.16, 0.84); }
+  45% { transform: scale(0.9, 1.1); }
+  65% { transform: scale(1.06, 0.94); }
+  82% { transform: scale(0.97, 1.03); }
   100% { transform: scale(1); }
 }
 .aero button:hover:not(:active) {
-  animation: aero-jelly 0.4s ease-out;
+  animation: aero-jelly 0.55s var(--aero-spring);
+}
+
+/* Links get the same treatment as buttons - most in this app are already
+   flex/inline-flex "button-styled" links (Tailwind's transform utility
+   requires a non-plain-inline display to have any effect, which those
+   already have; a bare text <a> just won't visibly move, no layout risk
+   either way since display itself is never touched here). */
+.aero a:hover {
+  animation: aero-jelly 0.55s var(--aero-spring);
+}
+
+/* Glass cards/panels (any non-button hard-shadow surface: album cards,
+   section cards, dropdown panels) lift and tilt slightly toward the
+   viewer on hover, with the same spring settle easing on the way back. */
+.aero .hard-shadow:not(button),
+.aero .hard-shadow-sm:not(button) {
+  transition: transform 0.45s var(--aero-spring), box-shadow 0.3s ease;
+}
+.aero .hard-shadow:not(button):hover,
+.aero .hard-shadow-sm:not(button):hover {
+  transform: translateY(-6px) scale(1.015) rotate(-0.4deg);
+}
+
+/* Heart/like icons and other .fill-white toggles pop with a bouncy scale
+   the instant the class is newly applied - i.e. right when you hit like.
+   Browsers restart a CSS animation when an element newly matches the
+   selector it's declared on, so this fires exactly on the toggle, not on
+   every re-render of an already-liked element. */
+@keyframes aero-pop {
+  0% { transform: scale(0.4); }
+  55% { transform: scale(1.35); }
+  75% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.aero .fill-white {
+  animation: aero-pop 0.5s var(--aero-spring);
 }
 
 /* The 40px round header icons (logo, volume, notifications, messages -
-   all h-10 w-10 border-2, rounded to circles above) get a gentle synced
-   idle bob, like they're floating on water. */
+   all h-10 w-10 border-2, rounded to circles above) get a bigger, more
+   visible idle bob, staggered per-icon so they float out of sync with
+   each other instead of marching in lockstep. */
 @keyframes aero-icon-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(-3deg); }
 }
 .aero .h-10.w-10.border-2 {
-  animation: aero-icon-bob 3.2s ease-in-out infinite;
+  animation: aero-icon-bob 2.6s ease-in-out infinite;
+}
+.aero .h-10.w-10.border-2:nth-of-type(2) { animation-delay: 0.3s; }
+.aero .h-10.w-10.border-2:nth-of-type(3) { animation-delay: 0.6s; }
+.aero .h-10.w-10.border-2:nth-of-type(4) { animation-delay: 0.9s; }
+
+/* Every dropdown/modal in the app already carries this class (Header's
+   profile menu, notifications, username/consent/delete/auth modals, the
+   follow-list modal, etc) - it does nothing in the base theme (no keyframe
+   named fadeIn is defined anywhere), so overriding it here is a free,
+   markup-free way to give every one of them a bouncy pop-open instead of
+   just appearing. */
+@keyframes aero-pop-in {
+  0% { opacity: 0; transform: scale(0.75) translateY(10px); }
+  60% { opacity: 1; transform: scale(1.04) translateY(-2px); }
+  80% { transform: scale(0.98) translateY(1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.aero .animate-fadeIn {
+  animation: aero-pop-in 0.45s var(--aero-spring) both;
 }
 
 /* ----------------------------------------------------------------
@@ -1007,6 +1076,27 @@ button:active, .btn-brutalist:active {
   25% { opacity: 1; letter-spacing: 0.3em; }
   70% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* Gooey blob that trails the cursor (AeroBackground.tsx) - position comes
+   straight from --mx/--my (set every frame by useCursorSpotlight, already
+   lerp-smoothed there), no separate mousemove listener needed. Sits above
+   normal page content but below the header/dropdowns/modals (z 40-200) so
+   it never gets in the way of anything actually clickable. */
+.aero-cursor-blob {
+  position: fixed;
+  left: var(--mx, 50vw);
+  top: var(--my, 50vh);
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  margin-top: -22px;
+  z-index: 30;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(1.5px);
+  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.15) 35%, rgba(120, 200, 255, 0.4) 70%, rgba(60, 140, 220, 0.22) 100%);
+  box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.6), 0 6px 18px rgba(30, 110, 200, 0.28);
 }
 
 /* Glass water-droplet shapes used by AeroBackground.tsx's foreground

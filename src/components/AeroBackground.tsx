@@ -47,6 +47,7 @@ export const AeroBackground: React.FC = () => {
   const frontY = -Math.min(scrollY * 0.35, MAX_PARALLAX_PX);
 
   return (
+    <>
     <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: -5 }} aria-hidden="true">
       {/* Sky - slowest layer */}
       <div
@@ -96,5 +97,16 @@ export const AeroBackground: React.FC = () => {
           particle system (see BackgroundEffectCanvas.tsx) as-is. */}
       <BackgroundEffectCanvas effect="bubbles" />
     </div>
+
+    {/* Gooey cursor-trailing blob - purely CSS, tracks the --mx/--my custom
+        properties useCursorSpotlight() (mounted in App.tsx, runs regardless
+        of theme) already updates every frame with a lerp-smoothed cursor
+        position, so this trails the pointer for free without a second
+        mousemove listener or rAF loop. Rendered as its own top-level fixed
+        element (NOT nested inside the -5 z-index background wrapper above)
+        so its z-index is evaluated against the whole page instead of being
+        trapped inside that wrapper's own stacking context. */}
+    <div className="aero-cursor-blob" aria-hidden="true" />
+    </>
   );
 };
