@@ -14,11 +14,13 @@ import { useCursorSpotlight } from '@/hooks/useCursorSpotlight';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { AudioEngineProvider } from '@/contexts/AudioEngineContext';
 import { ChatPanel } from '@/components/ChatPanel';
+import { AeroBackground } from '@/components/AeroBackground';
 
 export function App() {
   useCursorSpotlight();
   return (
     <Router>
+      <AeroBackground />
       <AudioEngineProvider>
         <ChatProvider>
           <Routes>

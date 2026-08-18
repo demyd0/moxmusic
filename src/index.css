@@ -42,6 +42,22 @@
     --text-secondary: #8fa3c9;
     --text-muted: #5a6a8f;
   }
+
+  /* Hidden Frutiger Aero easter-egg theme - see useTheme.ts for the unlock
+     mechanism (a near-invisible bubble hiding in the header, see Header.tsx)
+     and Header.tsx for the switcher. Same override strategy as .dark/.winamp
+     above: recolor the site's existing bg-white/border-black/text-black
+     vocabulary instead of adding per-component variants - see the big
+     "Aero mode" section further down for the glossy/rounded skin texture
+     layered on top of these vars. */
+  .aero {
+    --bg-primary: #eaf6ff;
+    --bg-card: #ffffff;
+    --border-color: #bfe4ff;
+    --text-primary: #0b2942;
+    --text-secondary: #2d6a8f;
+    --text-muted: #5f93b3;
+  }
 }
 
 body {
@@ -114,6 +130,14 @@ body::after {
     linear-gradient(90deg, rgba(77, 255, 77, 0.14) 1px, transparent 1px);
 }
 
+/* Aero mode replaces the brutalist graph-paper grid entirely with its own
+   scenic parallax background (see AeroBackground.tsx, mounted in App.tsx),
+   which needs the plain grid layers out of the way rather than recolored. */
+.aero body::before,
+.aero body::after {
+  display: none;
+}
+
 /* Typography matching Moxmap brutalist headers */
 h1, h2, h3, h4, h5, h6, .font-header {
   font-family: var(--font-header);
@@ -127,6 +151,10 @@ h1, h2, h3, h4, h5, h6, .font-header {
 }
 
 .winamp h1, .winamp h2, .winamp h3, .winamp h4, .winamp h5, .winamp h6, .winamp .font-header {
+  color: var(--text-primary);
+}
+
+.aero h1, .aero h2, .aero h3, .aero h4, .aero h5, .aero h6, .aero .font-header {
   color: var(--text-primary);
 }
 
@@ -172,6 +200,20 @@ h1, h2, h3, h4, h5, h6, .font-header {
   box-shadow: 6px 6px 0px 0px #33406b;
 }
 
+/* Aero mode: no offset block shadow at all - a soft diffused glow plus an
+   inner glossy highlight, the opposite of a brutalist hard shadow. */
+.aero .hard-shadow {
+  box-shadow: 0 10px 28px -8px rgba(30, 110, 200, 0.35), 0 2px 8px rgba(30, 110, 200, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.aero .hard-shadow-sm {
+  box-shadow: 0 6px 16px -6px rgba(30, 110, 200, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.aero .hard-shadow-lg {
+  box-shadow: 0 16px 40px -10px rgba(30, 110, 200, 0.4), 0 4px 12px rgba(30, 110, 200, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
 /* Crisp 90-degree Rectangular Buttons & Interactive Elements */
 button, .btn-brutalist {
   border-radius: 0px !important;
@@ -189,6 +231,15 @@ button:active, .btn-brutalist:active {
 
 .winamp button:active, .winamp .btn-brutalist:active {
   box-shadow: 1px 1px 0px 0px #33406b !important;
+}
+
+/* Aero mode: buttons are round-cornered and glossy (see the border-radius
+   block further down), so the press state is a gentle scale-down instead
+   of the brutalist hard-offset "punch" - a rounded glass button doesn't
+   have corners to slide into. */
+.aero button:active, .aero .btn-brutalist:active {
+  transform: scale(0.97) !important;
+  box-shadow: 0 3px 10px -4px rgba(30, 110, 200, 0.35) !important;
 }
 
 /* Album card LIKE/LISTEN/DELETE action overlay: always visible by default so
@@ -239,6 +290,14 @@ button:active, .btn-brutalist:active {
 }
 .winamp ::-webkit-scrollbar-thumb {
   background: #4a5a7a;
+}
+
+.aero ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.35);
+}
+.aero ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7fd4ff, #2196c9);
+  border-radius: 999px;
 }
 
 /* ============================================================
@@ -469,6 +528,146 @@ button:active, .btn-brutalist:active {
 }
 .winamp .text-emerald-600 { color: #4dff4d; }
 
+/* ============================================================
+   Aero mode: the second hidden easter-egg theme (see useTheme.ts)
+   ============================================================
+   Same override vocabulary as .dark/.winamp above, recolored into a bright
+   glossy sky-blue/leaf-green Frutiger Aero palette - glass surfaces over
+   the scenic parallax background (AeroBackground.tsx), rounded everything,
+   soft diffused shadows instead of hard offsets. The complete opposite of
+   the site's base brutalism on purpose.
+   ============================================================ */
+
+.aero .bg-white { background-color: rgba(255, 255, 255, 0.62); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.aero .bg-white\/95 { background-color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.aero .bg-neutral-50 { background-color: rgba(255, 255, 255, 0.5); }
+.aero .bg-neutral-100 { background-color: rgba(210, 236, 255, 0.6); }
+.aero .bg-neutral-200 { background-color: rgba(190, 226, 255, 0.7); }
+.aero .bg-neutral-800 { background-color: #1f6fa8; }
+.aero .hover\:bg-neutral-100:hover { background-color: rgba(190, 226, 255, 0.75); }
+.aero .hover\:bg-neutral-800:hover { background-color: #2b8fd4; }
+
+.aero .border-black { border-color: rgba(120, 195, 245, 0.6); }
+.aero .border-black\/10 { border-color: rgba(120, 195, 245, 0.35); }
+.aero .border-black\/15 { border-color: rgba(120, 195, 245, 0.35); }
+.aero .border-black\/20 { border-color: rgba(120, 195, 245, 0.45); }
+.aero .border-black\/50 { border-color: rgba(120, 195, 245, 0.7); }
+.aero .divide-black\/10 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(120, 195, 245, 0.35); }
+
+.aero .text-black { color: var(--text-primary); }
+.aero .text-neutral-400 { color: #6ba7cc; }
+.aero .text-neutral-500 { color: var(--text-muted); }
+.aero .text-neutral-600 { color: var(--text-secondary); }
+.aero .text-neutral-700 { color: #184b6b; }
+.aero .hover\:text-black:hover { color: var(--text-primary); }
+
+.aero .bg-\[\#fafafa\] { background-color: var(--bg-primary); }
+.aero .text-\[\#0a0a0a\] { color: var(--text-primary); }
+
+/* Inverted "active/selected" pill becomes a glossy sky-blue glass button
+   instead of flat black. */
+.aero .bg-black { background-image: linear-gradient(180deg, #6fd0ff, #1f8fd4); background-color: #1f8fd4; border-color: rgba(255, 255, 255, 0.7) !important; }
+.aero .hover\:bg-black:hover { background-image: linear-gradient(180deg, #85d8ff, #2b9fe0); }
+
+.aero .bg-black.text-white,
+.aero .bg-black .text-white,
+.aero .hover\:bg-black:hover.hover\:text-white:hover,
+.aero .hover\:bg-black:hover .hover\:text-white:hover {
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(10, 70, 120, 0.5);
+}
+
+.aero .bg-black.border-white,
+.aero .bg-black .border-white {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.aero .bg-black.fill-white,
+.aero .bg-black .fill-white {
+  fill: #ffffff;
+}
+
+.aero .bg-red-50 { background-color: rgba(255, 210, 210, 0.55); }
+.aero .border-red-600 { border-color: #e0525a; }
+.aero .text-red-600 { color: #d5424a; }
+.aero .text-red-700 { color: #b8323a; }
+.aero .text-emerald-600 { color: #1f9d63; }
+
+/* ----------------------------------------------------------------
+   Aero mode, part 2: actual skin texture, not just a recolor.
+   Rounds every bordered surface, turns the header into a frosted glass
+   titlebar with an aqua underglow, and gives buttons a raised glossy
+   highlight - pure CSS additions layered on the overrides above, no
+   markup changes needed anywhere.
+   ---------------------------------------------------------------- */
+
+/* Rounding is scoped to exact utility-class tokens (.border-2, not
+   .border-l-2/.border-t-2 etc, which Tailwind treats as distinct classes),
+   so internal dividers inside a segmented control stay straight while the
+   control's own outer border rounds - no per-component markup changes. */
+.aero .border-2,
+.aero .border,
+.aero button,
+.aero input,
+.aero textarea,
+.aero section,
+.aero .hard-shadow,
+.aero .hard-shadow-sm,
+.aero .hard-shadow-lg {
+  border-radius: 16px !important;
+}
+
+.aero header.bg-white {
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+  border-radius: 0 !important;
+}
+.aero header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9) 15%, rgba(255, 255, 255, 0.9) 85%, transparent);
+}
+.aero header::after {
+  /* aqua underglow groove, this theme's answer to Winamp's LCD-green one */
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  background-image: linear-gradient(90deg, transparent, #4fc3f7 15%, #26e0c9 50%, #4fc3f7 85%, transparent);
+  opacity: 0.75;
+  box-shadow: 0 0 10px rgba(79, 195, 247, 0.6);
+}
+.aero header .text-black { color: #0b3a55; }
+.aero header .hover\:bg-neutral-100:hover { background-color: rgba(79, 195, 247, 0.15); }
+
+/* Every panel/card gets a glossy top highlight - same trick real Aero
+   glass PNGs used (a soft light sheen over a translucent base). */
+.aero .bg-white,
+.aero .bg-white\/95,
+.aero .bg-neutral-50 {
+  background-image: linear-gradient(165deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 45%);
+}
+
+.aero button {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 55%);
+}
+
+/* Small square icon avatars (e.g. chat/notification avatars, h-6/7/8/9/10
+   sized) round to a full circle rather than the 16px card radius, which
+   would look odd on something that small. */
+.aero .h-6.w-6.border, .aero .h-6.w-6.border-2,
+.aero .h-7.w-7.border, .aero .h-7.w-7.border-2,
+.aero .h-8.w-8.border, .aero .h-8.w-8.border-2,
+.aero .h-9.w-9.border, .aero .h-9.w-9.border-2,
+.aero .h-10.w-10.border, .aero .h-10.w-10.border-2 {
+  border-radius: 999px !important;
+}
+
 /* Avatar frames - cosmetic rewards for activity milestones, see
    src/lib/milestones.ts and src/lib/avatarFrames.ts. */
 .avatar-frame-bronze { border-color: #a5673a !important; box-shadow: 0 0 10px rgba(165, 103, 58, 0.5); }
@@ -664,4 +863,98 @@ button:active, .btn-brutalist:active {
   25% { opacity: 1; letter-spacing: 0.3em; }
   70% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* Idle float for the hidden bubble trigger in Header.tsx - subtle enough
+   that it reads as a rendering shimmer rather than an obvious button
+   until you're already looking right at it. */
+@keyframes aero-secret-float {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50% { transform: translateY(3px); opacity: 0.9; }
+}
+
+/* Aero theme unlock reveal - a burst of rising bubbles plus a soft glassy
+   shine sweep, mirroring winamp-unlock-overlay's structure/timing above
+   but with a water-themed payoff instead of a light-band sweep. */
+.aero-unlock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.aero-unlock-shine {
+  position: absolute;
+  top: -60%;
+  left: -70%;
+  width: 240%;
+  height: 220%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(180, 230, 255, 0.15) 44%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(180, 230, 255, 0.15) 56%,
+    transparent 62%,
+    transparent 100%
+  );
+  transform: translateX(-45%) rotate(8deg);
+  animation: aero-sweep 1.4s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes aero-sweep {
+  to {
+    transform: translateX(45%) rotate(8deg);
+  }
+}
+
+.aero-unlock-bubble {
+  position: absolute;
+  bottom: -10%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.15) 35%, rgba(120, 200, 255, 0.35) 70%, rgba(60, 140, 220, 0.2) 100%);
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.6);
+  animation-name: aero-bubble-rise;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes aero-bubble-rise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { transform: translateY(-115vh) scale(1); opacity: 0; }
+}
+
+.aero-unlock-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: clamp(1.1rem, 4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: #0b6fa8;
+  text-shadow: 0 0 16px rgba(120, 210, 255, 0.9), 0 0 4px rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  animation: aero-label-flash 1.4s ease-out forwards;
+}
+
+@keyframes aero-label-flash {
+  0% { opacity: 0; letter-spacing: 0.6em; }
+  25% { opacity: 1; letter-spacing: 0.3em; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Glass water-droplet shapes used by AeroBackground.tsx's foreground
+   parallax layer. */
+.aero-droplet {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.15) 35%, rgba(120, 200, 255, 0.35) 70%, rgba(60, 140, 220, 0.25) 100%);
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.5), 0 8px 30px rgba(30, 110, 200, 0.25);
+  filter: blur(0.5px);
 }

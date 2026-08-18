@@ -15,7 +15,8 @@ import { UsernameModal } from '@/components/UsernameModal';
 import { GdprConsentModal } from '@/components/GdprConsentModal';
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 import { WinampUnlockOverlay } from '@/components/WinampUnlockOverlay';
-import { useTheme, isWinampThemeUnlocked, unlockWinampTheme } from '@/hooks/useTheme';
+import { AeroUnlockOverlay } from '@/components/AeroUnlockOverlay';
+import { useTheme, isWinampThemeUnlocked, unlockWinampTheme, isAeroThemeUnlocked, unlockAeroTheme } from '@/hooks/useTheme';
 import { useChat } from '@/contexts/ChatContext';
 import { useAudioEngine } from '@/contexts/AudioEngineContext';
 import { subscribeNotifications, markAllNotificationsRead, type NotificationEvent } from '@/services/notificationService';
@@ -45,7 +46,8 @@ import {
   Mic2,
   Bell,
   UserPlus,
-  Sparkles
+  Sparkles,
+  Droplet
 } from 'lucide-react';
 
 const LOGO_UNLOCK_CLICKS = 5;
@@ -82,6 +84,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [notificationToast, setNotificationToast] = useState<string | null>(null);
   const [winampUnlocked, setWinampUnlocked] = useState(() => isWinampThemeUnlocked());
   const [showWinampUnlockOverlay, setShowWinampUnlockOverlay] = useState(false);
+  const [aeroUnlocked, setAeroUnlocked] = useState(() => isAeroThemeUnlocked());
+  const [showAeroUnlockOverlay, setShowAeroUnlockOverlay] = useState(false);
   const logoClickCountRef = useRef(0);
   const logoClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -275,11 +279,37 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  // Second, unrelated secret: a nearly-invisible bubble hiding in the
+  // header itself (see the aria-hidden button in the JSX below) - no click
+  // counter, just find it and click it once.
+  const handleAeroUnlock = () => {
+    unlockAeroTheme();
+    setAeroUnlocked(true);
+    setTheme('aero');
+    setShowAeroUnlockOverlay(true);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b-2 border-black bg-white">
       {showWinampUnlockOverlay && (
         <WinampUnlockOverlay onDone={() => setShowWinampUnlockOverlay(false)} />
       )}
+      {showAeroUnlockOverlay && (
+        <AeroUnlockOverlay onDone={() => setShowAeroUnlockOverlay(false)} />
+      )}
+
+      {/* Secret unlock #2: a barely-visible bubble drifting in the corner
+          of the header - no label, no tab focus, nothing pointing at it.
+          Find it, click it, get the hidden Frutiger Aero theme. */}
+      <button
+        type="button"
+        onClick={handleAeroUnlock}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="absolute right-3 top-1.5 z-10 h-2.5 w-2.5 rounded-full bg-sky-300/25 hover:bg-sky-300/60 transition-colors duration-700 cursor-default"
+        style={{ animation: 'aero-secret-float 4.5s ease-in-out infinite' }}
+      />
+
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-6">
         {/* Minimalist Double MM Brand Logo ONLY (No text) */}
         <div 
@@ -563,6 +593,19 @@ export const Header: React.FC<HeaderProps> = ({
                         >
                           <Radio className="h-3.5 w-3.5" />
                           <span>WINAMP</span>
+                        </button>
+                      )}
+                      {aeroUnlocked && (
+                        <button
+                          type="button"
+                          onClick={() => setTheme('aero')}
+                          title="A hidden theme you found - nice."
+                          className={`flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-2 border-l border-black font-bold uppercase transition-all ${
+                            theme === 'aero' ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                          }`}
+                        >
+                          <Droplet className="h-3.5 w-3.5" />
+                          <span>AERO</span>
                         </button>
                       )}
                     </div>
