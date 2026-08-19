@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { Album } from '@/types/album';
 import { getPreferredService } from '@/lib/streamingServices';
-import { Disc3, Heart, Headphones, Trash2, Music2 } from 'lucide-react';
+import { Disc3, Heart, Headphones, Trash2, Music2, MoreVertical } from 'lucide-react';
 
 interface CollectionAlbumCardProps {
   album: Album;
@@ -26,6 +26,7 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   // Format dateAdded if available
   const formattedDate = album.dateAdded
@@ -68,6 +69,23 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
           </div>
         )}
 
+        {/* Tap-to-reveal trigger for the action overlay below - the overlay
+            itself defaults to hidden everywhere now (see .card-action-
+            overlay in index.css), so touch devices (no reliable :hover)
+            need an explicit way in that isn't a permanent dark panel
+            sitting on top of the cover art. */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setActionsOpen((v) => !v);
+          }}
+          title="Album actions"
+          className="absolute right-1.5 top-1.5 z-30 flex h-6 w-6 items-center justify-center border border-black bg-white/90 text-black transition-colors hover:bg-white"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+
         {/* Loading Spinner */}
         {!imageLoaded && !imageError && album.coverUrl && (
           <div className="absolute inset-0 flex items-center justify-center bg-neutral-200 animate-pulse">
@@ -101,8 +119,18 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
 
         {/* Action Overlay. See .card-action-overlay in index.css for why this
             isn't plain Tailwind opacity classes. */}
-        <div className="card-action-overlay absolute inset-0 z-20 flex flex-col justify-end p-2.5 transition-opacity bg-black/60 backdrop-blur-none">
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className={`card-action-overlay absolute inset-0 z-20 flex flex-col justify-end p-2.5 transition-opacity bg-black/60 backdrop-blur-none ${actionsOpen ? 'is-open' : ''}`}>
+          <div
+            className="flex items-center gap-2"
+            onClick={(e) => {
+              // Also closes the tap-opened overlay after any action button
+              // click (bubbles up from the button after its own handler
+              // runs) - hover-revealed on desktop doesn't need this since
+              // moving the mouse away already closes it.
+              e.stopPropagation();
+              setActionsOpen(false);
+            }}
+          >
             {type === 'liked' && onToggleToListen ? (
               <div className="grid grid-cols-2 gap-2 w-full">
                 <button

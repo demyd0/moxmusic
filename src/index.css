@@ -258,15 +258,23 @@ button:active, .btn-brutalist:active {
    variant produced a doubly-nested @media block that some part of this
    Tailwind v4 + Vite dev pipeline was not honoring correctly - the selector
    matched structurally but the rule never actually took effect on hover. */
+/* Was opacity:1 by default (always-on) specifically so touch devices had
+   SOME way to reach these actions, since :hover isn't reliable there - but
+   that meant a permanent dark overlay sitting on top of every album cover
+   on mobile, hiding the art it's supposed to show. Now hidden by default
+   everywhere and only shown via the small tap-toggle button (see
+   CollectionAlbumCard.tsx's .is-open class) or, on devices with a real
+   pointer, the hover reveal below - so touch users get the art back and
+   still have a way in. */
 .card-action-overlay {
+  opacity: 0;
+}
+
+.card-action-overlay.is-open {
   opacity: 1;
 }
 
 @media (pointer: fine) {
-  .card-action-overlay {
-    opacity: 0;
-  }
-
   .group:hover .card-action-overlay {
     opacity: 1;
   }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { Album } from '@/types/album';
-import { Disc3, Heart, Headphones } from 'lucide-react';
+import { Disc3, Heart, Headphones, MoreVertical } from 'lucide-react';
 
 interface AlbumCardProps {
   album: Album;
@@ -21,6 +21,7 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   const handleCardClick = () => {
     navigate(`/album/${album.id}`);
@@ -35,6 +36,22 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
         onClick={handleCardClick}
         className="relative aspect-square w-full border border-black bg-neutral-100 cursor-pointer overflow-hidden"
       >
+        {/* Tap-to-reveal trigger for the action overlay below - see
+            CollectionAlbumCard.tsx / index.css's .card-action-overlay for
+            the full reasoning (mobile has no reliable :hover, so the
+            overlay used to just sit permanently on top of the art). */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setActionsOpen((v) => !v);
+          }}
+          title="Album actions"
+          className="absolute right-1.5 top-1.5 z-30 flex h-6 w-6 items-center justify-center border border-black bg-white/90 text-black transition-colors hover:bg-white"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+
         {/* Loading Skeleton */}
         {!imageLoaded && !imageError && album.coverUrl && (
           <div className="absolute inset-0 flex items-center justify-center bg-neutral-200 animate-pulse">
@@ -64,8 +81,14 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
 
         {/* Action Overlay with LIKE & LISTEN Buttons. See .card-action-overlay
             in index.css for why this isn't plain Tailwind opacity classes. */}
-        <div className="card-action-overlay absolute inset-0 z-20 flex flex-col justify-end p-2.5 transition-opacity bg-black/60 backdrop-blur-none">
-          <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className={`card-action-overlay absolute inset-0 z-20 flex flex-col justify-end p-2.5 transition-opacity bg-black/60 backdrop-blur-none ${actionsOpen ? 'is-open' : ''}`}>
+          <div
+            className="grid grid-cols-2 gap-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActionsOpen(false);
+            }}
+          >
             <button
               type="button"
               onClick={() => onToggleLike?.(album)}

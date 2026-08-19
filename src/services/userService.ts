@@ -65,8 +65,18 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       break; // Doc genuinely has no profile yet - stop, don't retry.
     } catch (error: any) {
       const delay = AUTH_RACE_RETRY_DELAYS_MS[attempt];
-      const isTransientAuthRace = error?.code === 'permission-denied' && delay !== undefined;
-      if (isTransientAuthRace) {
+      // A thrown error here is ALWAYS transient (network hiccup, the auth
+      // race this whole retry loop exists for, mobile connections dropping
+      // mid-request, etc) - a doc that genuinely has no profile yet doesn't
+      // throw, it resolves successfully with snap.exists() === false, which
+      // is handled above and breaks the loop on its own. So retrying was
+      // previously scoped to error?.code === 'permission-denied' only,
+      // which covered the auth race this was built for but not flakier
+      // mobile-network failure codes (unavailable/deadline-exceeded/etc) -
+      // exactly the case a phone on real cellular data actually hits,
+      // which is what still sent it into "choose a username" despite this
+      // retry already existing.
+      if (delay !== undefined) {
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
