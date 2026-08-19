@@ -426,105 +426,99 @@ export const AlbumDetailsPage: React.FC = () => {
                 </div>
 
                 {tracks.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left font-mono text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b-2 border-black bg-neutral-100 text-black font-bold uppercase tracking-wider">
-                          <th className="py-3 px-4 w-12">#</th>
-                          <th className="py-3 px-4">TRACK TITLE</th>
-                          <th className="py-3 px-4 w-24 text-right">
-                            <span className="inline-flex items-center gap-1">
+                  // Stacked rows (title/duration line + a wrapping action
+                  // row beneath) instead of a <table> - a real table forced
+                  // every row to ~550px wide just to fit the six action
+                  // icons next to the title/duration columns, which meant
+                  // sideways-scrolling a data table on a 375px phone to
+                  // reach any of them. This layout is identical across
+                  // breakpoints rather than table-on-desktop/cards-on-
+                  // mobile, so there's one code path to verify.
+                  <div className="divide-y divide-black/10 font-mono text-xs">
+                    {tracks.map((track) => {
+                      const isPlaying = playingTrackNumber === track.trackNumber;
+                      return (
+                        <div key={track.trackNumber} className="hover:bg-neutral-50 font-medium py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="w-6 shrink-0 text-right font-bold text-neutral-400">{track.trackNumber}</span>
+                            <span className="min-w-0 flex-1 truncate text-black font-bold">{track.title}</span>
+                            <span className="shrink-0 inline-flex items-center gap-1 text-neutral-600">
                               <Clock className="h-3 w-3" />
-                              <span>DURATION</span>
+                              {formatDuration(track.durationMs)}
                             </span>
-                          </th>
-                          <th className="py-3 px-4 w-24 text-right">LISTEN</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-black/10">
-                        {tracks.map((track) => {
-                          const isPlaying = playingTrackNumber === track.trackNumber;
-                          return (
-                            <tr key={track.trackNumber} className="hover:bg-neutral-50 font-medium">
-                              <td className="py-3 px-4 font-bold text-neutral-400">{track.trackNumber}</td>
-                              <td className="py-3 px-4 text-black font-bold">{track.title}</td>
-                              <td className="py-3 px-4 text-right text-neutral-600">{formatDuration(track.durationMs)}</td>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center justify-end gap-2">
-                                  {track.id && userId && (
-                                    <AlbumReactionWidget
-                                      albumId={track.id}
-                                      currentUserId={userId}
-                                      isAuthenticated={isAuthenticated}
-                                      onRequireAuth={() => setIsAuthPromptOpen(true)}
-                                      compact
-                                    />
-                                  )}
-                                  {track.id && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleToggleTrackLike(track)}
-                                      title={userCollections.likedIds.has(track.id) ? 'Unlike this track' : 'Like this track'}
-                                      className={`flex h-7 w-7 items-center justify-center border border-black transition-all ${
-                                        userCollections.likedIds.has(track.id)
-                                          ? 'bg-black text-white'
-                                          : 'bg-white text-black hover:bg-neutral-100'
-                                      }`}
-                                    >
-                                      <Heart
-                                        className={`h-3.5 w-3.5 ${userCollections.likedIds.has(track.id) ? 'fill-white text-white' : 'text-black'}`}
-                                      />
-                                    </button>
-                                  )}
-                                  {track.id && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleShareTrack(track)}
-                                      title="Send this track in a chat"
-                                      className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-neutral-100 transition-all"
-                                    >
-                                      <Send className="h-3.5 w-3.5" />
-                                    </button>
-                                  )}
-                                  {track.previewUrl && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleTogglePreview(track)}
-                                      title={isPlaying ? 'Pause 30s preview' : 'Play 30s preview'}
-                                      className={`flex h-7 w-7 items-center justify-center border border-black transition-all ${
-                                        isPlaying ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
-                                      }`}
-                                    >
-                                      {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                                    </button>
-                                  )}
-                                  <a
-                                    href={preferredService.buildSearchUrl(album.artist, track.title, false)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={`Open this track on ${preferredService.label}`}
-                                    className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:text-white transition-all"
-                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = preferredService.color; e.currentTarget.style.borderColor = preferredService.color; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.borderColor = ''; }}
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                  </a>
-                                  <a
-                                    href={buildGeniusSearchUrl(album.artist, track.title)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="Find lyrics for this track on Genius"
-                                    className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-[#ffff64] transition-all"
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                  </a>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 pl-9">
+                            {track.id && userId && (
+                              <AlbumReactionWidget
+                                albumId={track.id}
+                                currentUserId={userId}
+                                isAuthenticated={isAuthenticated}
+                                onRequireAuth={() => setIsAuthPromptOpen(true)}
+                                compact
+                              />
+                            )}
+                            {track.id && (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTrackLike(track)}
+                                title={userCollections.likedIds.has(track.id) ? 'Unlike this track' : 'Like this track'}
+                                className={`flex h-7 w-7 items-center justify-center border border-black transition-all ${
+                                  userCollections.likedIds.has(track.id)
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-black hover:bg-neutral-100'
+                                }`}
+                              >
+                                <Heart
+                                  className={`h-3.5 w-3.5 ${userCollections.likedIds.has(track.id) ? 'fill-white text-white' : 'text-black'}`}
+                                />
+                              </button>
+                            )}
+                            {track.id && (
+                              <button
+                                type="button"
+                                onClick={() => handleShareTrack(track)}
+                                title="Send this track in a chat"
+                                className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-neutral-100 transition-all"
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {track.previewUrl && (
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePreview(track)}
+                                title={isPlaying ? 'Pause 30s preview' : 'Play 30s preview'}
+                                className={`flex h-7 w-7 items-center justify-center border border-black transition-all ${
+                                  isPlaying ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                                }`}
+                              >
+                                {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                              </button>
+                            )}
+                            <a
+                              href={preferredService.buildSearchUrl(album.artist, track.title, false)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Open this track on ${preferredService.label}`}
+                              className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:text-white transition-all"
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = preferredService.color; e.currentTarget.style.borderColor = preferredService.color; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.borderColor = ''; }}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                            <a
+                              href={buildGeniusSearchUrl(album.artist, track.title)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Find lyrics for this track on Genius"
+                              className="flex h-7 w-7 items-center justify-center border border-black bg-white text-black hover:bg-[#ffff64] transition-all"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="py-8 text-center font-mono text-xs text-neutral-500 uppercase tracking-wider">

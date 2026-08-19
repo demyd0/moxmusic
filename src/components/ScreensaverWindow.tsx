@@ -11,12 +11,21 @@ interface Rect { x: number; y: number; w: number; h: number; }
 const GRIP_PATTERN = 'repeating-linear-gradient(90deg, #7d92c2 0px, #7d92c2 1px, transparent 1px, transparent 3px)';
 
 export const ScreensaverWindow: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [rect, setRect] = useState<Rect>(() => ({
-    x: Math.max(20, window.innerWidth / 2 - 260),
-    y: Math.max(20, window.innerHeight / 2 - 220),
-    w: 520,
-    h: 400,
-  }));
+  const [rect, setRect] = useState<Rect>(() => {
+    // Clamped to the viewport rather than a flat 520x400 - that was wider
+    // than an entire phone screen (a 375px-wide viewport got a window with
+    // its right edge sitting at x=540, guaranteed horizontal overflow) and
+    // was computing its centering position against the same 520px it
+    // never actually used once clamped, drifting the window off-center.
+    const w = Math.min(520, window.innerWidth - 24);
+    const h = Math.min(400, window.innerHeight - 100);
+    return {
+      x: Math.max(12, window.innerWidth / 2 - w / 2),
+      y: Math.max(20, window.innerHeight / 2 - h / 2),
+      w,
+      h,
+    };
+  });
   const [preset, setPreset] = useState<string>(DEFAULT_SCREENSAVER_PRESET);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
