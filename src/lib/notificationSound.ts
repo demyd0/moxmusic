@@ -12,7 +12,7 @@ let audio: HTMLAudioElement | null = null;
 export function playNotificationSound(): void {
   try {
     if (!audio) {
-      audio = new Audio('/sounds/notification.mp3');
+      audio = new Audio('/sounds/sound.wav');
       audio.volume = 0.5;
     }
     audio.currentTime = 0;
