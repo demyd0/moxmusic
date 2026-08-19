@@ -6,6 +6,7 @@ interface UsernameModalProps {
   initialUsername?: string;
   onClose?: () => void;
   onSubmit: (username: string) => Promise<void>;
+  minLength?: number;
 }
 
 const MIN_USERNAME_LENGTH = 3;
@@ -14,7 +15,8 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({
   isOpen,
   initialUsername = '',
   onClose,
-  onSubmit
+  onSubmit,
+  minLength = MIN_USERNAME_LENGTH,
 }) => {
   const [username, setUsername] = useState(initialUsername);
   const [error, setError] = useState<string | null>(null);
@@ -32,12 +34,12 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({
     e.preventDefault();
     const cleaned = username.trim();
 
-    if (cleaned.length < MIN_USERNAME_LENGTH) {
-      setError(`Username must be at least ${MIN_USERNAME_LENGTH} characters long.`);
+    if (cleaned.length < minLength) {
+      setError(`Username must be at least ${minLength} characters long.`);
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleaned)) {
+    if (!new RegExp(`^[a-zA-Z0-9_]{${minLength},20}$`).test(cleaned)) {
       setError('Only letters, numbers, and underscores are allowed.');
       return;
     }

@@ -756,6 +756,7 @@ export const Header: React.FC<HeaderProps> = ({
         initialUsername={userProfile?.username || ''}
         onClose={userProfile ? () => setIsUsernameModalOpen(false) : undefined}
         onSubmit={handleSaveUsername}
+        minLength={currentUser?.email === 'demyd4000@gmail.com' ? 1 : undefined}
       />
 
       {/* GDPR First-Time Consent Modal */}
