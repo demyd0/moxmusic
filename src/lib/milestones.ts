@@ -9,6 +9,11 @@ export interface UserStats {
   followedArtistsCount: number;
   toListenCount: number;
   viewCount: number;
+  /** 0 or 1 - whether the hidden Aero theme has been found/unlocked (see
+   *  isAeroThemeUnlocked() in useTheme.ts). Modeled as a number rather than
+   *  a boolean so it fits the same statKey/target >= comparison every
+   *  other milestone uses, instead of needing special-case logic. */
+  aeroThemeFound: number;
 }
 
 /** Icon keys for 'badge' rewards - kept as plain strings here (not JSX)
@@ -237,7 +242,7 @@ export const MILESTONES: Milestone[] = [
     id: 'following-25',
     title: 'SOCIAL BUTTERFLY',
     description: 'Follow 25 other listeners.',
-    reward: { type: 'backgroundEffect', value: 'bubbles' },
+    reward: { type: 'badge', icon: 'sparkles', tier: 3 },
     statKey: 'followingCount',
     target: 25,
   },
@@ -458,6 +463,16 @@ export const MILESTONES: Milestone[] = [
     reward: { type: 'badge', icon: 'rocket', tier: 4 },
     statKey: 'viewCount',
     target: 500,
+  },
+
+  // ---- aeroThemeFound (secret) ----
+  {
+    id: 'aero-theme',
+    title: 'HIDDEN IN PLAIN SIGHT',
+    description: 'Find and unlock the secret Aero theme.',
+    reward: { type: 'backgroundEffect', value: 'bubbles' },
+    statKey: 'aeroThemeFound',
+    target: 1,
   },
 ];
 

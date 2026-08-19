@@ -30,6 +30,7 @@ import {
 } from '@/lib/milestones';
 import { MilestoneRevealModal } from '@/components/MilestoneRevealModal';
 import { AchievementsPanel } from '@/components/AchievementsPanel';
+import { isAeroThemeUnlocked } from '@/hooks/useTheme';
 import { extractYoutubeVideoId } from '@/lib/youtubeEmbed';
 import {
   DEFAULT_PROFILE_CUSTOMIZATION,
@@ -188,6 +189,7 @@ export const ProfileEditPage: React.FC = () => {
     followedArtistsCount,
     toListenCount,
     viewCount,
+    aeroThemeFound: isAeroThemeUnlocked() ? 1 : 0,
   };
 
   // Check for newly-earned milestones once we actually have real stats -
@@ -207,6 +209,7 @@ export const ProfileEditPage: React.FC = () => {
           followedArtistsCount,
           toListenCount,
           viewCount,
+          aeroThemeFound: isAeroThemeUnlocked() ? 1 : 0,
         },
         userId
       )

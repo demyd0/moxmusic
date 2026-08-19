@@ -31,6 +31,7 @@ const CATEGORY_LABELS: Record<keyof UserStats, string> = {
   followedArtistsCount: 'ARTISTS FOLLOWED',
   toListenCount: 'LISTEN QUEUE',
   viewCount: 'PROFILE VIEWS',
+  aeroThemeFound: 'SECRETS',
 };
 
 const STAT_LABELS: Record<keyof UserStats, string> = {
@@ -42,6 +43,7 @@ const STAT_LABELS: Record<keyof UserStats, string> = {
   followedArtistsCount: 'artists followed',
   toListenCount: 'albums queued to listen',
   viewCount: 'profile views',
+  aeroThemeFound: 'secret themes found',
 };
 
 // Milestones are already declared grouped by statKey (see milestones.ts) -
