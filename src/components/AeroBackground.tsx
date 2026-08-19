@@ -7,6 +7,25 @@ const MAX_PARALLAX_PX = 260;
 type AeroScene = 'hills' | 'ocean' | 'beam' | 'ribbon' | 'ripple';
 const AERO_SCENES: AeroScene[] = ['hills', 'ocean', 'beam', 'ribbon', 'ripple'];
 
+// User-supplied AI-generated (Gemini) images, not sourced from anywhere
+// else - full standalone scenes, so unlike the procedural CSS scenes above
+// these render as a single cover-fit "back" layer with no separate mid
+// layer (the photo already contains its own depth/composition).
+const AERO_PHOTOS: string[] = [
+  '/aero-scenes/hills-bubbles.jpg',
+  '/aero-scenes/dolphins-orb.jpg',
+  '/aero-scenes/bubble-ripple.jpg',
+  '/aero-scenes/tech-collage.jpg',
+  '/aero-scenes/bokeh-bubbles.jpg',
+];
+
+type SceneChoice = { kind: 'css'; id: AeroScene } | { kind: 'photo'; src: string };
+
+const SCENE_CHOICES: SceneChoice[] = [
+  ...AERO_SCENES.map((id): SceneChoice => ({ kind: 'css', id })),
+  ...AERO_PHOTOS.map((src): SceneChoice => ({ kind: 'photo', src })),
+];
+
 /** A leaping-dolphin-ish silhouette built from a handful of quadratic
  *  curves - deliberately abstract/simple rather than a detailed
  *  illustration (same "curated shape, not real artwork" reasoning as the
@@ -203,30 +222,29 @@ function SceneMid({ scene, midY }: { scene: AeroScene; midY: number }) {
 }
 
 /**
- * Full-page scenic backdrop for the hidden Frutiger Aero theme - three
- * fixed layers (back/mid/front) that scroll at different speeds for a
- * sense of depth, the opposite of the site's base brutalism. One of five
- * original scenes (hills, ocean+dolphins, abstract light-beam, ribbon
- * swirl, glass-bubble ripple) is picked at random each time this mounts,
- * i.e. once per real page load/refresh -
+ * Full-page scenic backdrop for the hidden Frutiger Aero theme - fixed
+ * layers that scroll at different speeds for a sense of depth, the
+ * opposite of the site's base brutalism. One of ten scenes is picked at
+ * random each time this mounts, i.e. once per real page load/refresh -
  * client-side route navigation within the SPA won't reroll it, since this
- * stays mounted across those. Mounted once at the App level (see App.tsx)
- * so it sits behind every route without each page needing to opt in;
- * renders nothing unless the Aero theme is active.
+ * stays mounted across those. Five are original procedural CSS/SVG scenes
+ * (hills, ocean+dolphins, abstract light-beam, ribbon swirl, glass-bubble
+ * ripple); five are AI-generated (Gemini) photos the user supplied - full
+ * standalone images rather than anyone else's copyrighted wallpaper or
+ * trademarked artwork pulled off the web. Mounted once at the App level
+ * (see App.tsx) so it sits behind every route without each page needing to
+ * opt in; renders nothing unless the Aero theme is active.
  *
- * Pure CSS/SVG shapes rather than image assets - no external files to
- * fetch, works offline, stays crisp at any viewport size, and (unlike a
- * photo pulled off the web) isn't anyone else's copyrighted artwork or
- * trademarked logo. Layer speeds are capped (MAX_PARALLAX_PX) so an
- * unusually tall page can't drag a layer far enough to reveal an edge -
- * each layer's box already extends well past the viewport specifically to
- * absorb that translation.
+ * Layer speeds are capped (MAX_PARALLAX_PX) so an unusually tall page
+ * can't drag a layer far enough to reveal an edge - each layer's box
+ * already extends well past the viewport specifically to absorb that
+ * translation.
  */
 export const AeroBackground: React.FC = () => {
   const { theme } = useTheme();
   const [scrollY, setScrollY] = useState(0);
   const rafRef = useRef<number | null>(null);
-  const scene = useMemo(() => AERO_SCENES[Math.floor(Math.random() * AERO_SCENES.length)], []);
+  const choice = useMemo(() => SCENE_CHOICES[Math.floor(Math.random() * SCENE_CHOICES.length)], []);
 
   useEffect(() => {
     if (theme !== 'aero') return;
@@ -254,22 +272,54 @@ export const AeroBackground: React.FC = () => {
   return (
     <>
     <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: -5 }} aria-hidden="true">
-      <SceneBack scene={scene} backY={backY} />
-      <SceneMid scene={scene} midY={midY} />
+      {choice.kind === 'photo' ? (
+        <div
+          className="absolute left-0 right-0"
+          style={{
+            top: -80,
+            bottom: -300,
+            transform: `translateY(${backY}px)`,
+            backgroundImage: `url(${choice.src})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+      ) : (
+        <>
+          <SceneBack scene={choice.id} backY={backY} />
+          <SceneMid scene={choice.id} midY={midY} />
+        </>
+      )}
 
       {/* Glass droplets - fastest layer, closest to the viewer, shared by
-          every scene. */}
+          every scene. Photo scenes get extra ones layered on top - unlike
+          the procedural scenes they have no separate mid-layer of their
+          own, so this is where the "more on top of the picture" density
+          comes from instead. */}
       <div className="absolute inset-0" style={{ transform: `translateY(${frontY}px)` }}>
         <div className="aero-droplet" style={{ width: 170, height: 170, left: '4%', bottom: '6%' }} />
         <div className="aero-droplet" style={{ width: 95, height: 95, right: '9%', bottom: '20%' }} />
         <div className="aero-droplet" style={{ width: 60, height: 60, left: '34%', bottom: '2%' }} />
         <div className="aero-droplet" style={{ width: 46, height: 46, right: '28%', bottom: '5%' }} />
-        {scene === 'beam' && <div className="aero-droplet" style={{ width: 130, height: 130, left: '46%', bottom: '30%' }} />}
+        {choice.kind === 'css' && choice.id === 'beam' && (
+          <div className="aero-droplet" style={{ width: 130, height: 130, left: '46%', bottom: '30%' }} />
+        )}
+        {choice.kind === 'photo' && (
+          <>
+            <div className="aero-droplet" style={{ width: 120, height: 120, left: '58%', bottom: '32%' }} />
+            <div className="aero-droplet" style={{ width: 80, height: 80, left: '18%', bottom: '45%' }} />
+            <div className="aero-droplet" style={{ width: 54, height: 54, right: '42%', bottom: '12%' }} />
+            <div className="aero-droplet" style={{ width: 38, height: 38, left: '68%', bottom: '55%' }} />
+          </>
+        )}
       </div>
 
       {/* Ambient floating bubbles - reuses the existing profile background
-          particle system (see BackgroundEffectCanvas.tsx) as-is. */}
+          particle system (see BackgroundEffectCanvas.tsx) as-is. Photo
+          scenes stack a second instance for extra density on top of the
+          picture. */}
       <BackgroundEffectCanvas effect="bubbles" />
+      {choice.kind === 'photo' && <BackgroundEffectCanvas effect="bubbles" />}
     </div>
 
     {/* Gooey cursor-trailing blob - purely CSS, tracks the --mx/--my custom
