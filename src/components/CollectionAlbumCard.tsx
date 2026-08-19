@@ -81,7 +81,7 @@ export const CollectionAlbumCard: React.FC<CollectionAlbumCardProps> = ({
             setActionsOpen((v) => !v);
           }}
           title="Album actions"
-          className="absolute right-1.5 top-1.5 z-30 flex h-6 w-6 items-center justify-center border border-black bg-white/90 text-black transition-colors hover:bg-white"
+          className="card-action-trigger absolute right-1.5 top-1.5 z-30 h-6 w-6 items-center justify-center border border-black bg-white/90 text-black transition-colors hover:bg-white"
         >
           <MoreVertical className="h-3.5 w-3.5" />
         </button>

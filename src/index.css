@@ -280,6 +280,19 @@ button:active, .btn-brutalist:active {
   }
 }
 
+/* Tap-to-reveal trigger for .card-action-overlay (see CollectionAlbumCard.tsx
+   / AlbumCard.tsx) - only needed on devices without a reliable :hover, so
+   it stayed a plain white square sitting on top of every album cover on
+   desktop otherwise, where the hover reveal above already handles it. */
+.card-action-trigger {
+  display: none;
+}
+@media (hover: none), (pointer: coarse) {
+  .card-action-trigger {
+    display: flex;
+  }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
