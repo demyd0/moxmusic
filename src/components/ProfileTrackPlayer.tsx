@@ -139,9 +139,15 @@ export const ProfileTrackPlayer: React.FC<ProfileTrackPlayerProps> = ({ track, a
       >
         {isYoutubePlaying ? <Pause className="h-3.5 w-3.5 fill-current" /> : <Play className="h-3.5 w-3.5 fill-current" />}
       </button>
-      <span className="min-w-0 truncate font-mono text-xs font-bold uppercase tracking-wider text-black">
+      <a
+        href={`https://www.youtube.com/watch?v=${track.value}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Open this track on YouTube"
+        className="min-w-0 truncate font-mono text-xs font-bold uppercase tracking-wider text-black hover:underline cursor-pointer"
+      >
         {track.title || 'PROFILE TRACK'}
-      </span>
+      </a>
       {/* Off-screen - the IFrame API replaces this div with a 1x1 iframe,
           audio-only, no video chrome shown to visitors. */}
       <div ref={youtubeContainerRef} className="absolute h-px w-px overflow-hidden opacity-0" aria-hidden="true" />
