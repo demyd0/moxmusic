@@ -667,14 +667,18 @@ button:active, .btn-brutalist:active {
   --aero-spring: cubic-bezier(0.34, 1.76, 0.64, 1);
 }
 
-/* Buttons: a real multi-bounce settle (two decaying oscillations) instead
-   of a single squash, on every hover-in. */
+/* Buttons: a small multi-bounce settle (two decaying oscillations) instead
+   of a single squash, on every hover-in. Kept deliberately subtle (max
+   ~6% size change) - an earlier, much bigger version (up to 16%) visibly
+   grew/shrank the element's own hoverable bounding box mid-animation,
+   which could push its edge out from under (or into) the cursor and
+   retrigger the animation from scratch, reading as a hard, buggy-looking
+   jump instead of a bounce. */
 @keyframes aero-jelly {
   0% { transform: scale(1); }
-  22% { transform: scale(1.16, 0.84); }
-  45% { transform: scale(0.9, 1.1); }
-  65% { transform: scale(1.06, 0.94); }
-  82% { transform: scale(0.97, 1.03); }
+  30% { transform: scale(1.05, 0.96); }
+  55% { transform: scale(0.98, 1.02); }
+  80% { transform: scale(1.015, 0.99); }
   100% { transform: scale(1); }
 }
 
@@ -698,17 +702,21 @@ button:active, .btn-brutalist:active {
     animation: aero-jelly 0.55s var(--aero-spring);
   }
 
-  /* Card-grid items lift and tilt slightly toward the viewer on hover,
-     with the same spring settle easing on the way back. Scoped to
-     .group.hard-shadow specifically (the exact marker CollectionAlbumCard
-     etc already use for their own hover-reveal overlay) rather than every
-     hard-shadow surface - :hover bubbles to ancestors, so the broader
-     selector used to also catch big page-level <section> panels (e.g. the
-     homepage's "recommended for you" block) any time you hovered ANYTHING
-     inside them, tilting the entire panel instead of a small card. */
+  /* Card-grid items lift slightly toward the viewer on hover, with the
+     same spring settle easing on the way back. Scoped to .group.hard-
+     shadow specifically (the exact marker CollectionAlbumCard etc already
+     use for their own hover-reveal overlay) rather than every hard-shadow
+     surface - :hover bubbles to ancestors, so the broader selector used to
+     also catch big page-level <section> panels (e.g. the homepage's
+     "recommended for you" block) any time you hovered ANYTHING inside
+     them, tilting the entire panel instead of a small card. Kept small
+     and rotation-free - a bigger lift (was -6px) plus a rotate visibly
+     skewed a rectangular card out of the grid's row, overlapping
+     whatever sat just above it (e.g. a horizontally-scrolling showcase
+     row hovered right under the profile's follower-count line). */
   .aero .group.hard-shadow:hover,
   .aero .group.hard-shadow-sm:hover {
-    transform: translateY(-6px) scale(1.015) rotate(-0.4deg);
+    transform: translateY(-3px) scale(1.008);
   }
 }
 
@@ -723,9 +731,9 @@ button:active, .btn-brutalist:active {
    selector it's declared on, so this fires exactly on the toggle, not on
    every re-render of an already-liked element. */
 @keyframes aero-pop {
-  0% { transform: scale(0.4); }
-  55% { transform: scale(1.35); }
-  75% { transform: scale(0.9); }
+  0% { transform: scale(0.55); }
+  55% { transform: scale(1.2); }
+  75% { transform: scale(0.94); }
   100% { transform: scale(1); }
 }
 .aero .fill-white {
@@ -733,12 +741,12 @@ button:active, .btn-brutalist:active {
 }
 
 /* The 40px round header icons (logo, volume, notifications, messages -
-   all h-10 w-10 border-2, rounded to circles above) get a bigger, more
-   visible idle bob, staggered per-icon so they float out of sync with
-   each other instead of marching in lockstep. */
+   all h-10 w-10 border-2, rounded to circles above) get a gentle idle
+   bob, staggered per-icon so they float out of sync with each other
+   instead of marching in lockstep. */
 @keyframes aero-icon-bob {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-6px) rotate(-3deg); }
+  50% { transform: translateY(-3px) rotate(-1.5deg); }
 }
 .aero .h-10.w-10.border-2 {
   animation: aero-icon-bob 2.6s ease-in-out infinite;
@@ -754,9 +762,9 @@ button:active, .btn-brutalist:active {
    markup-free way to give every one of them a bouncy pop-open instead of
    just appearing. */
 @keyframes aero-pop-in {
-  0% { opacity: 0; transform: scale(0.75) translateY(10px); }
-  60% { opacity: 1; transform: scale(1.04) translateY(-2px); }
-  80% { transform: scale(0.98) translateY(1px); }
+  0% { opacity: 0; transform: scale(0.85) translateY(8px); }
+  60% { opacity: 1; transform: scale(1.02) translateY(-1px); }
+  80% { transform: scale(0.99) translateY(0.5px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 .aero .animate-fadeIn {
