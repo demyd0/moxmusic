@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { auth } from '@/lib/firebase';
 import { getUserProfile } from '@/services/userService';
 import { ensureConversation, subscribeToConversations } from '@/services/chatService';
+import { playNotificationSound } from '@/lib/notificationSound';
 import type { ChatParticipantInfo, Conversation } from '@/types/chat';
 
 interface ChatContextValue {
@@ -50,9 +51,32 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubAuth();
   }, []);
 
+  // Tracks the last-seen lastMessageAt per conversation so a real new
+  // incoming message can be told apart from "the subscription just fired
+  // again" (re-sorted order, your own sent message updating the same doc,
+  // a reconnect replaying the current snapshot, etc). The very first
+  // snapshot after (re)subscribing is the existing state, not new
+  // activity, so it's recorded silently without a sound.
+  const lastMessageTimestamps = useRef<Map<string, number>>(new Map());
+  const hasLoadedOnce = useRef(false);
+
   useEffect(() => {
     if (!currentUserId) return;
-    const unsub = subscribeToConversations(currentUserId, setConversations);
+    hasLoadedOnce.current = false;
+    lastMessageTimestamps.current = new Map();
+    const unsub = subscribeToConversations(currentUserId, (convos) => {
+      if (hasLoadedOnce.current) {
+        const hasNewIncoming = convos.some((c) => {
+          if (!c.lastMessageSenderId || c.lastMessageSenderId === currentUserId) return false;
+          const prevSeen = lastMessageTimestamps.current.get(c.id) || 0;
+          return c.lastMessageAt > prevSeen;
+        });
+        if (hasNewIncoming) playNotificationSound();
+      }
+      convos.forEach((c) => lastMessageTimestamps.current.set(c.id, c.lastMessageAt));
+      hasLoadedOnce.current = true;
+      setConversations(convos);
+    });
     return () => unsub();
   }, [currentUserId]);
 
