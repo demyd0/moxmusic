@@ -32,7 +32,6 @@ import {
   Trash2,
   ChevronDown,
   Check,
-  Edit3,
   Sun,
   Moon,
   Upload,
@@ -655,18 +654,6 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <Palette className="h-4 w-4" />
                     <span>CUSTOMIZE PROFILE</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileDropdownOpen(false);
-                      setIsUsernameModalOpen(true);
-                    }}
-                    className="w-full min-h-[40px] flex items-center gap-2.5 px-2.5 py-2 text-left font-bold uppercase text-black border border-black bg-white hover:bg-black hover:text-white transition-all mb-2 hard-shadow-sm"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                    <span>CHANGE USERNAME</span>
                   </button>
 
                   <button

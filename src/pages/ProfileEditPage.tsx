@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { auth } from '@/lib/firebase';
-import { getUserProfile, getPublicUserProfile, updateAvatarUrl } from '@/services/userService';
+import { getUserProfile, getPublicUserProfile, updateAvatarUrl, saveUserProfile } from '@/services/userService';
+import { UsernameModal } from '@/components/UsernameModal';
 import { subscribeUserCollections } from '@/services/collectionService';
 import { getProfileCustomization, saveProfileCustomization } from '@/services/profileService';
 import { getFollowerCount, getFollowingCount } from '@/services/followService';
@@ -71,6 +72,7 @@ import {
   Rows3,
   Lock,
   Music,
+  Edit3,
 } from 'lucide-react';
 
 const BG_TYPES: { type: ProfileBackgroundType; label: string; icon: React.ReactNode }[] = [
@@ -91,6 +93,8 @@ export const ProfileEditPage: React.FC = () => {
 
   const [userId, setUserId] = useState('');
   const [username, setUsername] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [likedAlbums, setLikedAlbums] = useState<Album[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,6 +137,7 @@ export const ProfileEditPage: React.FC = () => {
       }
       setIsAuthenticated(true);
       setUserId(user.uid);
+      setUserEmail(user.email || '');
 
       const profile = await getUserProfile(user.uid);
       setUsername(profile?.username || '');
@@ -395,6 +400,13 @@ export const ProfileEditPage: React.FC = () => {
     }
   };
 
+  const handleSaveUsername = async (newUsername: string) => {
+    if (!userId) return;
+    const profile = await saveUserProfile(userId, newUsername, userEmail || undefined, avatarUrlDraft.trim() || undefined);
+    setUsername(profile.username);
+    setIsUsernameModalOpen(false);
+  };
+
   const previewStyle = backgroundToCss(customization.background);
 
   if (isLoading) {
@@ -482,6 +494,22 @@ export const ProfileEditPage: React.FC = () => {
           <div className="grid lg:grid-cols-[1fr_320px] gap-6">
             {/* Left: editor controls */}
             <div className="space-y-6">
+              {/* Username */}
+              <section className="border-2 border-black bg-white p-6 hard-shadow">
+                <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">USERNAME</h2>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="min-w-0 truncate font-mono text-sm font-bold text-black">@{username || '...'}</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsUsernameModalOpen(true)}
+                    className="inline-flex shrink-0 items-center gap-1.5 border-2 border-black bg-white px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:bg-neutral-100 transition-all hard-shadow-sm"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    <span>CHANGE</span>
+                  </button>
+                </div>
+              </section>
+
               {/* Avatar */}
               <section className="border-2 border-black bg-white p-6 hard-shadow">
                 <h2 className="font-header text-lg font-extrabold uppercase text-black mb-4">AVATAR</h2>
@@ -1064,6 +1092,14 @@ export const ProfileEditPage: React.FC = () => {
       </div>
 
       <Footer />
+
+      <UsernameModal
+        isOpen={isUsernameModalOpen}
+        initialUsername={username}
+        onClose={() => setIsUsernameModalOpen(false)}
+        onSubmit={handleSaveUsername}
+        minLength={userEmail === 'demyd4000@gmail.com' ? 1 : undefined}
+      />
     </div>
   );
 };
